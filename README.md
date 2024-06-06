@@ -9,12 +9,12 @@ _🚧 This repo is under construction. Do not use. 🚧_
 <!-- ☝️ Replace with your logo (if applicable) via ![](https://uri-to-your-logo-image) ☝️ -->
 <!-- ☝️ If you see logo rendering errors, make sure you're not using indentation, or try an HTML IMG tag -->
 
-<h1 align="center">[INSERT YOUR REPO / PROJ NAME HERE]</h1>
+<h1 align="center">SLIM CLI Tool</h1>
 <!-- ☝️ Replace with your repo name ☝️ -->
 
 </div>
 
-<pre align="center">[INSERT A SINGLE SENTENCE DESCRIBING THE PURPOSE OF YOUR REPO / PROJ]</pre>
+<pre align="center">Automate the application of best practices to your git repositories</pre>
 <!-- ☝️ Replace with a single sentence describing the purpose of your repo / proj ☝️ -->
 
 <!-- Header block for project -->
@@ -35,7 +35,10 @@ _🚧 This repo is under construction. Do not use. 🚧_
 
 ## Features
 
-* [INSERT LIST OF FEATURES IMPORTANT TO YOUR USERS HERE]
+- Command-line based tool
+- Fetches the latest SLIM best practices as specified
+- Customizes best practices for a given checked-out repository
+- Creates a new branch and proposes a pull request accordingly
   
 <!-- ☝️ Replace with a bullet-point list of your features ☝️ -->
 
@@ -54,33 +57,56 @@ This guide provides a quick way to get started with our project. Please see our 
 
 ### Requirements
 
-* [INSERT LIST OF REQUIREMENTS HERE]
+* Python 3.7+
+* Git
+* Yarn
   
 <!-- ☝️ Replace with a numbered list of your requirements, including hardware if applicable ☝️ -->
 
 ### Setup Instructions
 
-1. [INSERT STEP-BY-STEP SETUP INSTRUCTIONS HERE, WITH OPTIONAL SCREENSHOTS]
-   
-<!-- ☝️ Replace with a numbered list of how to set up your software prior to running ☝️ -->
+1. Clone the repository
+   ```bash
+   git clone https://github.com/your_org/slim-cli.git
+   cd slim-cli
+   ```
+2. Install dependencies
+   ```bash
+   yarn install
+   ```
 
 ### Run Instructions
 
-1. [INSERT STEP-BY-STEP RUN INSTRUCTIONS HERE, WITH OPTIONAL SCREENSHOTS]
-
-<!-- ☝️ Replace with a numbered list of your run instructions, including expected results ☝️ -->
+1. List all available best practices
+   ```bash
+   $ slim-cli list
+   ID.                 NAME            DESCRIPTION
+   SLIM-123    README        A template that can be used to help developers and users understand your repository's project code concisely and clearly.
+   ```
+2. Load repositories from a file
+   ```bash
+   $ slim-cli repos add /path/to/repo_list.txt
+   Loaded repo 1
+   Loaded repo 2
+   ```
+3. Apply a best practice to repositories
+   ```bash
+   $ slim-cli apply SLIM-123 --use-ai
+   AI features enabled
+   Applied best practice SLIM-123 into git branch slim-123 in repo 1
+   Applied best practice SLIM-123 into git branch slim-123 in repo 2 
+   ```
 
 ### Usage Examples
 
-* [INSERT LIST OF COMMON USAGE EXAMPLES HERE, WITH OPTIONAL SCREENSHOTS]
-
-<!-- ☝️ Replace with a list of your usage examples, including screenshots if possible, and link to external documentation for details ☝️ -->
+* Applying best practices to multiple repositories
 
 ### Build Instructions (if applicable)
 
-1. [INSERT STEP-BY-STEP BUILD INSTRUCTIONS HERE, WITH OPTIONAL SCREENSHOTS]
-
-<!-- ☝️ Replace with a numbered list of your build instructions, including expected results / outputs with optional screenshots ☝️ -->
+1. Build the project
+   ```bash
+   yarn build
+   ```
 
 ### Test Instructions (if applicable)
 
@@ -118,10 +144,7 @@ No questions yet. Propose a question to be added here by reaching out to our con
 
 ## Contributing
 
-[INSERT LINK TO CONTRIBUTING GUIDE OR FILL INLINE HERE]
-<!-- example link to CONTRIBUTING.md>
 Interested in contributing to our project? Please see our: [CONTRIBUTING.md](CONTRIBUTING.md)
--->
 
 <!-- example inline contributing guide>
 1. Create an GitHub issue ticket describing what changes you need (e.g. issue-1)
@@ -132,17 +155,10 @@ Interested in contributing to our project? Please see our: [CONTRIBUTING.md](CON
 **Working on your first pull request?** See guide: [How to Contribute to an Open Source Project on GitHub](https://kcd.im/pull-request)
 -->
 
-[INSERT LINK TO YOUR CODE_OF_CONDUCT.md OR SHARE TEXT HERE]
-<!-- example link to CODE_OF_CONDUCT.md>
 For guidance on how to interact with our team, please see our code of conduct located at: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
--->
 
-<!-- ☝️ Replace with a text describing how people may contribute to your project, or link to your contribution guide directly ☝️ -->
-
-[INSERT LINK TO YOUR GOVERNANCE.md OR SHARE TEXT HERE]
-<!-- example link to GOVERNANCE.md>
 For guidance on our governance approach, including decision-making process and our various roles, please see our governance model at: [GOVERNANCE.md](GOVERNANCE.md)
--->
+
 
 ## License
 
