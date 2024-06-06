@@ -3,6 +3,8 @@ import logging
 import sys
 import requests
 import re
+import json
+import os
 
 def setup_logging():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -31,7 +33,7 @@ def fetch_best_practices(url):
             })
 
     return practices
-    
+
 def list_practices(args):
     logging.debug("Listing all best practices...")
     url = "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/docs/guides/checklist.md"
@@ -46,19 +48,55 @@ def list_practices(args):
     for practice in practices:
         print(f"{practice['ID'].ljust(10)}{practice['NAME'].ljust(20)}{practice['DESCRIPTION']}")
 
+REPO_FILE = 'repos.json'
+
+def load_repositories():
+    if os.path.exists(REPO_FILE):
+        with open(REPO_FILE, 'r') as file:
+            return json.load(file)
+    return []
+
+def save_repositories(repositories):
+    with open(REPO_FILE, 'w') as file:
+        json.dump(repositories, file, indent=4)
+
 def add_repository(args):
     repo = args.repo
     logging.debug(f"Adding repository: {repo}")
-    print(f"This feature needs to be implemented - Adding repository from {repo}")
+    
+    repositories = load_repositories()
+    
+    if repo in repositories:
+        print(f"Repository {repo} is already in the list.")
+    else:
+        repositories.append(repo)
+        save_repositories(repositories)
+        print(f"Repository {repo} added successfully.")
 
 def remove_repository(args):
     repo = args.repo
     logging.debug(f"Removing repository: {repo}")
-    print(f"This feature needs to be implemented - Removing repository {repo}")
-
+    
+    repositories = load_repositories()
+    
+    if repo in repositories:
+        repositories.remove(repo)
+        save_repositories(repositories)
+        print(f"Repository {repo} removed successfully.")
+    else:
+        print(f"Repository {repo} not found in the list.")
+        
 def list_repositories(args):
     logging.debug("Listing all repositories...")
-    print("This feature needs to be implemented - Listing repositories")
+    
+    repositories = load_repositories()
+    
+    if repositories:
+        print("Current repositories:")
+        for repo in repositories:
+            print(f" - {repo}")
+    else:
+        print("No repositories found.")
 
 def apply_best_practice(args):
     best_practice_id = args.best_practice_id
