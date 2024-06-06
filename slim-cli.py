@@ -5,9 +5,44 @@ import sys
 def setup_logging():
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+def fetch_best_practices(url):
+    response = requests.get(url)
+    response.raise_for_status()
+    content = response.text
+
+    # Extract table content from the markdown
+    table_match = re.search(r'\|.*?\n\|[\s-]+\n((\|.*?\n)+)', content)
+    if not table_match:
+        logging.error("Could not find the table in the provided URL")
+        return []
+
+    table_content = table_match.group(1).strip().split('\n')
+
+    practices = []
+    for row in table_content:
+        columns = [col.strip() for col in row.split('|') if col]
+        if len(columns) == 3:
+            practices.append({
+                "ID": columns[0],
+                "NAME": columns[1],
+                "DESCRIPTION": columns[2],
+            })
+
+    return practices
+    
 def list_practices(args):
     logging.debug("Listing all best practices...")
-    print("This feature needs to be implemented - Listing practices")
+    url = "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/docs/guides/checklist.md"
+    practices = fetch_best_practices(url)
+    
+    if not practices:
+        print("No practices found or failed to fetch practices.")
+        return
+
+    print(f"{'ID'.ljust(10)}{'NAME'.ljust(20)}{'DESCRIPTION'}")
+    print("-" * 60)
+    for practice in practices:
+        print(f"{practice['ID'].ljust(10)}{practice['NAME'].ljust(20)}{practice['DESCRIPTION']}")
 
 def add_repository(args):
     repo = args.repo
