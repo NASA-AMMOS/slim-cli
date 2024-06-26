@@ -72,9 +72,15 @@ def apply_best_practice(args):
     #     os.makedirs(tmp_dir)
     # subprocess.run(['git', 'clone', repo, tmp_dir], check=True)
 
+    # Clone the repository using GitHub CLI
+    subprocess.run(['gh', 'repo', 'clone', repo, tmp_dir], check=True)
+    
     # Get best practices information
     practices = fetch_best_practices(SLIM_REGISTRY_URI)
 
+    # Change directory to the cloned repository
+    os.chdir(tmp_dir)
+    
     # Switch statement skeleton
     # NOTE: we'll want to use multi-gitter to do the actual patch application. See: https://github.com/lindell/multi-gitter
     if best_practice_id == 'SLIM-001.1':
@@ -88,6 +94,11 @@ def apply_best_practice(args):
         # Default handling for other IDs
         pass
 
+    # Commit and push the changes using GitHub CLI
+    subprocess.run(['git', 'add', '.'], check=True)
+    subprocess.run(['git', 'commit', '-m', f'Apply best practice {best_practice_id}'], check=True)
+    subprocess.run(['gh', 'repo', 'create', '--source', '.', '--public', '--push'], check=True)
+    
     print(f"Applying best practice {best_practice_id} to repository.")
 
 def deploy_branch(args):
