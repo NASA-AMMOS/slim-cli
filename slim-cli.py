@@ -57,6 +57,82 @@ def list_practices(args):
 
     print(tabulate(table, headers=headers, tablefmt="grid"))
 
+
+def use_ai(template, repo, best_practice_id, practices_file=None):
+    # Example usage
+    #template = "path/to/template.md"
+    #repo = "https://github.com/your-username/your-repo"
+    #best_practice_id = "SLIM-001.1"
+    #practices_file = "slim-registry.json"  # Optional: If you want to fetch practices from a local file
+
+    #new_document = use_ai(template, repo, best_practice_id, practices_file)
+    
+    import openai
+    from dotenv import load_dotenv
+    
+    # Load environment variables from .env file (OPENAI_API_KEY=your_openai_api_key) 
+    load_dotenv()
+    openai.api_key = os.getenv('OPENAI_API_KEY')
+
+    if not openai.api_key:
+        raise ValueError("OpenAI API key is missing. Please check your .env file.")
+
+    # Logging
+    logging.debug(f"Using AI to generate document for best practice ID: {best_practice_id} in repository {repo}")
+
+    # Fetch best practices information
+    if practices_file:
+        with open(practices_file, 'r') as file:
+            practices = json.load(file)
+    else:
+        response = requests.get(SLIM_REGISTRY_URI)
+        response.raise_for_status()
+        practices = response.json()
+
+    best_practice = next((p for p in practices if p['id'] == best_practice_id), None)
+
+    if not best_practice:
+        logging.error(f"Best practice ID {best_practice_id} not found.")
+        return None
+
+    # Read the template content
+    with open(template, 'r') as file:
+        template_content = file.read()
+
+    # Create a temporary directory and clone the repository
+    tmp_dir = tempfile.mkdtemp(prefix='repo_clone_' + str(uuid.uuid4()) + '_')
+    repo_code_path = os.path.join(tmp_dir, repo)
+    subprocess.run(['gh', 'repo', 'clone', repo, repo_code_path], check=True)
+
+    # Fetch the code base from the repository
+    code_base = ""
+    for root, _, files in os.walk(repo_code_path):
+        for file in files:
+            if file.endswith('.py'):  # Adjust the file type as needed
+                with open(os.path.join(root, file), 'r') as f:
+                    code_base += f.read() + "\n\n"
+
+    # Construct the prompt for the AI
+    prompt = (
+        f"You are an AI assistant. Your task is to generate a new document based on the provided template and best practices.\n\n"
+        f"Template:\n{template_content}\n\n"
+        f"Best Practice ({best_practice_id}):\n{best_practice}\n\n"
+        f"Code Base:\n{code_base}\n\n"
+        f"Please generate the new document."
+    )
+
+    # Call the OpenAI API
+    response = openai.Completion.create(
+        engine="gpt-4o",
+        prompt=prompt,
+        max_tokens=1500  # Adjust the token count as needed
+    )
+
+    new_document = response.choices[0].text.strip()
+    
+    return new_document
+
+    
 def apply_best_practice(args):
     best_practice_id = args.best_practice_id
     use_ai = args.use_ai
