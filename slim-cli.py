@@ -10,6 +10,8 @@ import subprocess
 from tabulate import tabulate
 import tempfile
 import uuid
+import openai
+from dotenv import load_dotenv
 
 # Constants
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/issue-154/static/data/slim-registry.json"
@@ -58,36 +60,34 @@ def list_practices(args):
     print(tabulate(table, headers=headers, tablefmt="grid"))
 
 
-def use_ai(template, repo, best_practice_id, practices_file=None):
-    # Example usage
-    #template = "path/to/template.md"
-    #repo = "https://github.com/your-username/your-repo"
-    #best_practice_id = "SLIM-001.1"
-    #practices_file = "slim-registry.json"  # Optional: If you want to fetch practices from a local file
+def use_ai(template, repo, best_practice_id):
+    """
+    Uses AI to generate a new document based on the provided template and best practices from a code repository.
+    
+    :param template: Path to the template document (e.g., testing.md or governance.md).
+    :param repo: URL of the target repository.
+    :param best_practice_id: ID of the best practice to apply.
+    :return: Generated document as a string.
 
-    #new_document = use_ai(template, repo, best_practice_id, practices_file)
-    
-    import openai
-    from dotenv import load_dotenv
-    
+    # Example usage
+    template = "path/to/template.md"
+    repo = "https://github.com/your-username/your-repo"
+    best_practice_id = "SLIM-001.1"
+    new_document = use_ai(template, repo, best_practice_id)
+    print(new_document)
+    """
+        
     # Load environment variables from .env file (OPENAI_API_KEY=your_openai_api_key) 
     load_dotenv()
     openai.api_key = os.getenv('OPENAI_API_KEY')
-
-    if not openai.api_key:
-        raise ValueError("OpenAI API key is missing. Please check your .env file.")
 
     # Logging
     logging.debug(f"Using AI to generate document for best practice ID: {best_practice_id} in repository {repo}")
 
     # Fetch best practices information
-    if practices_file:
-        with open(practices_file, 'r') as file:
-            practices = json.load(file)
-    else:
-        response = requests.get(SLIM_REGISTRY_URI)
-        response.raise_for_status()
-        practices = response.json()
+    response = requests.get(SLIM_REGISTRY_URI) 
+    response.raise_for_status()
+    practices = response.json()
 
     best_practice = next((p for p in practices if p['id'] == best_practice_id), None)
 
@@ -121,15 +121,21 @@ def use_ai(template, repo, best_practice_id, practices_file=None):
         f"Please generate the new document."
     )
 
-    # Call the OpenAI API
-    response = openai.Completion.create(
-        engine="gpt-4o",
-        prompt=prompt,
-        max_tokens=1500  # Adjust the token count as needed
-    )
+    if openai.api_key:
+        # Call the OpenAI API
+        response = openai.Completion.create(
+            engine="gpt-4o",
+            prompt=prompt,
+            max_tokens=1500  # Adjust the token count as needed
+        )
+    else:
+        # Fallback to using the Ollama LLaMA3 model
+        logging.debug("OpenAI API key is missing. Falling back to using the Ollama Llama3 model.")
+        response = subprocess.run(['ollama', 'run', 'llama3', prompt], capture_output=True, text=True)
+        response_text = response.stdout
 
-    new_document = response.choices[0].text.strip()
-    
+    new_document = response_text if not openai.api_key else response.choices[0].text.strip()
+        
     return new_document
 
     
