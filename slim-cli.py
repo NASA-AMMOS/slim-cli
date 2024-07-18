@@ -12,9 +12,15 @@ import tempfile
 import uuid
 import openai
 from dotenv import load_dotenv
+from typing import Optional, Dict, Any
 
 # Constants
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/issue-154/static/data/slim-registry.json"
+SUPPORTED_MODELS = {
+    "openai": ["gpt-3.5-turbo", "gpt-4o"],
+    "ollama": ["llama2", "mistral", "codellama"],
+    # Add more models as needed
+}
 
 def setup_logging():
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -59,86 +65,153 @@ def list_practices(args):
 
     print(tabulate(table, headers=headers, tablefmt="grid"))
 
-
-def use_ai(template, repo, best_practice_id):
+def use_ai(template: str, repo: str, best_practice_id: str, model: str = "gpt-3.5-turbo") -> Optional[str]:
     """
     Uses AI to generate a new document based on the provided template and best practices from a code repository.
     
     :param template: Path to the template document (e.g., testing.md or governance.md).
     :param repo: URL of the target repository.
     :param best_practice_id: ID of the best practice to apply.
-    :return: Generated document as a string.
+    :param model: Name of the AI model to use (default: "gpt-3.5-turbo").
+    :return: Generated document as a string, or None if an error occurs.
+    """
+    
+    # Load environment variables and set up logging
+    load_dotenv()
+    logging.basicConfig(level=logging.DEBUG)
+    logger = logging.getLogger(__name__)
+    
+    logger.debug(f"Using AI to generate document for best practice ID: {best_practice_id} in repository {repo}")
+    
+    # Fetch best practices information
+    best_practice = fetch_best_practice(best_practice_id)
+    if not best_practice:
+        return None
+    
+    # Read the template content
+    template_content = read_file_content(template)
+    if not template_content:
+        return None
+    
+    # Clone the repository and fetch the code base
+    code_base = clone_repo_and_fetch_code(repo)
+    if not code_base:
+        return None
+    
+    # Construct the prompt for the AI
+    prompt = construct_prompt(template_content, best_practice, code_base)
+    
+    # Generate the document using the specified model
+    new_document = generate_document(prompt, model)
+    
+    return new_document
 
-    # Example usage
+def fetch_best_practice(best_practice_id: str) -> Optional[Dict[str, Any]]:
+    try:
+        response = requests.get(SLIM_REGISTRY_URI)
+        response.raise_for_status()
+        practices = response.json()
+        best_practice = next((p for p in practices if p['id'] == best_practice_id), None)
+        if not best_practice:
+            logging.error(f"Best practice ID {best_practice_id} not found.")
+            return None
+        return best_practice
+    except requests.RequestException as e:
+        logging.error(f"Error fetching best practices: {e}")
+        return None
+
+def read_file_content(file_path: str) -> Optional[str]:
+    try:
+        with open(file_path, 'r') as file:
+            return file.read()
+    except IOError as e:
+        logging.error(f"Error reading file {file_path}: {e}")
+        return None
+
+def clone_repo_and_fetch_code(repo: str) -> Optional[str]:
+    tmp_dir = tempfile.mkdtemp(prefix='repo_clone_' + str(uuid.uuid4()) + '_')
+    repo_list_file = os.path.join(tmp_dir, 'repo_list.txt')
+    
+    with open(repo_list_file, 'w') as f:
+        f.write(f"{repo}\n")
+    
+    repo_code_path = os.path.join(tmp_dir, 'cloned_repos')
+    try:
+        subprocess.run(['multi-gitter', 'clone', '--input-file', repo_list_file, '--output-directory', repo_code_path], check=True)
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error cloning repository: {e}")
+        return None
+    
+    cloned_repo_path = os.path.join(repo_code_path, os.path.basename(repo))
+    
+    code_base = ""
+    for root, _, files in os.walk(cloned_repo_path):
+        for file in files:
+            if file.endswith(('.py', '.js', '.java', '.cpp', '.cs')):  # Add more extensions as needed
+                file_path = os.path.join(root, file)
+                code_base += read_file_content(file_path) or ""
+    
+    return code_base
+
+def construct_prompt(template_content: str, best_practice: Dict[str, Any], code_base: str) -> str:
+    return (
+        f"You are an AI assistant. Your task is to generate a new document based on the provided template and best practices.\n\n"
+        f"Template:\n{template_content}\n\n"
+        f"Best Practice ({best_practice['id']}):\n{best_practice}\n\n"
+        f"Code Base:\n{code_base}\n\n"
+        f"Refer to the code base, based on best practice and template, generate a document."
+    )
+
+def generate_document(prompt: str, model: str) -> Optional[str]:
+    model_provider, model_name = model.split('/')
+    
+    if model_provider == "openai":
+        return generate_with_openai(prompt, model_name)
+    elif model_provider == "ollama":
+        return generate_with_ollama(prompt, model_name)
+    else:
+        logging.error(f"Unsupported model provider: {model_provider}")
+        return None
+
+def generate_with_openai(prompt: str, model_name: str) -> Optional[str]:
+    openai.api_key = os.getenv('OPENAI_API_KEY')
+    if not openai.api_key:
+        logging.error("OpenAI API key is missing.")
+        return None
+    
+    try:
+        response = openai.ChatCompletion.create(
+            model=model_name,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=1500
+        )
+        return response.choices[0].message.content.strip()
+    except openai.error.OpenAIError as e:
+        logging.error(f"Error calling OpenAI API: {e}")
+        return None
+
+def generate_with_ollama(prompt: str, model_name: str) -> Optional[str]:
+    try:
+        response = subprocess.run(['ollama', 'run', model_name, prompt], capture_output=True, text=True, check=True)
+        return response.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error running Ollama model: {e}")
+        return None
+
+# Example usage
+'''
+if __name__ == "__main__":
     template = "path/to/template.md"
     repo = "https://github.com/your-username/your-repo"
     best_practice_id = "SLIM-001.1"
-    new_document = use_ai(template, repo, best_practice_id)
-    print(new_document)
-    """
-        
-    # Load environment variables from .env file (OPENAI_API_KEY=your_openai_api_key) 
-    load_dotenv()
-    openai.api_key = os.getenv('OPENAI_API_KEY')
-
-    # Logging
-    logging.debug(f"Using AI to generate document for best practice ID: {best_practice_id} in repository {repo}")
-
-    # Fetch best practices information
-    response = requests.get(SLIM_REGISTRY_URI) 
-    response.raise_for_status()
-    practices = response.json()
-
-    best_practice = next((p for p in practices if p['id'] == best_practice_id), None)
-
-    if not best_practice:
-        logging.error(f"Best practice ID {best_practice_id} not found.")
-        return None
-
-    # Read the template content
-    with open(template, 'r') as file:
-        template_content = file.read()
-
-    # Create a temporary directory and clone the repository
-    tmp_dir = tempfile.mkdtemp(prefix='repo_clone_' + str(uuid.uuid4()) + '_')
-    repo_code_path = os.path.join(tmp_dir, repo)
-    subprocess.run(['gh', 'repo', 'clone', repo, repo_code_path], check=True)
-
-    # Fetch the code base from the repository
-    code_base = ""
-    for root, _, files in os.walk(repo_code_path):
-        for file in files:
-            if file.endswith('.py'):  # Adjust the file type as needed
-                with open(os.path.join(root, file), 'r') as f:
-                    code_base += f.read() + "\n\n"
-
-    # Construct the prompt for the AI
-    prompt = (
-        f"You are an AI assistant. Your task is to generate a new document based on the provided template and best practices.\n\n"
-        f"Template:\n{template_content}\n\n"
-        f"Best Practice ({best_practice_id}):\n{best_practice}\n\n"
-        f"Code Base:\n{code_base}\n\n"
-        f"Please generate the new document."
-    )
-
-    if openai.api_key:
-        # Call the OpenAI API
-        response = openai.Completion.create(
-            engine="gpt-4o",
-            prompt=prompt,
-            max_tokens=1500  # Adjust the token count as needed
-        )
+    model = "openai/gpt-3.5-turbo"  # or "ollama/llama2"
+    new_document = use_ai(template, repo, best_practice_id, model)
+    if new_document:
+        print(new_document)
     else:
-        # Fallback to using the Ollama LLaMA3 model
-        logging.debug("OpenAI API key is missing. Falling back to using the Ollama Llama3 model.")
-        response = subprocess.run(['ollama', 'run', 'llama3', prompt], capture_output=True, text=True)
-        response_text = response.stdout
+        print("Failed to generate document.")
+'''
 
-    new_document = response_text if not openai.api_key else response.choices[0].text.strip()
-        
-    return new_document
-
-    
 def apply_best_practice(args):
     best_practice_id = args.best_practice_id
     use_ai = args.use_ai
