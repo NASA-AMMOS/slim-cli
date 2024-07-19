@@ -20,7 +20,7 @@ _🚧 This repo is under construction. Do not use. 🚧_
 <!-- Header block for project -->
 
 [INSERT YOUR BADGES HERE (SEE: https://shields.io)] [![SLIM](https://img.shields.io/badge/Best%20Practices%20from-SLIM-blue)](https://nasa-ammos.github.io/slim/)
-<!-- ☝️ Add badges via: https://shields.io e.g. ![](https://img.shields.io/github/your_chosen_action/your_org/your_repo) ☝️ -->
+<!-- ☝️ Add badges via: https://shields.io e.g. ![](https://img.shields.io/github/your_chosen_action/NASA-AMMOS/your_repo) ☝️ -->
 
 [INSERT SCREENSHOT OF YOUR SOFTWARE, IF APPLICABLE]
 <!-- ☝️ Screenshot of your software (if applicable) via ![](https://uri-to-your-screenshot) ☝️ -->
@@ -67,7 +67,7 @@ This guide provides a quick way to get started with our project. Please see our 
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/your_org/slim-cli.git
+   git clone https://github.com/NASA-AMMOS/slim-cli.git
    cd slim-cli
    ```
 2. Install dependencies
