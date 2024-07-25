@@ -13,6 +13,8 @@ import uuid
 import openai
 from dotenv import load_dotenv
 from typing import Optional, Dict, Any
+from rich.console import Console
+from rich.table import Table
 
 # Constants
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/issue-154/static/data/slim-registry.json"
@@ -40,30 +42,35 @@ def fetch_best_practices_from_file(file_path):
 
 def list_practices(args):
     logging.debug("Listing all best practices...")
-    #practices = fetch_best_practices(SLIM_REGISTRY_URI)
+    # practices = fetch_best_practices(SLIM_REGISTRY_URI)
     practices = fetch_best_practices_from_file("slim-registry.json")
-    
+
     if not practices:
         print("No practices found or failed to fetch practices.")
         return
 
+    console = Console()
+    table = Table(show_header=True, header_style="bold magenta", show_lines=True)
     headers = ["ID", "Title", "Description", "Asset"]
-    table = []
+    for header in headers:
+        table.add_column(header)
 
+    i = 0  # Start the manual index for practices with assets
     for practice in practices:
         title = textwrap.fill(practice.get('title', 'N/A'), width=30)
         description = textwrap.fill(practice.get('description', 'N/A'), width=50)
         
-        # Check for assets and handle accordingly
         if 'assets' in practice and practice['assets']:
-            for asset in practice['assets']:
-                asset_id = asset['id']
+            i += 1  # Increment the practice index only if there are assets
+            for j, asset in enumerate(practice['assets'], start=1):
+                asset_id = f"SLIM-{i}.{j}"
                 asset_name = textwrap.fill(asset['name'], width=20)
-                table.append([asset_id, title, description, asset_name])
-        else: # skip best practices that don't have infusable assets
+                table.add_row(asset_id, title, description, asset_name)
+        else:
             logging.debug(f"Skipping best practice {title} due to no infusable assets being available.")
 
-    print(tabulate(table, headers=headers, tablefmt="grid"))
+    console.print(table)
+
 
 def use_ai(template: str, repo: str, best_practice_id: str, model: str = "gpt-3.5-turbo") -> Optional[str]:
     """

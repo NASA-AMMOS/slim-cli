@@ -10,16 +10,13 @@
       "repository-setup",
       "github"
     ],
-    "id": "SLIM-1",
     "assets": [
       {
-        "id": "SLIM-1.1",
         "name": "Governance Template",
         "type": "text/md",
         "uri": "/slim/docs/guides/governance/governance-model/assets/GOVERNANCE-TEMPLATE.txt"
       },
       {
-        "id": "SLIM-1.2",
         "name": "Governance Template (Small Teams)",
         "type": "text/md",
         "uri": "/slim/docs/guides/governance/governance-model/assets/governance-template-small-team.txt"
@@ -37,7 +34,6 @@
       "testing",
       "tools"
     ],
-    "id": "SLIM-2",
     "assets": []
   },
   {
@@ -110,6 +106,13 @@
       "repository-setup",
       "github",
       "templates"
+    ],
+    "assets": [
+      {
+        "name": "Contributor Covenant Code of Conduct",
+        "type": "text/md",
+        "uri": "https://www.contributor-covenant.org/version/2/1/code_of_conduct/code_of_conduct.md"
+      }
     ]
   },
   {
