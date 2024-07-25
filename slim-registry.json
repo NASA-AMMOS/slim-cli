@@ -10,6 +10,7 @@
       "repository-setup",
       "github"
     ],
+    "id": "SLIM-1",
     "assets": [
       {
         "id": "SLIM-1.1",
@@ -35,7 +36,9 @@
       "security",
       "testing",
       "tools"
-    ]
+    ],
+    "id": "SLIM-2",
+    "assets": []
   },
   {
     "title": "README.md",

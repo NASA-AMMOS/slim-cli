@@ -83,21 +83,31 @@ def apply_best_practice(args):
     
     # Switch statement skeleton
     # NOTE: we'll want to use multi-gitter to do the actual patch application. See: https://github.com/lindell/multi-gitter
-    if best_practice_id == 'SLIM-001.1':
-        # Handle the specific case for SLIM-001.1
+    # if best_practice_id == 'SLIM-001.1':
+    #     # Handle the specific case for SLIM-001.1
 
-        pass
-    elif best_practice_id == 'SLIM-002':
-        # Handle the specific case for SLIM-002
-        pass
-    else:
-        # Default handling for other IDs
-        pass
+    #     if use_ai:
+    #         # take GOVERNANCE.md template, and use LLMs to fill the specific template tags in using information from the repository
+    #         # REPOSITORY CONTEXT INFORMATION:
+    #         # - Git repo information, e.g. name
+    #         # - GitHub project metadata
+    #         # - List of committers?
+
+    #         # use_ai(artifact_id, "GPT-4", repository_uir)
+    #     #pass
+    # elif best_practice_id == 'SLIM-002':
+    #     # Handle the specific case for SLIM-002
+    #     pass
+    # else:
+    #     # Default handling for other IDs
+    #     pass
 
     # Commit and push the changes using GitHub CLI
     subprocess.run(['git', 'add', '.'], check=True)
     subprocess.run(['git', 'commit', '-m', f'Apply best practice {best_practice_id}'], check=True)
     subprocess.run(['gh', 'repo', 'create', '--source', '.', '--public', '--push'], check=True)
+
+    # multi-gitter run best-practice-script.sh myorg/myrepo1 myorg/myrepo2
     
     print(f"Applying best practice {best_practice_id} to repository.")
 
