@@ -14,12 +14,12 @@
       {
         "name": "Governance Template",
         "type": "text/md",
-        "uri": "/slim/docs/guides/governance/governance-model/assets/GOVERNANCE-TEMPLATE.txt"
+        "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/docs/guides/governance/governance-model/GOVERNANCE-TEMPLATE.md"
       },
       {
         "name": "Governance Template (Small Teams)",
         "type": "text/md",
-        "uri": "/slim/docs/guides/governance/governance-model/assets/governance-template-small-team.txt"
+        "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/docs/guides/governance/governance-model/governance-template-small-team.md"
       }
     ]
   },
