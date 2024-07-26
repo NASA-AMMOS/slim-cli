@@ -3,3 +3,4 @@ tabulate
 openai
 python-dotenv
 rich
+gitpython

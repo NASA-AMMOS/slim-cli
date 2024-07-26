@@ -15,6 +15,8 @@ from dotenv import load_dotenv
 from typing import Optional, Dict, Any
 from rich.console import Console
 from rich.table import Table
+import git
+import urllib
 
 # Constants
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/issue-154/static/data/slim-registry.json"
@@ -25,7 +27,7 @@ SUPPORTED_MODELS = {
 }
 
 def setup_logging():
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def fetch_best_practices(url):
     response = requests.get(url)
@@ -49,27 +51,41 @@ def list_practices(args):
         print("No practices found or failed to fetch practices.")
         return
 
+    asset_mapping = create_slim_registry_dictionary(practices)
+
     console = Console()
     table = Table(show_header=True, header_style="bold magenta", show_lines=True)
     headers = ["ID", "Title", "Description", "Asset"]
     for header in headers:
         table.add_column(header)
 
-    i = 0  # Start the manual index for practices with assets
-    for practice in practices:
-        title = textwrap.fill(practice.get('title', 'N/A'), width=30)
-        description = textwrap.fill(practice.get('description', 'N/A'), width=50)
-        
-        if 'assets' in practice and practice['assets']:
-            i += 1  # Increment the practice index only if there are assets
-            for j, asset in enumerate(practice['assets'], start=1):
-                asset_id = f"SLIM-{i}.{j}"
-                asset_name = textwrap.fill(asset['name'], width=20)
-                table.add_row(asset_id, title, description, asset_name)
-        else:
-            logging.debug(f"Skipping best practice {title} due to no infusable assets being available.")
+    for asset_id, info in asset_mapping.items():
+        table.add_row(asset_id, textwrap.fill(info['title'], width=30), textwrap.fill(info['description'], width=50), textwrap.fill(info['asset_name'], width=20))
 
     console.print(table)
+
+def create_slim_registry_dictionary(practices):
+    asset_mapping = {}
+    i = 1  # Start the manual index for practices with assets
+    for practice in practices:
+        title = practice.get('title', 'N/A')
+        description = practice.get('description', 'N/A')
+        
+        if 'assets' in practice and practice['assets']:
+            for j, asset in enumerate(practice['assets'], start=1):
+                asset_id = f"SLIM-{i}.{j}"
+                asset_name = asset.get('name', 'N/A')
+                asset_uri = asset.get('uri', '')
+                asset_mapping[asset_id] = {
+                    'title': title, 
+                    'description': description, 
+                    'asset_name': asset_name,
+                    'asset_uri': asset_uri
+                }
+        else:
+            asset_mapping[f"SLIM-{i}"] = {'title': title, 'description': description, 'asset_name': 'None'}
+        i += 1
+    return asset_mapping
 
 
 def use_ai(template: str, repo: str, best_practice_id: str, model: str = "gpt-3.5-turbo") -> Optional[str]:
@@ -219,59 +235,94 @@ if __name__ == "__main__":
         print("Failed to generate document.")
 '''
 
+def download_and_place_file(repo, url, filename, relative_path=''):
+    # Create the full path where the file will be saved
+    target_directory = os.path.join(repo.working_tree_dir, relative_path)
+    file_path = os.path.join(target_directory, filename)
+
+    # Ensure that the target directory exists, create if not
+    os.makedirs(target_directory, exist_ok=True)
+
+    # Fetch the file from the URL
+    response = requests.get(url)
+    if response.status_code == 200:
+        # Write the content to the file in the repository
+        with open(file_path, 'wb') as file:
+            file.write(response.content)
+        logging.debug(f"File {filename} downloaded and placed at {file_path}.")
+    else:
+        logging.error(f"Failed to download the file. HTTP status code: {response.status_code}")
+
+
 def apply_best_practice(args):
     best_practice_id = args.best_practice_id
     use_ai = args.use_ai
-    repo = args.repo
-    tmp_dir = tempfile.mkdtemp(prefix='repo_clone_' + str(uuid.uuid4()) + '_')
+    repo_url = args.repo_url if hasattr(args, 'repo_url') else None
+    repo_dir = args.repo_dir if hasattr(args, 'repo_dir') else None
+    clone_to_dir = args.clone_to_dir if hasattr(args, 'clone_to_dir') else None
 
-    if use_ai:
-        logging.debug("AI features enabled for applying best practices")
-    logging.debug(f"Applying best practice ID: {best_practice_id} to repository {repo}")
+    # If repo_url is provided and clone_to_dir is specified, append repo name to clone_to_dir
+    if repo_url and clone_to_dir:
+        parsed_url = urllib.parse.urlparse(repo_url)
+        repo_name = os.path.basename(parsed_url.path)
+        if repo_name.endswith('.git'):
+            repo_name = repo_name[:-4]  # Remove '.git' from repo name if present
+        clone_to_dir = os.path.join(clone_to_dir, repo_name)
+        logging.debug(f"Set clone directory to {clone_to_dir}")
 
-    # FOR TESTING: Clone the repository to the temporary directory
-    # if not os.path.exists(tmp_dir):
-    #     os.makedirs(tmp_dir)
-    # subprocess.run(['git', 'clone', repo, tmp_dir], check=True)
-
-    # Clone the repository using GitHub CLI
-    subprocess.run(['gh', 'repo', 'clone', repo, tmp_dir], check=True)
+    # Create a temporary directory only if no clone_to_dir is specified
+    if not clone_to_dir:
+        clone_to_dir = tempfile.mkdtemp(prefix='repo_clone_' + str(uuid.uuid4()) + '_')
     
-    # Get best practices information
-    practices = fetch_best_practices(SLIM_REGISTRY_URI)
+    if repo_url:
+        logging.debug(f"Cloning repository {repo_url} into {clone_to_dir}")
+        # Ensure the clone_to_dir exists
+        if not os.path.isdir(clone_to_dir):
+            os.makedirs(clone_to_dir, exist_ok=True)
+            git_repo = git.Repo.clone_from(repo_url, clone_to_dir)
+        else:
+            logging.warning(f"clone_to_dir ({clone_to_dir}) exists already. Using existing directory.")
+            git_repo = git.Repo(clone_to_dir) 
+
+    elif repo_dir:
+        clone_to_dir = repo_dir
+        logging.debug(f"Using existing repository directory {repo_dir}")
+    else:
+        logging.error("No repository information provided.")
+        return
+
+    logging.debug(f"AI features {'enabled' if use_ai else 'disabled'} for applying best practices")
+    logging.debug(f"Applying best practice ID: {best_practice_id} to repository at {clone_to_dir}")
+
+    # Fetch best practices information
+    practices = fetch_best_practices_from_file("slim-registry.json")
+    if not practices:
+        print("No practices found or failed to fetch practices.")
+        return
+
+    asset_mapping = create_slim_registry_dictionary(practices)
 
     # Change directory to the cloned repository
-    os.chdir(tmp_dir)
+    os.chdir(clone_to_dir)
+
+    # Example application of a best practice
+    if best_practice_id in asset_mapping:
+        uri = asset_mapping[best_practice_id].get('asset_uri')
+        logging.debug(f"Applying best practice {best_practice_id} to repository at location {clone_to_dir}. URI: {uri}")
+
+        # Process best practice by ID
+        if best_practice_id == 'SLIM-8.1':
+            if use_ai:
+                logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
+            else:
+                download_and_place_file(git_repo, uri, 'CODE_OF_CONDUCT.md')
+                logging.info(f"Applied best practice {best_practice_id} to repo {git_repo.working_tree_dir}")
+    else:
+        logging.warning(f"SLIM best practice {best_practice_id} not supported.")
+
+
     
-    # Switch statement skeleton
-    # NOTE: we'll want to use multi-gitter to do the actual patch application. See: https://github.com/lindell/multi-gitter
-    # if best_practice_id == 'SLIM-001.1':
-    #     # Handle the specific case for SLIM-001.1
-
-    #     if use_ai:
-    #         # take GOVERNANCE.md template, and use LLMs to fill the specific template tags in using information from the repository
-    #         # REPOSITORY CONTEXT INFORMATION:
-    #         # - Git repo information, e.g. name
-    #         # - GitHub project metadata
-    #         # - List of committers?
-
-    #         # use_ai(artifact_id, "GPT-4", repository_uir)
-    #     #pass
-    # elif best_practice_id == 'SLIM-002':
-    #     # Handle the specific case for SLIM-002
-    #     pass
-    # else:
-    #     # Default handling for other IDs
-    #     pass
-
-    # Commit and push the changes using GitHub CLI
-    subprocess.run(['git', 'add', '.'], check=True)
-    subprocess.run(['git', 'commit', '-m', f'Apply best practice {best_practice_id}'], check=True)
-    subprocess.run(['gh', 'repo', 'create', '--source', '.', '--public', '--push'], check=True)
-
-    # multi-gitter run best-practice-script.sh myorg/myrepo1 myorg/myrepo2
     
-    print(f"Applying best practice {best_practice_id} to repository.")
 
 def deploy_branch(args):
     branch_name = args.branch_name
@@ -297,7 +348,9 @@ def create_parser():
 
     parser_apply = subparsers.add_parser('apply', help='Applies a best practice')
     parser_apply.add_argument('best_practice_id', help='Best practice ID')
-    parser_apply.add_argument('repo', help='Repository URL')
+    parser_apply.add_argument('--repo_url', required=False, help='Repository URL')
+    parser_apply.add_argument('--repo_dir', required=False, help='Repository directory location on local machine')
+    parser_apply.add_argument('--clone_to_dir', required=False, help='Local path to clone repository to')
     parser_apply.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
     parser_apply.set_defaults(func=apply_best_practice)
 
