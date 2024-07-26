@@ -273,23 +273,6 @@ def apply_best_practice(args):
     # Create a temporary directory only if no clone_to_dir is specified
     if not clone_to_dir:
         clone_to_dir = tempfile.mkdtemp(prefix='repo_clone_' + str(uuid.uuid4()) + '_')
-    
-    if repo_url:
-        logging.debug(f"Cloning repository {repo_url} into {clone_to_dir}")
-        # Ensure the clone_to_dir exists
-        if not os.path.isdir(clone_to_dir):
-            os.makedirs(clone_to_dir, exist_ok=True)
-            git_repo = git.Repo.clone_from(repo_url, clone_to_dir)
-        else:
-            logging.warning(f"clone_to_dir ({clone_to_dir}) exists already. Using existing directory.")
-            git_repo = git.Repo(clone_to_dir) 
-
-    elif repo_dir:
-        clone_to_dir = repo_dir
-        logging.debug(f"Using existing repository directory {repo_dir}")
-    else:
-        logging.error("No repository information provided.")
-        return
 
     logging.debug(f"AI features {'enabled' if use_ai else 'disabled'} for applying best practices")
     logging.debug(f"Applying best practice ID: {best_practice_id} to repository at {clone_to_dir}")
@@ -310,19 +293,54 @@ def apply_best_practice(args):
         uri = asset_mapping[best_practice_id].get('asset_uri')
         logging.debug(f"Applying best practice {best_practice_id} to repository at location {clone_to_dir}. URI: {uri}")
 
+        try:
+            # Load the existing repository
+            if repo_url:
+                logging.debug(f"Cloning repository {repo_url} into {clone_to_dir}")
+                # Ensure the clone_to_dir exists
+                if not os.path.isdir(clone_to_dir):
+                    os.makedirs(clone_to_dir, exist_ok=True)
+                    git_repo = git.Repo.clone_from(repo_url, clone_to_dir)
+                else:
+                    logging.warning(f"clone_to_dir ({clone_to_dir}) exists already. Using existing directory.")
+                    git_repo = git.Repo(clone_to_dir) 
+            elif repo_dir:
+                clone_to_dir = repo_dir
+                logging.debug(f"Using existing repository directory {repo_dir}")
+            else:
+                logging.error("No repository information provided.")
+                return
+            
+            # Check if the branch exists
+            if best_practice_id in git_repo.heads:
+                # Check out the existing branch
+                branch = git_repo.heads[best_practice_id]
+                branch.checkout()
+                logging.warning(f"Git branch '{best_practice_id}' already exists in clone_to_dir '{clone_to_dir}'. Checking out existing branch.")
+            else:
+                # Create and check out the new branch
+                new_branch = git_repo.create_head(best_practice_id)
+                new_branch.checkout()
+                print(f"Branch '{best_practice_id}' created and checked out successfully.")
+
+        except git.exc.InvalidGitRepositoryError:
+            print(f"Error: {git_repo.working_tree_dir} is not a valid Git repository.")
+        except git.exc.GitCommandError as e:
+            print(f"Git command error: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+
         # Process best practice by ID
         if best_practice_id == 'SLIM-8.1':
             if use_ai:
                 logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
             else:
                 download_and_place_file(git_repo, uri, 'CODE_OF_CONDUCT.md')
-                logging.info(f"Applied best practice {best_practice_id} to repo {git_repo.working_tree_dir}")
+                logging.info(f"Applied best practice {best_practice_id} to repo {git_repo.working_tree_dir} and branch '{best_practice_id}'")
+        else:
+            logging.warning(f"SLIM best practice {best_practice_id} not supported.")
     else:
         logging.warning(f"SLIM best practice {best_practice_id} not supported.")
-
-
-    
-    
 
 def deploy_branch(args):
     branch_name = args.branch_name
