@@ -264,9 +264,10 @@ def apply_best_practice(args):
     repo_url = args.repo_url if hasattr(args, 'repo_url') else None
     repo_dir = args.repo_dir if hasattr(args, 'repo_dir') else None
     clone_to_dir = args.clone_to_dir if hasattr(args, 'clone_to_dir') else None
+    applied_file_path = None # default return value is invalid applied best practice
 
     logging.debug(f"AI features {'enabled' if use_ai else 'disabled'} for applying best practices")
-    logging.debug(f"Applying best practice ID: {best_practice_id} to repository at {clone_to_dir}")
+    logging.debug(f"Applying best practice ID: {best_practice_id} to repository {repo_url}")
 
     # Fetch best practices information
     practices = fetch_best_practices_from_file("slim-registry.json")
@@ -276,41 +277,38 @@ def apply_best_practice(args):
 
     asset_mapping = create_slim_registry_dictionary(practices)
 
-    # Example application of a best practice
     if best_practice_id in asset_mapping:
         uri = asset_mapping[best_practice_id].get('asset_uri')
-        logging.debug(f"Applying best practice {best_practice_id} to repository at location {clone_to_dir}. URI: {uri}")
+        logging.debug(f"Applying best practice {best_practice_id} to repository {repo_url}. URI: {uri}")
 
         try:
-            # If repo_url is provided and clone_to_dir is specified, append repo name to clone_to_dir
-            if repo_url and clone_to_dir:
-                parsed_url = urllib.parse.urlparse(repo_url)
-                repo_name = os.path.basename(parsed_url.path)
-                if repo_name.endswith('.git'):
-                    repo_name = repo_name[:-4]  # Remove '.git' from repo name if present
+            parsed_url = urllib.parse.urlparse(repo_url)
+            repo_name = os.path.basename(parsed_url.path)
+            repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
+            if clone_to_dir: # If clone_to_dir is specified, append repo name to clone_to_dir
                 clone_to_dir = os.path.join(clone_to_dir, repo_name)
                 logging.debug(f"Set clone directory to {clone_to_dir}")
+            else: # else make a temporary directory
+                clone_to_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
 
             # Load the existing repository
             if repo_url:
                 logging.debug(f"Cloning repository {repo_url} into {clone_to_dir}")
-                # Ensure the clone_to_dir exists
-                if not os.path.isdir(clone_to_dir):
-                    os.makedirs(clone_to_dir, exist_ok=True)
+
+                # If clone_to_dir is a valid existing repo folder, use it, otherwise clone the repo into the folder
+                try:
+                    git_repo = git.Repo(clone_to_dir)
+                    logging.warning(f"Repository folder ({clone_to_dir}) exists already. Using existing directory.")
+                except git.exc.InvalidGitRepositoryError:
+                    logging.debug(f"Repository folder ({clone_to_dir}) not a git repository yet already. Cloning repo {repo_url} contents into folder.")
                     git_repo = git.Repo.clone_from(repo_url, clone_to_dir)
-                else:
-                    logging.warning(f"clone_to_dir ({clone_to_dir}) exists already. Using existing directory.")
-                    git_repo = git.Repo(clone_to_dir) 
+                    
             elif repo_dir:
                 clone_to_dir = repo_dir
                 logging.debug(f"Using existing repository directory {repo_dir}")
             else:
                 logging.error("No repository information provided.")
-                return
-
-            # Create a temporary directory only if no clone_to_dir is specified
-            if not clone_to_dir:
-                clone_to_dir = tempfile.mkdtemp(prefix='repo_clone_' + str(uuid.uuid4()) + '_')
+                return None
 
             # Change directory to the cloned repository
             os.chdir(clone_to_dir)
@@ -328,45 +326,59 @@ def apply_best_practice(args):
                 logging.debug(f"Branch '{best_practice_id}' created and checked out successfully.")
 
         except git.exc.InvalidGitRepositoryError:
-            print(f"Error: {clone_to_dir} is not a valid Git repository.")
+            logging.error(f"Error: {clone_to_dir} is not a valid Git repository.")
+            return None
         except git.exc.GitCommandError as e:
-            print(f"Git command error: {e}")
+            logging.error(f"Git command error: {e}")
+            return None
         except Exception as e:
-            print(f"An unexpected error occurred: {e}")
+            logging.error(f"An unexpected error occurred: {e}")
+            return None
 
         # Process best practice by ID
         if best_practice_id == 'SLIM-1.1':
+            applied_file_path = download_and_place_file(git_repo, uri, 'GOVERNANCE.md')
             if use_ai:
                 logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
-            else:
-                applied_file_path = download_and_place_file(git_repo, uri, 'GOVERNANCE.md')
+
+                # Custom AI processing code to go here using and modifying applied_file_path content
+        elif best_practice_id == 'SLIM-1.2':
+            applied_file_path = download_and_place_file(git_repo, uri, 'GOVERNANCE.md')
+            if use_ai:
+                logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
+
+                # Custom AI processing code to go here using and modifying applied_file_path content
         elif best_practice_id == 'SLIM-8.1':
+            applied_file_path = download_and_place_file(git_repo, uri, 'CODE_OF_CONDUCT.md')
             if use_ai:
                 logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
-            else:
-                applied_file_path = download_and_place_file(git_repo, uri, 'CODE_OF_CONDUCT.md')
+
+                # Custom AI processing code to go here using and modifying applied_file_path content
         else:
+            applied_file_path = None # nothing was modified 
             logging.warning(f"SLIM best practice {best_practice_id} not supported.")
     else:
         logging.warning(f"SLIM best practice {best_practice_id} not supported.")
     
     if applied_file_path:
-        logging.info(f"Applied best practice {best_practice_id} to repo {git_repo.working_tree_dir} and branch '{best_practice_id}'")
+        logging.info(f"Applied best practice {best_practice_id} to repo {repo_url}, cloned folder {git_repo.working_tree_dir} and branch '{best_practice_id}'")
+        return applied_file_path
     else:
-        logging.error(f"Failed to apply best practice {best_practice_id} to repo {git_repo.working_tree_dir} and branch '{best_practice_id}'")
+        logging.error(f"Failed to apply best practice {best_practice_id} to repo {repo_url}")
+        return None
 
 
-def deploy_branch(args):
+def deploy_best_practice(args):
     branch_name = best_practice_id = args.best_practice_id
     remote_name = args.remote_name  # This should be the name of the remote to push to
     commit_message = args.commit_message  # Commit message for the changes
     
     logging.debug(f"Deploying branch: {branch_name}")
-
-    # Assuming repo_dir points to a local git repository directory
-    repo = git.Repo(args.repo_dir)
     
     try:
+        # Assuming repo_dir points to a local git repository directory
+        repo = git.Repo(args.repo_dir)
+
         # Checkout the branch
         repo.git.checkout(branch_name)
         logging.debug(f"Checked out to branch {branch_name}")
@@ -382,19 +394,33 @@ def deploy_branch(args):
         # Push changes to the remote
         repo.git.push(remote_name, branch_name)
         logging.debug(f"Pushed changes to remote {remote_name} on branch {branch_name}")
-
         logging.info(f"Deployed best practice id '{best_practice_id} to remote '{remote_name}' on branch '{branch_name}'")
+
+        return True
     except git.exc.GitCommandError as e:
         logging.error(f"Git command failed: {str(e)}")
-        print(f"An error occurred: {str(e)}")
+        logging.error(f"An error occurred: {str(e)}")
+        return False
 
-def apply_and_deploy(args):
-    best_practice_id = args.best_practice_id
-    use_ai = args.use_ai
-    if use_ai:
-        logging.debug("AI customization enabled for applying and deploying best practices")
-    logging.debug(f"Applying and deploying best practice ID: {best_practice_id}")
-    print(f"This feature needs to be implemented - Applying and deploying {best_practice_id}")
+def apply_and_deploy_best_practice(args):
+    logging.debug("AI customization enabled for applying and deploying best practices" if args.use_ai else "AI customization disabled")
+    logging.debug(f"Applying and deploying best practice ID: {args.best_practice_id}")
+
+    # Apply the best practice
+    path = apply_best_practice(args)
+    
+    # Deploy the best practice if applied successfully 
+    if path:
+        result = deploy_best_practice(args)
+        if result:
+            logging.info(f"Successfully applied and deployed best practice ID: {args.best_practice_id}")
+        else:
+            logging.error(f"Unable to deploy best practice ID: {args.best_practice_id}")
+    else:
+        logging.error(f"Unable to apply and deploy best practice ID: {args.best_practice_id}")
+    
+
+
 
 def create_parser():
     parser = argparse.ArgumentParser(description='This tool automates the application of best practices to git repositories.')
@@ -405,7 +431,8 @@ def create_parser():
     parser_list = subparsers.add_parser('list', help='Lists all available best practice from the SLIM')
     parser_list.set_defaults(func=list_practices)
 
-    parser_apply = subparsers.add_parser('apply', help='Applies a best practice')
+    # Parser for applying a best practice
+    parser_apply = subparsers.add_parser('apply', help='Applies a best practice, i.e. places a best practice in a git repo in the right spot with appropriate content')
     parser_apply.add_argument('--best_practice_id', required=True, help='Best practice ID')
     parser_apply.add_argument('--repo_url', required=False, help='Repository URL')
     parser_apply.add_argument('--repo_dir', required=False, help='Repository directory location on local machine')
@@ -413,18 +440,25 @@ def create_parser():
     parser_apply.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
     parser_apply.set_defaults(func=apply_best_practice)
 
-    # Parser for deploying a branch
-    parser_deploy = subparsers.add_parser('deploy', help='Deploys a branch with committed changes')
+    # Parser for deploying a best practice
+    parser_deploy = subparsers.add_parser('deploy', help='Deploys a best practice, i.e. places the best practice in a git repo, adds, commits, and pushes to the git remote.')
     parser_deploy.add_argument('--best_practice_id', required=True, help='The name of the best_practice_id to deploy')
-    parser_deploy.add_argument('--repo_dir', required=True, help='Local repository directory')
+    parser_deploy.add_argument('--repo_dir', required=False, help='Local repository directory')
     parser_deploy.add_argument('--remote_name', required=True, help='Name of the remote to push changes to')
     parser_deploy.add_argument('--commit_message', required=True, help='Commit message to use for the deployment')
-    parser_deploy.set_defaults(func=deploy_branch)
+    parser_deploy.set_defaults(func=deploy_best_practice)
 
-    parser_apply_deploy = subparsers.add_parser('apply-deploy', help='Apply and deploy a best practice')
-    parser_apply_deploy.add_argument('best_practice_id', help='Best practice ID')
+    # Parser for applying and deploying a best practice together
+    parser_apply_deploy = subparsers.add_parser('apply_deploy', help='Applies and deploys a best practice')
+    parser_apply_deploy.add_argument('--best_practice_id', required=True, help='Best practice ID')
+    parser_apply_deploy.add_argument('--repo_url', required=False, help='Repository URL')
+    parser_apply_deploy.add_argument('--repo_dir', required=False, help='Local repository directory')
+    parser_apply_deploy.add_argument('--clone_to_dir', required=False, help='Local path to clone repository to')
     parser_apply_deploy.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
-    parser_apply_deploy.set_defaults(func=apply_and_deploy)
+    parser_apply_deploy.add_argument('--remote_name', required=True, help='Name of the remote to push changes to')
+    parser_apply_deploy.add_argument('--commit_message', required=True, help='Commit message to use for the deployment')
+    parser_apply_deploy.set_defaults(func=apply_and_deploy_best_practice)
+
 
     return parser
 
