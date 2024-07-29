@@ -1,6 +1,6 @@
-_🚧 This repo is under construction. Do not use. 🚧_
 
-<!-- Header block for project -->
+🚧 This repo is under construction. Do not use. 🚧
+
 <hr>
 
 <div align="center">
@@ -25,44 +25,41 @@ _🚧 This repo is under construction. Do not use. 🚧_
 [INSERT SCREENSHOT OF YOUR SOFTWARE, IF APPLICABLE]
 <!-- ☝️ Screenshot of your software (if applicable) via ![](https://uri-to-your-screenshot) ☝️ -->
 
-[INSERT MORE DETAILED DESCRIPTION OF YOUR REPOSITORY HERE]
-<!-- ☝️ Replace with a more detailed description of your repository, including why it was made and whom its intended for.  ☝️ -->
+SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessly with your development workflow. It fetches and applies structured SLIM best practices directly into your Git repositories. The tool leverages artificial intelligence capabilities to customize and tailor the application of SLIM best practices based on your repository's specifics.
 
-[INSERT LIST OF IMPORTANT PROJECT / REPO LINKS HERE]
-<!-- example links>
-[Website](INSERT WEBSITE LINK HERE) | [Docs/Wiki](INSERT DOCS/WIKI SITE LINK HERE) | [Discussion Board](INSERT DISCUSSION BOARD LINK HERE) | [Issue Tracker](INSERT ISSUE TRACKER LINK HERE)
--->
+[Website](https://nasa-ammos.github.io/slim/) | [Docs/Wiki](https://nasa-ammos.github.io/slim/docs) | [Discussion Board](https://nasa-ammos.github.io/slim/forum) | [Issue Tracker](https://github.com/NASA-AMMOS/slim-cli/issues)
 
 ## Features
 
-- Command-line based tool
-- Fetches the latest SLIM best practices as specified
-- Customizes best practices for a given checked-out repository
-- Creates a new branch and proposes a pull request accordingly
+- Command-line interface for applying SLIM best practices into Git development workflows
+- Fetches the latest SLIM best practices dynamically from SLIM's registry
+- Allows customization of best practices using advanced AI models before applying them to repositories
+- Deploys, or git adds, commits, and pushes changes to your repository's remote
   
-<!-- ☝️ Replace with a bullet-point list of your features ☝️ -->
-
 ## Contents
 
-* [Quick Start](#quick-start)
-* [Changelog](#changelog)
-* [FAQ](#frequently-asked-questions-faq)
-* [Contributing Guide](#contributing)
-* [License](#license)
-* [Support](#support)
+- [Features](#features)
+- [Contents](#contents)
+- [Quick Start](#quick-start)
+  - [Requirements](#requirements)
+  - [Setup Instructions](#setup-instructions)
+  - [Run Instructions](#run-instructions)
+- [Changelog](#changelog)
+- [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
+- [Contributing](#contributing)
+- [License](#license)
+- [Support](#support)
 
 ## Quick Start
 
-This guide provides a quick way to get started with our project. Please see our [docs]([INSERT LINK TO DOCS SITE / WIKI HERE]) for a more comprehensive overview.
+This guide provides a quick way to get started with our project. Please see our [docs](https://nasa-ammos.github.io/slim/docs) for a more comprehensive overview.
 
 ### Requirements
 
 * Python 3.7+
 * Git
-* Yarn
+* OpenAI API key (for AI features)
   
-<!-- ☝️ Replace with a numbered list of your requirements, including hardware if applicable ☝️ -->
-
 ### Setup Instructions
 
 1. Clone the repository
@@ -72,105 +69,91 @@ This guide provides a quick way to get started with our project. Please see our 
    ```
 2. Install dependencies
    ```bash
-   yarn install
+   pip install -r requirements.txt
    ```
 
 ### Run Instructions
 
-1. List all available best practices
+This section provides detailed commands to interact with the SLIM CLI. Each command includes various options that you can specify to tailor the tool's behavior to your needs.
+
+1. **List all available best practices**
+   - This command lists all best practices fetched from the SLIM registry.
    ```bash
-   $ slim-cli list
-   ID.                 NAME            DESCRIPTION
-   SLIM-123    README        A template that can be used to help developers and users understand your repository's project code concisely and clearly.
-   ```
-2. Load repositories from a file
-   ```bash
-   $ slim-cli repos add /path/to/repo_list.txt
-   Loaded repo 1
-   Loaded repo 2
-   ```
-3. Apply a best practice to repositories
-   ```bash
-   $ slim-cli apply SLIM-123 --use-ai
-   AI features enabled
-   Applied best practice SLIM-123 into git branch slim-123 in repo 1
-   Applied best practice SLIM-123 into git branch slim-123 in repo 2 
+   $ python slim-cli.py list
    ```
 
-### Usage Examples
-
-* Applying best practices to multiple repositories
-
-### Build Instructions (if applicable)
-
-1. Build the project
+2. **Apply a best practice to a repository**
+   - This command applies a specified best practice to your repository. You can also enable AI features to further customize the integration of the best practice.
+   - `--best_practice_id`: Specifies the ID of the best practice to apply (required).
+   - `--repo_url`: Optional URL of the repository where the best practice will be applied. This is necessary if you want the CLI to handle cloning and branch management remotely.
+   - `--repo_dir`: Optional local directory path of the repository where the best practice will be applied. Use this if the repository is already cloned locally. Use this if not specifying `--repo_url`
+   - `--clone_to_dir`: Optional local path where the repository should be cloned if it is not already present locally.
+   - `--use-ai`: Enables AI features to customize the application of best practices based on the project’s specific needs. False by default.
    ```bash
-   yarn build
+   $ python slim-cli.py apply --best_practice_id SLIM-123 --use-ai --repo_url https://github.com/your-username/your-repo
+
+
+3. **Deploy a best practice**
+   - After applying best practices, you may want to deploy (commit and push) them to a remote repository.
+   - `--best_practice_id`: The ID of the best practice that has been applied and is ready for deployment.
+   - `--repo_dir`: The local directory of the repository where changes will be committed and pushed.
+   - `--remote_name`: Specifies the remote name in the git configuration to which the changes will be pushed.
+   - `--commit_message`: A message describing the changes for the commit.
+   - `--use-ai`: Enables AI features to customize the application of best practices based on the project’s specific needs. False by default.
+   ```bash
+   $ python slim-cli.py deploy --best_practice_id SLIM-123 --repo_dir /path/to/repo --remote_name origin --commit_message "Apply SLIM best practice"
+   ```
+   Example output:
+   ```
+   Checked out to branch SLIM-123
+   Added all changes to git index.
+   Committed changes.
+   Pushed changes to remote origin on branch SLIM-123
    ```
 
-### Test Instructions (if applicable)
+4. **Apply and deploy a best practice**
+   - Combines the application and deployment of a best practice into one step.
+   - `--best_practice_id`: Specifies the ID of the best practice to apply and then deploy.
+   - `--repo_url`: Optional, specifies the repository URL for cloning if not already cloned.
+   - `--repo_dir`: Specifies the directory of the repository where the best practice will be applied and changes committed.
+   - `--remote_name`: Specifies the remote to which the changes will be pushed.
+   - `--commit_message`: A message describing the changes for the commit.
+   - `--use-ai`: If specified, enables AI customization of the best practice before applying. False by default.
+   ```bash
+   $ python slim-cli.py apply-deploy --best_practice_id SLIM-123 --repo_url https://github.com/your-username/your-repo --remote_name origin --commit_message "Integrated SLIM best practice with AI customization"
+   ```
+   Example output:
+   ```
+   AI features disabled
+   Applied best practice SLIM-123 and committed to branch slim-123
+   Pushed changes to remote origin on branch slim-123
+   ```
 
-1. [INSERT STEP-BY-STEP TEST INSTRUCTIONS HERE, WITH OPTIONAL SCREENSHOTS]
+Each command can be modified with additional flags as needed for more specific tasks or environments.
 
-<!-- ☝️ Replace with a numbered list of your test instructions, including expected results / outputs with optional screenshots ☝️ -->
 
 ## Changelog
 
 See our [CHANGELOG.md](CHANGELOG.md) for a history of our changes.
 
-See our [releases page]([INSERT LINK TO YOUR RELEASES PAGE]) for our key versioned releases.
-
-<!-- ☝️ Replace with links to your changelog and releases page ☝️ -->
+See our [releases page](https://github.com/NASA-AMMOS/slim-cli/releases) for our key versioned releases.
 
 ## Frequently Asked Questions (FAQ)
 
-[INSERT LINK TO FAQ PAGE OR PROVIDE FAQ INLINE HERE]
-<!-- example link to FAQ PAGE>
-Questions about our project? Please see our: [FAQ]([INSERT LINK TO FAQ / DISCUSSION BOARD])
--->
-
-<!-- example FAQ inline format>
-1. Question 1
-   - Answer to question 1
-2. Question 2
-   - Answer to question 2
--->
-
-<!-- example FAQ inline with no questions yet>
-No questions yet. Propose a question to be added here by reaching out to our contributors! See support section below.
--->
-
-<!-- ☝️ Replace with a list of frequently asked questions from your project, or post a link to your FAQ on a discussion board ☝️ -->
+Questions about our project? Please see our: [FAQ](https://nasa-ammos.github.io/slim/faq)
 
 ## Contributing
 
 Interested in contributing to our project? Please see our: [CONTRIBUTING.md](CONTRIBUTING.md)
 
-<!-- example inline contributing guide>
-1. Create an GitHub issue ticket describing what changes you need (e.g. issue-1)
-2. [Fork](INSERT LINK TO YOUR REPO FORK PAGE HERE, e.g. https://github.com/my_org/my_repo/fork) this repo
-3. Make your modifications in your own fork
-4. Make a pull-request in this repo with the code in your fork and tag the repo owner / largest contributor as a reviewer
-
-**Working on your first pull request?** See guide: [How to Contribute to an Open Source Project on GitHub](https://kcd.im/pull-request)
--->
-
 For guidance on how to interact with our team, please see our code of conduct located at: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 
 For guidance on our governance approach, including decision-making process and our various roles, please see our governance model at: [GOVERNANCE.md](GOVERNANCE.md)
 
-
 ## License
 
 See our: [LICENSE](LICENSE)
-<!-- ☝️ Replace with the text of your copyright and license, or directly link to your license file ☝️ -->
 
 ## Support
 
-[INSERT CONTACT INFORMATION OR PROFILE LINKS TO MAINTAINERS AMONG COMMITTER LIST]
-
-<!-- example list of contacts>
-Key points of contact are: [@github-user-1](link to github profile) [@github-user-2](link to github profile)
--->
-
-<!-- ☝️ Replace with the key individuals who should be contacted for questions ☝️ -->
+Key points of contact are: [@riverma](https://github.com/riverma) and [@yunks128](https://github.com/yunks128)
