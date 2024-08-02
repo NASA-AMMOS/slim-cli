@@ -44,8 +44,8 @@ def fetch_best_practices_from_file(file_path):
 
 def list_practices(args):
     logging.debug("Listing all best practices...")
-    # practices = fetch_best_practices(SLIM_REGISTRY_URI)
-    practices = fetch_best_practices_from_file("slim-registry.json")
+    practices = fetch_best_practices(SLIM_REGISTRY_URI)
+    # practices = fetch_best_practices_from_file("slim-registry.json")
 
     if not practices:
         print("No practices found or failed to fetch practices.")
