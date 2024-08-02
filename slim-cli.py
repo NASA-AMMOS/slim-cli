@@ -88,104 +88,67 @@ def create_slim_registry_dictionary(practices):
     return asset_mapping
 
 
-def use_ai(template: str, repo: str, best_practice_id: str, model: str = "gpt-3.5-turbo") -> Optional[str]:
+def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str = "ollama/llama3") -> Optional[str]:
     """
-    Uses AI to generate a new document based on the provided template and best practices from a code repository.
+    Uses AI to generate or modify content based on the provided best practice and repository.
     
-    :param template: Path to the template document (e.g., testing.md or governance.md).
-    :param repo: URL of the target repository.
     :param best_practice_id: ID of the best practice to apply.
-    :param model: Name of the AI model to use (default: "gpt-3.5-turbo").
-    :return: Generated document as a string, or None if an error occurs.
+    :param repo_path: Path to the cloned repository.
+    :param template_path: Path to the template file for the best practice.
+    :param model: Name of the AI model to use (default: "ollama/llama3").
+    :return: Generated or modified content as a string, or None if an error occurs.
     """
+    logging.debug(f"Using AI to apply best practice ID: {best_practice_id} in repository {repo_path}")
     
-    # Load environment variables and set up logging
-    load_dotenv()
-    logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger(__name__)
+    # Fetch best practice information
+    practices = fetch_best_practices_from_file("slim-registry.json")
+    asset_mapping = create_slim_registry_dictionary(practices)
+    best_practice = asset_mapping.get(best_practice_id)
     
-    logger.debug(f"Using AI to generate document for best practice ID: {best_practice_id} in repository {repo}")
-    
-    # Fetch best practices information
-    best_practice = fetch_best_practice(best_practice_id)
     if not best_practice:
+        logging.error(f"Best practice ID {best_practice_id} not found.")
         return None
     
     # Read the template content
-    template_content = read_file_content(template)
+    template_content = read_file_content(template_path)
     if not template_content:
         return None
     
-    # Clone the repository and fetch the code base
-    code_base = clone_repo_and_fetch_code(repo)
+    # Fetch the code base (limited to specific file types)
+    code_base = fetch_code_base(repo_path)
     if not code_base:
         return None
     
     # Construct the prompt for the AI
     prompt = construct_prompt(template_content, best_practice, code_base)
     
-    # Generate the document using the specified model
-    new_document = generate_document(prompt, model)
+    # Generate the content using the specified model
+    new_content = generate_content(prompt, model)
     
-    return new_document
+    return new_content
 
-def fetch_best_practice(best_practice_id: str) -> Optional[Dict[str, Any]]:
-    try:
-        response = requests.get(SLIM_REGISTRY_URI)
-        response.raise_for_status()
-        practices = response.json()
-        best_practice = next((p for p in practices if p['id'] == best_practice_id), None)
-        if not best_practice:
-            logging.error(f"Best practice ID {best_practice_id} not found.")
-            return None
-        return best_practice
-    except requests.RequestException as e:
-        logging.error(f"Error fetching best practices: {e}")
-        return None
 
-def read_file_content(file_path: str) -> Optional[str]:
-    try:
-        with open(file_path, 'r') as file:
-            return file.read()
-    except IOError as e:
-        logging.error(f"Error reading file {file_path}: {e}")
-        return None
-
-def clone_repo_and_fetch_code(repo: str) -> Optional[str]:
-    tmp_dir = tempfile.mkdtemp(prefix='repo_clone_' + str(uuid.uuid4()) + '_')
-    repo_list_file = os.path.join(tmp_dir, 'repo_list.txt')
-    
-    with open(repo_list_file, 'w') as f:
-        f.write(f"{repo}\n")
-    
-    repo_code_path = os.path.join(tmp_dir, 'cloned_repos')
-    try:
-        subprocess.run(['multi-gitter', 'clone', '--input-file', repo_list_file, '--output-directory', repo_code_path], check=True)
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Error cloning repository: {e}")
-        return None
-    
-    cloned_repo_path = os.path.join(repo_code_path, os.path.basename(repo))
-    
+def fetch_code_base(repo_path: str) -> Optional[str]:
     code_base = ""
-    for root, _, files in os.walk(cloned_repo_path):
+    for root, _, files in os.walk(repo_path):
         for file in files:
             if file.endswith(('.py', '.js', '.java', '.cpp', '.cs')):  # Add more extensions as needed
                 file_path = os.path.join(root, file)
                 code_base += read_file_content(file_path) or ""
-    
-    return code_base
+    return code_base if code_base else None
 
 def construct_prompt(template_content: str, best_practice: Dict[str, Any], code_base: str) -> str:
     return (
-        f"You are an AI assistant. Your task is to generate a new document based on the provided template and best practices.\n\n"
-        f"Template:\n{template_content}\n\n"
-        f"Best Practice ({best_practice['id']}):\n{best_practice}\n\n"
-        f"Code Base:\n{code_base}\n\n"
-        f"Refer to the code base, based on best practice and template, generate a document."
+        f"You are an AI assistant tasked with applying the following best practice to a software project:\n\n"
+        f"Best Practice: {best_practice['title']}\n"
+        f"Description: {best_practice['description']}\n\n"
+        f"Template Content:\n{template_content}\n\n"
+        f"Code Base (excerpt):\n{code_base[:1000]}...\n\n"  # Limit code base to first 1000 characters
+        f"Based on the best practice, template, and code base, generate or modify the content to apply the best practice. "
+        f"Ensure the output is compatible with the template format and adheres to the best practice guidelines."
     )
 
-def generate_document(prompt: str, model: str) -> Optional[str]:
+def generate_content(prompt: str, model: str) -> Optional[str]:
     model_provider, model_name = model.split('/')
     
     if model_provider == "openai":
@@ -195,6 +158,16 @@ def generate_document(prompt: str, model: str) -> Optional[str]:
     else:
         logging.error(f"Unsupported model provider: {model_provider}")
         return None
+    
+
+def read_file_content(file_path: str) -> Optional[str]:
+    try:
+        with open(file_path, 'r') as file:
+            return file.read()
+    except IOError as e:
+        logging.error(f"Error reading file {file_path}: {e}")
+        return None
+
 
 def generate_with_openai(prompt: str, model_name: str) -> Optional[str]:
     openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -221,20 +194,6 @@ def generate_with_ollama(prompt: str, model_name: str) -> Optional[str]:
         logging.error(f"Error running Ollama model: {e}")
         return None
 
-# Example usage
-'''
-if __name__ == "__main__":
-    template = "path/to/template.md"
-    repo = "https://github.com/your-username/your-repo"
-    best_practice_id = "SLIM-001.1"
-    model = "openai/gpt-3.5-turbo"  # or "ollama/llama2"
-    new_document = use_ai(template, repo, best_practice_id, model)
-    if new_document:
-        print(new_document)
-    else:
-        print("Failed to generate document.")
-'''
-
 def download_and_place_file(repo, url, filename, relative_path=''):
     # Create the full path where the file will be saved
     target_directory = os.path.join(repo.working_tree_dir, relative_path)
@@ -260,13 +219,13 @@ def download_and_place_file(repo, url, filename, relative_path=''):
 
 def apply_best_practice(args):
     best_practice_id = args.best_practice_id
-    use_ai = args.use_ai
+    use_ai_flag = args.use_ai
     repo_url = args.repo_url if hasattr(args, 'repo_url') else None
     repo_dir = args.repo_dir if hasattr(args, 'repo_dir') else None
     clone_to_dir = args.clone_to_dir if hasattr(args, 'clone_to_dir') else None
     applied_file_path = None # default return value is invalid applied best practice
 
-    logging.debug(f"AI features {'enabled' if use_ai else 'disabled'} for applying best practices")
+    logging.debug(f"AI features {'enabled' if use_ai_flag else 'disabled'} for applying best practices")
     logging.debug(f"Applying best practice ID: {best_practice_id} to repository {repo_url}")
 
     # Fetch best practices information
@@ -338,22 +297,44 @@ def apply_best_practice(args):
         # Process best practice by ID
         if best_practice_id == 'SLIM-1.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'GOVERNANCE.md')
-            if use_ai:
-                logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
+            if use_ai_flag:
+                #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
+
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path) #template file path 
+                if ai_content:
+                    with open(applied_file_path, 'w') as f:
+                        f.write(ai_content)
+                    logging.info(f"Applied AI-generated content to {applied_file_path}")
+                else:
+                    logging.warning(f"AI generation failed for best practice {best_practice_id}")
         elif best_practice_id == 'SLIM-1.2':
             applied_file_path = download_and_place_file(git_repo, uri, 'GOVERNANCE.md')
-            if use_ai:
-                logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
+            if use_ai_flag:
+                #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+                if ai_content:
+                    with open(applied_file_path, 'w') as f:
+                        f.write(ai_content)
+                    logging.info(f"Applied AI-generated content to {applied_file_path}")
+                else:
+                    logging.warning(f"AI generation failed for best practice {best_practice_id}")
         elif best_practice_id == 'SLIM-8.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'CODE_OF_CONDUCT.md')
-            if use_ai:
-                logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
+            if use_ai_flag:
+                #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+                if ai_content:
+                    with open(applied_file_path, 'w') as f:
+                        f.write(ai_content)
+                    logging.info(f"Applied AI-generated content to {applied_file_path}")
+                else:
+                    logging.warning(f"AI generation failed for best practice {best_practice_id}")
         else:
             applied_file_path = None # nothing was modified 
             logging.warning(f"SLIM best practice {best_practice_id} not supported.")
