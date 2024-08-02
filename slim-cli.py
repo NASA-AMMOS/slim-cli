@@ -88,14 +88,14 @@ def create_slim_registry_dictionary(practices):
     return asset_mapping
 
 
-def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str = "ollama/llama3") -> Optional[str]:
+def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str = "ollama/mistral") -> Optional[str]:
     """
     Uses AI to generate or modify content based on the provided best practice and repository.
     
     :param best_practice_id: ID of the best practice to apply.
     :param repo_path: Path to the cloned repository.
     :param template_path: Path to the template file for the best practice.
-    :param model: Name of the AI model to use (default: "ollama/llama3").
+    :param model: Name of the AI model to use (default: "ollama/mistral").
     :return: Generated or modified content as a string, or None if an error occurs.
     """
     logging.debug(f"Using AI to apply best practice ID: {best_practice_id} in repository {repo_path}")
@@ -115,18 +115,29 @@ def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str
         return None
     
     # Fetch the code base (limited to specific file types)
-    code_base = fetch_code_base(repo_path)
-    if not code_base:
+    readme = fetch_readme(repo_path)
+    if not readme:
         return None
     
     # Construct the prompt for the AI
-    prompt = construct_prompt(template_content, best_practice, code_base)
-    
+    prompt = construct_prompt(template_content, best_practice, readme)
+    print("prompt: ")
+    print(prompt)
     # Generate the content using the specified model
     new_content = generate_content(prompt, model)
     
     return new_content
 
+def fetch_readme(repo_path: str) -> Optional[str]:
+    readme_files = ['README.md', 'README.txt', 'README.rst']  # Add more variations as needed
+    
+    for root, _, files in os.walk(repo_path):
+        for file in files:
+            if file in readme_files:
+                file_path = os.path.join(root, file)
+                return read_file_content(file_path)
+    
+    return None
 
 def fetch_code_base(repo_path: str) -> Optional[str]:
     code_base = ""
@@ -137,15 +148,14 @@ def fetch_code_base(repo_path: str) -> Optional[str]:
                 code_base += read_file_content(file_path) or ""
     return code_base if code_base else None
 
-def construct_prompt(template_content: str, best_practice: Dict[str, Any], code_base: str) -> str:
+def construct_prompt(template_content: str, best_practice: Dict[str, Any], readme: str) -> str:
     return (
-        f"You are an AI assistant tasked with applying the following best practice to a software project:\n\n"
+        f"Fill out all blanks in the template below that start with INSERT. Return the result as Markdown code.\n\n"
         f"Best Practice: {best_practice['title']}\n"
         f"Description: {best_practice['description']}\n\n"
-        f"Template Content:\n{template_content}\n\n"
-        f"Code Base (excerpt):\n{code_base[:1000]}...\n\n"  # Limit code base to first 1000 characters
-        f"Based on the best practice, template, and code base, generate or modify the content to apply the best practice. "
-        f"Ensure the output is compatible with the template format and adheres to the best practice guidelines."
+        f"Template and output format:\n{template_content}\n\n"
+        f"Use the info:\n{readme}...\n\n"
+        f"Show only the updated template output as markdown code."
     )
 
 def generate_content(prompt: str, model: str) -> Optional[str]:
