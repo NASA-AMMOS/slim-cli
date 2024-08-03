@@ -225,9 +225,35 @@ def download_and_place_file(repo, url, filename, target_relative_path_in_repo=''
     
     return file_path
 
+def apply_best_practices(best_practice_ids, use_ai_flag, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None):
+    if len(best_practice_ids) > 1:
+        if repo_url:
+            logging.debug(f"Using repository URL {repo_url} for group of best_practice_ids {best_practice_ids}")
 
+            parsed_url = urllib.parse.urlparse(repo_url)
+            repo_name = os.path.basename(parsed_url.path)
+            repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
+            if target_dir_to_clone_to: # If target_dir_to_clone_to is specified, append repo name to target_dir_to_clone_to
+                #repo_dir = os.path.join(target_dir_to_clone_to, repo_name)
+                #os.makedirs(repo_dir, exist_ok=True) # Make the dir only if it doesn't exist
+                #logging.debug(f"Set clone directory for group of best_practice_ids to {repo_dir}")
 
-def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None):
+                for best_practice_id in best_practice_ids:
+                    apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, repo_url=repo_url, target_dir_to_clone_to=target_dir_to_clone_to, branch='slim-best-practices')
+            else: # else make a temporary directory
+                repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+                logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
+                for best_practice_id in best_practice_ids:
+                    apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, repo_url=repo_url, target_dir_to_clone_to=repo_dir, branch='slim-best-practices')
+        else:
+            for best_practice_id in best_practice_ids:
+                apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, existing_repo_dir=existing_repo_dir)
+    elif len(best_practice_ids) == 1:
+        apply_best_practice(best_practice_id=best_practice_ids[0], use_ai_flag=use_ai_flag, repo_url=repo_url, existing_repo_dir=existing_repo_dir, target_dir_to_clone_to=target_dir_to_clone_to)
+    else:
+        logging.error(f"No best practice IDs specified.")
+
+def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None, branch = None):
     applied_file_path = None # default return value is invalid applied best practice
 
     logging.debug(f"AI features {'enabled' if use_ai_flag else 'disabled'} for applying best practices")
@@ -267,7 +293,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
 
             try:
                 git_repo = git.Repo(target_dir_to_clone_to)
-                logging.warning(f"Repository folder ({target_dir_to_clone_to}) exists already. Using existing directory.")
+                logging.debug(f"Repository folder ({target_dir_to_clone_to}) exists already. Using existing directory.")
             except Exception as e:
                 logging.debug(f"Repository folder ({target_dir_to_clone_to}) not a git repository yet already. Cloning repo {repo_url} contents into folder.")
                 git_repo = git.Repo.clone_from(repo_url, target_dir_to_clone_to)
@@ -278,14 +304,14 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
             # Check if the branch exists
             if best_practice_id in git_repo.heads:
                 # Check out the existing branch
-                branch = git_repo.heads[best_practice_id]
-                branch.checkout()
-                logging.warning(f"Git branch '{best_practice_id}' already exists in clone_to_dir '{target_dir_to_clone_to}'. Checking out existing branch.")
+                git_branch = git_repo.heads[best_practice_id] if not branch else git_repo.create_head(branch)
+                git_branch.checkout()
+                logging.warning(f"Git branch '{git_branch.name}' already exists in clone_to_dir '{target_dir_to_clone_to}'. Checking out existing branch.")
             else:
                 # Create and check out the new branch
-                new_branch = git_repo.create_head(best_practice_id)
-                new_branch.checkout()
-                logging.debug(f"Branch '{best_practice_id}' created and checked out successfully.")
+                git_branch = git_repo.create_head(best_practice_id) if not branch else git_repo.create_head(branch)
+                git_branch.checkout()
+                logging.debug(f"Branch '{git_branch.name}' created and checked out successfully.")
 
         except git.exc.InvalidGitRepositoryError:
             logging.error(f"Error: {target_dir_to_clone_to} is not a valid Git repository.")
@@ -450,10 +476,10 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
         logging.warning(f"SLIM best practice {best_practice_id} not supported.")
     
     if applied_file_path:
-        logging.info(f"Applied best practice {best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{best_practice_id}'")
+        logging.info(f"Applied best practice {best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
         return git_repo.working_tree_dir # return the modified git working directory path
     else:
-        logging.error(f"Failed to apply best practice {best_practice_id} to local repo {git_repo.working_tree_dir}")
+        logging.error(f"Failed to apply best practice {best_practice_id}")
         return None
 
 
@@ -524,13 +550,13 @@ def create_parser():
 
     # Parser for applying a best practice
     parser_apply = subparsers.add_parser('apply', help='Applies a best practice, i.e. places a best practice in a git repo in the right spot with appropriate content')
-    parser_apply.add_argument('--best_practice_id', required=True, help='Best practice ID')
+    parser_apply.add_argument('--best_practice_ids', nargs='+', required=True, help='Best practice IDs')
     parser_apply.add_argument('--repo_url', required=False, help='Repository URL')
     parser_apply.add_argument('--repo_dir', required=False, help='Repository directory location on local machine')
     parser_apply.add_argument('--clone_to_dir', required=False, help='Local path to clone repository to')
     parser_apply.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
-    parser_apply.set_defaults(func=lambda args: apply_best_practice(
-        best_practice_id=args.best_practice_id,
+    parser_apply.set_defaults(func=lambda args: apply_best_practices(
+        best_practice_ids=args.best_practice_ids,
         use_ai_flag=args.use_ai,
         repo_url=args.repo_url,
         existing_repo_dir=args.repo_dir,
