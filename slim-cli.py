@@ -227,12 +227,7 @@ def download_and_place_file(repo, url, filename, target_relative_path_in_repo=''
 
 
 
-def apply_best_practice(args):
-    best_practice_id = args.best_practice_id
-    use_ai_flag = args.use_ai
-    repo_url = args.repo_url if hasattr(args, 'repo_url') else None
-    existing_repo_dir = args.repo_dir if hasattr(args, 'repo_dir') else None
-    target_dir_to_clone_to = args.clone_to_dir if hasattr(args, 'clone_to_dir') else None
+def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None):
     applied_file_path = None # default return value is invalid applied best practice
 
     logging.debug(f"AI features {'enabled' if use_ai_flag else 'disabled'} for applying best practices")
@@ -456,22 +451,20 @@ def apply_best_practice(args):
     
     if applied_file_path:
         logging.info(f"Applied best practice {best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{best_practice_id}'")
-        return applied_file_path
+        return git_repo.working_tree_dir # return the modified git working directory path
     else:
         logging.error(f"Failed to apply best practice {best_practice_id} to local repo {git_repo.working_tree_dir}")
         return None
 
 
-def deploy_best_practice(args):
-    branch_name = best_practice_id = args.best_practice_id
-    remote_name = args.remote_name  # This should be the name of the remote to push to
-    commit_message = args.commit_message  # Commit message for the changes
+def deploy_best_practice(best_practice_id, repo_dir, remote_name, commit_message):
+    branch_name = best_practice_id
     
     logging.debug(f"Deploying branch: {branch_name}")
     
     try:
         # Assuming repo_dir points to a local git repository directory
-        repo = git.Repo(args.repo_dir)
+        repo = git.Repo(repo_dir)
 
         # Checkout the branch
         repo.git.checkout(branch_name)
@@ -496,23 +489,27 @@ def deploy_best_practice(args):
         logging.error(f"An error occurred: {str(e)}")
         return False
 
-def apply_and_deploy_best_practice(args):
-    logging.debug("AI customization enabled for applying and deploying best practices" if args.use_ai else "AI customization disabled")
-    logging.debug(f"Applying and deploying best practice ID: {args.best_practice_id}")
+def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, remote_name, commit_message, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None, ):
+    logging.debug("AI customization enabled for applying and deploying best practices" if use_ai_flag else "AI customization disabled")
+    logging.debug(f"Applying and deploying best practice ID: {best_practice_id}")
 
     # Apply the best practice
-    path = apply_best_practice(args)
+    path = apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, repo_url=repo_url, existing_repo_dir=existing_repo_dir, target_dir_to_clone_to=target_dir_to_clone_to)
     
     # Deploy the best practice if applied successfully 
     if path:
-        result = deploy_best_practice(args)
+        result = deploy_best_practice(best_practice_id=best_practice_id, repo_dir=path, remote_name=remote_name, commit_message=commit_message)
         if result:
-            logging.info(f"Successfully applied and deployed best practice ID: {args.best_practice_id}")
+            logging.info(f"Successfully applied and deployed best practice ID: {best_practice_id}")
         else:
-            logging.error(f"Unable to deploy best practice ID: {args.best_practice_id}")
+            logging.error(f"Unable to deploy best practice ID: {best_practice_id}")
     else:
-        logging.error(f"Unable to apply and deploy best practice ID: {args.best_practice_id}")
-    
+        logging.error(f"Unable to apply and deploy best practice ID: {best_practice_id}")
+
+# def process_multiple_ids(func, args):
+#     best_practice_ids = args.best_practice_ids
+#     for best_practice_id in best_practice_ids:
+#         func(repo_dir, best_practice_id)
 
 
 
@@ -532,7 +529,13 @@ def create_parser():
     parser_apply.add_argument('--repo_dir', required=False, help='Repository directory location on local machine')
     parser_apply.add_argument('--clone_to_dir', required=False, help='Local path to clone repository to')
     parser_apply.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
-    parser_apply.set_defaults(func=apply_best_practice)
+    parser_apply.set_defaults(func=lambda args: apply_best_practice(
+        best_practice_id=args.best_practice_id,
+        use_ai_flag=args.use_ai,
+        repo_url=args.repo_url,
+        existing_repo_dir=args.repo_dir,
+        target_dir_to_clone_to=args.clone_to_dir
+    ))
 
     # Parser for deploying a best practice
     parser_deploy = subparsers.add_parser('deploy', help='Deploys a best practice, i.e. places the best practice in a git repo, adds, commits, and pushes to the git remote.')
@@ -540,7 +543,12 @@ def create_parser():
     parser_deploy.add_argument('--repo_dir', required=False, help='Local repository directory')
     parser_deploy.add_argument('--remote_name', required=True, help='Name of the remote to push changes to')
     parser_deploy.add_argument('--commit_message', required=True, help='Commit message to use for the deployment')
-    parser_deploy.set_defaults(func=deploy_best_practice)
+    parser_deploy.set_defaults(func=lambda args: deploy_best_practice(
+        best_practice_id=args.best_practice_id,
+        repo_dir=args.repo_dir,
+        remote_name=args.remote_name,
+        commit_message=args.commit_message
+    ))
 
     # Parser for applying and deploying a best practice together
     parser_apply_deploy = subparsers.add_parser('apply_deploy', help='Applies and deploys a best practice')
@@ -551,7 +559,15 @@ def create_parser():
     parser_apply_deploy.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
     parser_apply_deploy.add_argument('--remote_name', required=True, help='Name of the remote to push changes to')
     parser_apply_deploy.add_argument('--commit_message', required=True, help='Commit message to use for the deployment')
-    parser_apply_deploy.set_defaults(func=apply_and_deploy_best_practice)
+    parser_apply_deploy.set_defaults(func=lambda args: apply_and_deploy_best_practice(
+        best_practice_id=args.best_practice_id,
+        use_ai_flag=args.use_ai,
+        remote_name=args.remote_name,
+        commit_message=args.commit_message,
+        repo_url=args.repo_url,
+        existing_repo_dir=args.repo_dir,
+        target_dir_to_clone_to=args.clone_to_dir
+    ))
 
 
     return parser
