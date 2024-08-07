@@ -239,54 +239,56 @@ def generate_git_branch_name(best_practice_ids):
     else:
         return None
 
-def apply_best_practices(best_practice_ids, use_ai_flag, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None):
-    if len(best_practice_ids) > 1:
-        if repo_url:
-            logging.debug(f"Using repository URL {repo_url} for group of best_practice_ids {best_practice_ids}")
+def apply_best_practices(best_practice_ids, use_ai_flag, repo_urls = None, existing_repo_dir = None, target_dir_to_clone_to = None):
+    
+    for repo_url in repo_urls:
+        if len(best_practice_ids) > 1:
+            if repo_url:
+                logging.debug(f"Using repository URL {repo_url} for group of best_practice_ids {best_practice_ids}")
 
-            parsed_url = urllib.parse.urlparse(repo_url)
-            repo_name = os.path.basename(parsed_url.path)
-            repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
-            if target_dir_to_clone_to: # If target_dir_to_clone_to is specified, append repo name to target_dir_to_clone_to
-                #repo_dir = os.path.join(target_dir_to_clone_to, repo_name)
-                #os.makedirs(repo_dir, exist_ok=True) # Make the dir only if it doesn't exist
-                #logging.debug(f"Set clone directory for group of best_practice_ids to {repo_dir}")
+                parsed_url = urllib.parse.urlparse(repo_url)
+                repo_name = os.path.basename(parsed_url.path)
+                repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
+                if target_dir_to_clone_to: # If target_dir_to_clone_to is specified, append repo name to target_dir_to_clone_to
+                    #repo_dir = os.path.join(target_dir_to_clone_to, repo_name)
+                    #os.makedirs(repo_dir, exist_ok=True) # Make the dir only if it doesn't exist
+                    #logging.debug(f"Set clone directory for group of best_practice_ids to {repo_dir}")
 
+                    for best_practice_id in best_practice_ids:
+                        apply_best_practice(
+                            best_practice_id=best_practice_id, 
+                            use_ai_flag=use_ai_flag, 
+                            repo_url=repo_url, 
+                            target_dir_to_clone_to=target_dir_to_clone_to, 
+                            branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS)
+                else: # else make a temporary directory
+                    repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+                    logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
+                    for best_practice_id in best_practice_ids:
+                        apply_best_practice(
+                            best_practice_id=best_practice_id, 
+                            use_ai_flag=use_ai_flag, 
+                            repo_url=repo_url, 
+                            target_dir_to_clone_to=repo_dir, 
+                            branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS)
+            else:
                 for best_practice_id in best_practice_ids:
-                    apply_best_practice(
-                        best_practice_id=best_practice_id, 
-                        use_ai_flag=use_ai_flag, 
-                        repo_url=repo_url, 
-                        target_dir_to_clone_to=target_dir_to_clone_to, 
-                        branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS)
-            else: # else make a temporary directory
-                repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
-                logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
-                for best_practice_id in best_practice_ids:
-                    apply_best_practice(
-                        best_practice_id=best_practice_id, 
-                        use_ai_flag=use_ai_flag, 
-                        repo_url=repo_url, 
-                        target_dir_to_clone_to=repo_dir, 
-                        branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS)
+                    apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, existing_repo_dir=existing_repo_dir)
+        elif len(best_practice_ids) == 1:
+            apply_best_practice(
+                best_practice_id=best_practice_ids[0], 
+                use_ai_flag=use_ai_flag, 
+                repo_url=repo_url, 
+                existing_repo_dir=existing_repo_dir, 
+                target_dir_to_clone_to=target_dir_to_clone_to)
         else:
-            for best_practice_id in best_practice_ids:
-                apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, existing_repo_dir=existing_repo_dir)
-    elif len(best_practice_ids) == 1:
-        apply_best_practice(
-            best_practice_id=best_practice_ids[0], 
-            use_ai_flag=use_ai_flag, 
-            repo_url=repo_url, 
-            existing_repo_dir=existing_repo_dir, 
-            target_dir_to_clone_to=target_dir_to_clone_to)
-    else:
-        logging.error(f"No best practice IDs specified.")
+            logging.error(f"No best practice IDs specified.")
 
 def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None, branch = None):
     applied_file_path = None # default return value is invalid applied best practice
 
     logging.debug(f"AI features {'enabled' if use_ai_flag else 'disabled'} for applying best practices")
-    logging.debug(f"Applying best practice ID: {best_practice_id}")
+    logging.debug(f"Applying best practice ID: {best_practice_id} to repository: {repo_url}")
 
     # Fetch best practices information
     practices = fetch_best_practices(SLIM_REGISTRY_URI)
@@ -331,16 +333,33 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
             os.chdir(target_dir_to_clone_to)
 
             # Check if the branch exists
-            if best_practice_id in git_repo.heads:
-                # Check out the existing branch
-                git_branch = git_repo.heads[best_practice_id] if not branch else git_repo.create_head(branch)
-                git_branch.checkout()
-                logging.warning(f"Git branch '{git_branch.name}' already exists in clone_to_dir '{target_dir_to_clone_to}'. Checking out existing branch.")
+            print(f"*** GIT REPO: {git_repo}")
+            print(f"*** git_repo.head.is_valid(): {git_repo.head.is_valid()}")
+            print(f"*** git_repo.heads: {git_repo.heads}")
+
+            if git_repo.head.is_valid():
+                if best_practice_id in git_repo.heads:
+                    # Check out the existing branch
+                    git_branch = git_repo.heads[best_practice_id] if not branch else git_repo.create_head(branch)
+                    git_branch.checkout()
+                    logging.warning(f"Git branch '{git_branch.name}' already exists in clone_to_dir '{target_dir_to_clone_to}'. Checking out existing branch.")
+                else:
+                    # Create and check out the new branch
+                    git_branch = git_repo.create_head(best_practice_id) if not branch else git_repo.create_head(branch)
+                    git_branch.checkout()
+                    logging.debug(f"Branch '{git_branch.name}' created and checked out successfully.")
             else:
-                # Create and check out the new branch
+                # Create an initial commit
+                with open(os.path.join(git_repo.working_dir, 'README.md'), 'w') as file:
+                    file.write("Initial commit")
+                git_repo.index.add(['README.md'])  # Add files to the index
+                git_repo.index.commit('Initial commit')  # Commit the changes
+                logging.debug("Initial commit created in the empty repository.")
+
+                # Empty repo, so only now create and check out the fresh branch
                 git_branch = git_repo.create_head(best_practice_id) if not branch else git_repo.create_head(branch)
                 git_branch.checkout()
-                logging.debug(f"Branch '{git_branch.name}' created and checked out successfully.")
+                logging.debug(f"Empty repository. Creating new branch '{git_branch.name}' and checked it out successfully.")
 
         except git.exc.InvalidGitRepositoryError:
             logging.error(f"Error: {target_dir_to_clone_to} is not a valid Git repository.")
@@ -576,22 +595,58 @@ def deploy_best_practice(best_practice_id, repo_dir, remote_name='origin', commi
         return False
 
 
-def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, remote_name = GIT_DEFAULT_REMOTE_NAME, commit_message = GIT_DEFAULT_COMMIT_MESSAGE, repo_url=None, existing_repo_dir=None, target_dir_to_clone_to=None):
+def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, remote_name = GIT_DEFAULT_REMOTE_NAME, commit_message = GIT_DEFAULT_COMMIT_MESSAGE, repo_urls=None, existing_repo_dir=None, target_dir_to_clone_to=None):
     branch_name = generate_git_branch_name(best_practice_ids)
 
-    if len(best_practice_ids) > 1:
-        if repo_url:
-            parsed_url = urllib.parse.urlparse(repo_url)
-            repo_name = os.path.basename(parsed_url.path)
-            repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
-            if target_dir_to_clone_to:
+    for repo_url in repo_urls:
+        if len(best_practice_ids) > 1:
+            if repo_url:
+                parsed_url = urllib.parse.urlparse(repo_url)
+                repo_name = os.path.basename(parsed_url.path)
+                repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
+                if target_dir_to_clone_to:
+                    for best_practice_id in best_practice_ids:
+                        git_repo = apply_best_practice(
+                            best_practice_id=best_practice_id, 
+                            use_ai_flag=use_ai_flag, 
+                            repo_url=repo_url, 
+                            target_dir_to_clone_to=target_dir_to_clone_to, 
+                            branch=branch_name)
+                    
+                    # deploy just the last best practice, which deploys others as well
+                    if git_repo:
+                        deploy_best_practice(
+                            best_practice_id=best_practice_id,
+                            repo_dir=git_repo.working_tree_dir,
+                            remote_name=remote_name,
+                            commit_message=commit_message,
+                            branch=branch_name)
+                    else:
+                        logging.error(f"Unable to deploy best practice '{best_practice_id}' because apply failed.")
+                else: # else make a temporary directory
+                    repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+                    logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
+                    for best_practice_id in best_practice_ids:
+                        git_repo = apply_best_practice(
+                            best_practice_id=best_practice_id, 
+                            use_ai_flag=use_ai_flag, 
+                            repo_url=repo_url, 
+                            target_dir_to_clone_to=repo_dir, 
+                            branch=branch_name)
+                        
+                    # deploy just the last best practice, which deploys others as well    
+                    if git_repo:
+                        deploy_best_practice(
+                            best_practice_id=best_practice_id,
+                            repo_dir=git_repo.working_tree_dir,
+                            remote_name=remote_name,
+                            commit_message=commit_message,
+                            branch=branch_name)
+                    else:
+                        logging.error(f"Unable to deploy best practice '{best_practice_id}' because apply failed.")
+            else:
                 for best_practice_id in best_practice_ids:
-                    git_repo = apply_best_practice(
-                        best_practice_id=best_practice_id, 
-                        use_ai_flag=use_ai_flag, 
-                        repo_url=repo_url, 
-                        target_dir_to_clone_to=target_dir_to_clone_to, 
-                        branch=branch_name)
+                    git_repo = apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, existing_repo_dir=existing_repo_dir)
                 
                 # deploy just the last best practice, which deploys others as well
                 if git_repo:
@@ -603,30 +658,13 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, remote_name 
                         branch=branch_name)
                 else:
                     logging.error(f"Unable to deploy best practice '{best_practice_id}' because apply failed.")
-            else: # else make a temporary directory
-                repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
-                logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
-                for best_practice_id in best_practice_ids:
-                    git_repo = apply_best_practice(
-                        best_practice_id=best_practice_id, 
-                        use_ai_flag=use_ai_flag, 
-                        repo_url=repo_url, 
-                        target_dir_to_clone_to=repo_dir, 
-                        branch=branch_name)
-                    
-                # deploy just the last best practice, which deploys others as well    
-                if git_repo:
-                    deploy_best_practice(
-                        best_practice_id=best_practice_id,
-                        repo_dir=git_repo.working_tree_dir,
-                        remote_name=remote_name,
-                        commit_message=commit_message,
-                        branch=branch_name)
-                else:
-                    logging.error(f"Unable to deploy best practice '{best_practice_id}' because apply failed.")
-        else:
-            for best_practice_id in best_practice_ids:
-                git_repo = apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, existing_repo_dir=existing_repo_dir)
+        elif len(best_practice_ids) == 1:
+            git_repo = apply_best_practice(
+                best_practice_id=best_practice_ids[0], 
+                use_ai_flag=use_ai_flag, 
+                repo_url=repo_url, 
+                existing_repo_dir=existing_repo_dir, 
+                target_dir_to_clone_to=branch_name)
             
             # deploy just the last best practice, which deploys others as well
             if git_repo:
@@ -638,26 +676,8 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, remote_name 
                     branch=branch_name)
             else:
                 logging.error(f"Unable to deploy best practice '{best_practice_id}' because apply failed.")
-    elif len(best_practice_ids) == 1:
-        git_repo = apply_best_practice(
-            best_practice_id=best_practice_ids[0], 
-            use_ai_flag=use_ai_flag, 
-            repo_url=repo_url, 
-            existing_repo_dir=existing_repo_dir, 
-            target_dir_to_clone_to=branch_name)
-        
-        # deploy just the last best practice, which deploys others as well
-        if git_repo:
-            deploy_best_practice(
-                best_practice_id=best_practice_id,
-                repo_dir=git_repo.working_tree_dir,
-                remote_name=remote_name,
-                commit_message=commit_message,
-                branch=branch_name)
         else:
-            logging.error(f"Unable to deploy best practice '{best_practice_id}' because apply failed.")
-    else:
-        logging.error(f"No best practice IDs specified.")
+            logging.error(f"No best practice IDs specified.")
 
     # for best_practice_id in best_practice_ids:
     #     result = apply_and_deploy_best_practice(
@@ -703,25 +723,25 @@ def create_parser():
 
     # Parser for applying a best practice
     parser_apply = subparsers.add_parser('apply', help='Applies a best practice, i.e. places a best practice in a git repo in the right spot with appropriate content')
-    parser_apply.add_argument('--best_practice_ids', nargs='+', required=True, help='Best practice IDs')
-    parser_apply.add_argument('--repo_url', required=False, help='Repository URL')
-    parser_apply.add_argument('--repo_dir', required=False, help='Repository directory location on local machine')
-    parser_apply.add_argument('--clone_to_dir', required=False, help='Local path to clone repository to')
+    parser_apply.add_argument('--best-practice-ids', nargs='+', required=True, help='Best practice IDs to apply')
+    parser_apply.add_argument('--repo-urls', nargs='+', required=False, help='Repository URLs to apply to. Do not use if --repo-dir specified')
+    parser_apply.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
+    parser_apply.add_argument('--clone-to_dir', required=False, help='Local path to clone repository to. Compatible with --repo-urls')
     parser_apply.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
     parser_apply.set_defaults(func=lambda args: apply_best_practices(
         best_practice_ids=args.best_practice_ids,
         use_ai_flag=args.use_ai,
-        repo_url=args.repo_url,
+        repo_urls=args.repo_urls,
         existing_repo_dir=args.repo_dir,
         target_dir_to_clone_to=args.clone_to_dir
     ))
 
     # Parser for deploying a best practice
     parser_deploy = subparsers.add_parser('deploy', help='Deploys a best practice, i.e. places the best practice in a git repo, adds, commits, and pushes to the git remote.')
-    parser_deploy.add_argument('--best_practice_ids', nargs='+', required=True, help='The name of the best_practice_id to deploy')
-    parser_deploy.add_argument('--repo_dir', required=False, help='Local repository directory')
-    parser_deploy.add_argument('--remote_name', required=False, default=GIT_DEFAULT_REMOTE_NAME, help=f"Name of the remote to push changes to. Default: '{GIT_DEFAULT_REMOTE_NAME}")
-    parser_deploy.add_argument('--commit_message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}")
+    parser_deploy.add_argument('--best-practice-ids', nargs='+', required=True, help='Best practice IDs to deploy')
+    parser_deploy.add_argument('--repo-dir', required=False, help='Repository directory location on local machine')
+    parser_deploy.add_argument('--remote-name', required=False, default=GIT_DEFAULT_REMOTE_NAME, help=f"Name of the remote to push changes to. Default: '{GIT_DEFAULT_REMOTE_NAME}")
+    parser_deploy.add_argument('--commit-message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}")
     parser_deploy.set_defaults(func=lambda args: deploy_best_practices(
         best_practice_ids=args.best_practice_ids,
         repo_dir=args.repo_dir,
@@ -730,20 +750,20 @@ def create_parser():
     ))
 
     # Parser for applying and deploying a best practice together
-    parser_apply_deploy = subparsers.add_parser('apply_deploy', help='Applies and deploys a best practice')
-    parser_apply_deploy.add_argument('--best_practice_ids', nargs='+', required=True, help='Best practice ID')
-    parser_apply_deploy.add_argument('--repo_url', required=False, help='Repository URL')
-    parser_apply_deploy.add_argument('--repo_dir', required=False, help='Local repository directory')
-    parser_apply_deploy.add_argument('--clone_to_dir', required=False, help='Local path to clone repository to')
+    parser_apply_deploy = subparsers.add_parser('apply-deploy', help='Applies and deploys a best practice')
+    parser_apply_deploy.add_argument('--best-practice-ids', nargs='+', required=True, help='Best practice IDs to apply')
+    parser_apply_deploy.add_argument('--repo-urls', nargs='+', required=False, help='Repository URLs to apply to. Do not use if --repo-dir specified')
+    parser_apply_deploy.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
+    parser_apply_deploy.add_argument('--clone-to-dir', required=False, help='Local path to clone repository to. Compatible with --repo-urls')
     parser_apply_deploy.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
-    parser_apply_deploy.add_argument('--remote_name', required=False, default=GIT_DEFAULT_REMOTE_NAME, help=f"Name of the remote to push changes to. Default: '{GIT_DEFAULT_REMOTE_NAME}")
-    parser_apply_deploy.add_argument('--commit_message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}")
+    parser_apply_deploy.add_argument('--remote-name', required=False, default=GIT_DEFAULT_REMOTE_NAME, help=f"Name of the remote to push changes to. Default: '{GIT_DEFAULT_REMOTE_NAME}")
+    parser_apply_deploy.add_argument('--commit-message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}")
     parser_apply_deploy.set_defaults(func=lambda args: apply_and_deploy_best_practices(
         best_practice_ids=args.best_practice_ids,
         use_ai_flag=args.use_ai,
         remote_name=args.remote_name,
         commit_message=args.commit_message,
-        repo_url=args.repo_url,
+        repo_urls=args.repo_urls,
         existing_repo_dir=args.repo_dir,
         target_dir_to_clone_to=args.clone_to_dir
     ))
