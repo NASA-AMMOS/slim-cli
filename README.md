@@ -82,45 +82,37 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    $ python slim-cli.py list
    ```
 
-2. **Apply a best practice to a repository**
-   - This command applies a specified best practice to your repository. You can also enable AI features to further customize the integration of the best practice.
-   - `--best_practice_id`: Specifies the ID of the best practice to apply (required).
-   - `--repo_url`: Optional URL of the repository where the best practice will be applied. This is necessary if you want the CLI to handle cloning and branch management remotely.
-   - `--repo_dir`: Optional local directory path of the repository where the best practice will be applied. Use this if the repository is already cloned locally. Use this if not specifying `--repo_url`
-   - `--clone_to_dir`: Optional local path where the repository should be cloned if it is not already present locally.
-   - `--use-ai`: Enables AI features to customize the application of best practices based on the project’s specific needs. False by default.
+2. **Apply best practices to repositories**
+   - This command applies specified best practices to one or more repositories. It supports applying multiple practices simultaneously across multiple repositories, with AI customization options available.
+   - `--best-practice-ids`: List of best practice IDs to apply.
+   - `--repo-urls`: List of repository URLs to apply the best practices to; not used if `--repo-dir` is specified.
+   - `--repo-dir`: Local directory path of the repository where the best practices will be applied.
+   - `--clone-to-dir`: Path where the repository should be cloned if not present locally. Compatible with `--repo-urls`.
+   - `--use-ai`: Enables AI features to customize the application of best practices based on the project’s specific needs.
    ```bash
-   $ python slim-cli.py apply --best_practice_id SLIM-123 --use-ai --repo_url https://github.com/your-username/your-repo
-
+   $ python slim-cli.py apply --best-practice-ids SLIM-123 SLIM-456 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2
+   ```
 
 3. **Deploy a best practice**
    - After applying best practices, you may want to deploy (commit and push) them to a remote repository.
-   - `--best_practice_id`: The ID of the best practice that has been applied and is ready for deployment.
-   - `--repo_dir`: The local directory of the repository where changes will be committed and pushed.
-   - `--remote_name`: Specifies the remote name in the git configuration to which the changes will be pushed.
-   - `--commit_message`: A message describing the changes for the commit.
-   - `--use-ai`: Enables AI features to customize the application of best practices based on the project’s specific needs. False by default.
+   - `--best-practice-ids`: List of best practice IDs that have been applied and are ready for deployment.
+   - `--repo-dir`: The local directory of the repository where changes will be committed and pushed.
+   - `--remote-name`: Specifies the remote name in the git configuration to which the changes will be pushed.
+   - `--commit-message`: A message describing the changes for the commit.
    ```bash
-   $ python slim-cli.py deploy --best_practice_id SLIM-123 --repo_dir /path/to/repo --remote_name origin --commit_message "Apply SLIM best practice"
-   ```
-   Example output:
-   ```
-   Checked out to branch SLIM-123
-   Added all changes to git index.
-   Committed changes.
-   Pushed changes to remote origin on branch SLIM-123
+   $ python slim-cli.py deploy --best-practice-ids SLIM-123 SLIM-456 --repo-dir /path/to/repo --remote-name origin --commit-message "Apply SLIM best practices"
    ```
 
 4. **Apply and deploy a best practice**
    - Combines the application and deployment of a best practice into one step.
-   - `--best_practice_id`: Specifies the ID of the best practice to apply and then deploy.
-   - `--repo_url`: Optional, specifies the repository URL for cloning if not already cloned.
-   - `--repo_dir`: Specifies the directory of the repository where the best practice will be applied and changes committed.
-   - `--remote_name`: Specifies the remote to which the changes will be pushed.
-   - `--commit_message`: A message describing the changes for the commit.
+   - `--best-practice-ids`: List of best practice IDs to apply and then deploy.
+   - `--repo-urls`: List of repository URLs for cloning if not already cloned; not used if `--repo-dir` is specified.
+   - `--repo-dir`: Specifies the directory of the repository where the best practice will be applied and changes committed.
+   - `--remote-name`: Specifies the remote to which the changes will be pushed.
+   - `--commit-message`: A message describing the changes for the commit.
    - `--use-ai`: If specified, enables AI customization of the best practice before applying. False by default.
    ```bash
-   $ python slim-cli.py apply-deploy --best_practice_id SLIM-123 --repo_url https://github.com/your-username/your-repo --remote_name origin --commit_message "Integrated SLIM best practice with AI customization"
+   $ python slim-cli.py apply-deploy --best-practice-ids SLIM-123 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 --remote-name origin --commit-message "Integrated SLIM best practice with AI customization"
    ```
    Example output:
    ```
