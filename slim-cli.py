@@ -91,14 +91,14 @@ def create_slim_registry_dictionary(practices):
     return asset_mapping
 
 
-def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str = "ollama/mistral") -> Optional[str]:
+def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str = "openai/gpt-4o") -> Optional[str]:
     """
     Uses AI to generate or modify content based on the provided best practice and repository.
     
     :param best_practice_id: ID of the best practice to apply.
     :param repo_path: Path to the cloned repository.
     :param template_path: Path to the template file for the best practice.
-    :param model: Name of the AI model to use (default: "ollama/mistral").
+    :param model: Name of the AI model to use (example: "openai/gpt-4o", "ollama/llama3.1:70b").
     :return: Generated or modified content as a string, or None if an error occurs.
     """
     logging.debug(f"Using AI to apply best practice ID: {best_practice_id} in repository {repo_path}")
@@ -117,18 +117,25 @@ def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str
     if not template_content:
         return None
     
-    # Fetch the code base (limited to specific file types)
-    readme = fetch_readme(repo_path)
-    if not readme:
+    # Fetch the code base for SLIM-3.1 readme (limited to specific file types)
+    if best_practice_id == 'SLIM-1.1': #governance 
+        reference = fetch_readme(repo_path)
+    elif best_practice_id == 'SLIM-3.1': #readme
+        reference = fetch_code_base(repo_path)
+    else:
+        reference = fetch_readme(repo_path)
+    if not reference:
         return None
     
     # Construct the prompt for the AI
-    prompt = construct_prompt(template_content, best_practice, readme)
+    prompt = construct_prompt(template_content, best_practice, reference)
     print("prompt: ")
     print(prompt)
     # Generate the content using the specified model
     new_content = generate_content(prompt, model)
-    
+    print("output: ")
+    print(new_content)
+
     return new_content
 
 def fetch_readme(repo_path: str) -> Optional[str]:
@@ -184,21 +191,17 @@ def read_file_content(file_path: str) -> Optional[str]:
 
 
 def generate_with_openai(prompt: str, model_name: str) -> Optional[str]:
-    openai.api_key = os.getenv('OPENAI_API_KEY')
-    if not openai.api_key:
-        logging.error("OpenAI API key is missing.")
-        return None
+    from openai import OpenAI
+    client = OpenAI(api_key = os.getenv('OPENAI_API_KEY'))
+    #if not openai.api_key:
+    #    logging.error("OpenAI API key is missing.")
+    #    return None
     
-    try:
-        response = openai.ChatCompletion.create(
-            model=model_name,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1500
-        )
-        return response.choices[0].message.content.strip()
-    except openai.error.OpenAIError as e:
-        logging.error(f"Error calling OpenAI API: {e}")
-        return None
+    response = client.chat.completions.create(
+        model=model_name,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return str(response.choices[0].message.content)
 
 def generate_with_ollama(prompt: str, model_name: str) -> Optional[str]:
     try:
