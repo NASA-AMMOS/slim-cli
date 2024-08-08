@@ -79,7 +79,7 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
 1. **List all available best practices**
    - This command lists all best practices fetched from the SLIM registry.
    ```bash
-   $ python slim-cli.py list
+   python slim-cli.py list
    ```
 
 2. **Apply best practices to repositories**
@@ -90,11 +90,11 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    - `--clone-to-dir`: Path where the repository should be cloned if not present locally. Compatible with `--repo-urls`.
    - `--use-ai`: Enables AI features to customize the application of best practices based on the project’s specific needs.
    ```bash
-   $ python slim-cli.py apply --best-practice-ids SLIM-123 SLIM-456 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2
+   python slim-cli.py apply --best-practice-ids SLIM-123 SLIM-456 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2
    ```
    - To apply a best practice using AI customization:
    ```bash
-   $ python slim_cli.py apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/your_org/your_repo.git --use-ai
+   python slim_cli.py apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/your_org/your_repo.git --use-ai
    ```
    
 3. **Deploy a best practice**
@@ -104,7 +104,7 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    - `--remote-name`: Specifies the remote name in the git configuration to which the changes will be pushed.
    - `--commit-message`: A message describing the changes for the commit.
    ```bash
-   $ python slim-cli.py deploy --best-practice-ids SLIM-123 SLIM-456 --repo-dir /path/to/repo --remote-name origin --commit-message "Apply SLIM best practices"
+   python slim-cli.py deploy --best-practice-ids SLIM-123 SLIM-456 --repo-dir /path/to/repo --remote-name origin --commit-message "Apply SLIM best practices"
    ```
 
 4. **Apply and deploy a best practice**
@@ -116,7 +116,7 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    - `--commit-message`: A message describing the changes for the commit.
    - `--use-ai`: If specified, enables AI customization of the best practice before applying. False by default.
    ```bash
-   $ python slim-cli.py apply-deploy --best-practice-ids SLIM-123 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 --remote-name origin --commit-message "Integrated SLIM best practice with AI customization"
+   python slim-cli.py apply-deploy --best-practice-ids SLIM-123 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 --remote-name origin --commit-message "Integrated SLIM best practice with AI customization"
    ```
    Example output:
    ```
