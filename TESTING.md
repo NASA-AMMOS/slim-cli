@@ -1,6 +1,8 @@
 # SLIM CLI Testing
+
 ## Introduction
 This document provides an overview of the testing architecture for SLIM CLI. It encompasses continuous testing concepts such as testing across the software development lifecycle and automated test execution. 
+
 ---
 ## Testing Categories
 The below list of test categories is included in our testing setup. Further details are provided below.
