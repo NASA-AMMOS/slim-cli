@@ -92,7 +92,11 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    ```bash
    $ python slim-cli.py apply --best-practice-ids SLIM-123 SLIM-456 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2
    ```
-
+   - To apply a best practice using AI customization:
+   ```bash
+   $ python slim_cli.py apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/your_org/your_repo.git --use-ai
+   ```
+   
 3. **Deploy a best practice**
    - After applying best practices, you may want to deploy (commit and push) them to a remote repository.
    - `--best-practice-ids`: List of best practice IDs that have been applied and are ready for deployment.
