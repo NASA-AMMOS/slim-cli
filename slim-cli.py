@@ -133,8 +133,8 @@ def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str
     print(prompt)
     # Generate the content using the specified model
     new_content = generate_content(prompt, model)
-    print("output: ")
-    print(new_content)
+    #print("output: ")
+    #print(new_content)
 
     return new_content
 
@@ -159,13 +159,13 @@ def fetch_code_base(repo_path: str) -> Optional[str]:
                 code_base += read_file_content(file_path) or ""
     return code_base if code_base else None
 
-def construct_prompt(template_content: str, best_practice: Dict[str, Any], readme: str) -> str:
+def construct_prompt(template_content: str, best_practice: Dict[str, Any], reference: str) -> str:
     return (
         f"Fill out all blanks in the template below that start with INSERT. Return the result as Markdown code.\n\n"
-        f"Best Practice: {best_practice['title']}\n"
-        f"Description: {best_practice['description']}\n\n"
+        #f"Best Practice: {best_practice['title']}\n"
+        #f"Description: {best_practice['description']}\n\n"
         f"Template and output format:\n{template_content}\n\n"
-        f"Use the info:\n{readme}...\n\n"
+        f"Use the info:\n{reference}...\n\n"
         f"Show only the updated template output as markdown code."
     )
 
@@ -173,7 +173,15 @@ def generate_content(prompt: str, model: str) -> Optional[str]:
     model_provider, model_name = model.split('/')
     
     if model_provider == "openai":
-        return generate_with_openai(prompt, model_name)
+        collected_response = []
+        for token in generate_with_openai(prompt, model_name):
+            if token is not None:
+                print(token, end='', flush=True)
+                collected_response.append(token)
+            else:
+                print("\nError occurred during generation.")
+        print()  # Print a newline at the end
+        return ''.join(collected_response)
     elif model_provider == "ollama":
         return generate_with_ollama(prompt, model_name)
     else:
@@ -197,11 +205,20 @@ def generate_with_openai(prompt: str, model_name: str) -> Optional[str]:
     #    logging.error("OpenAI API key is missing.")
     #    return None
     
-    response = client.chat.completions.create(
-        model=model_name,
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return str(response.choices[0].message.content)
+    try:
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=[{"role": "user", "content": prompt}],
+            stream=True
+        )
+        for chunk in response:
+            if chunk.choices[0].delta.content is not None:
+                yield chunk.choices[0].delta.content
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        yield None
+
+        #return str(response.choices[0].message.content)
 
 def generate_with_ollama(prompt: str, model_name: str) -> Optional[str]:
     try:
