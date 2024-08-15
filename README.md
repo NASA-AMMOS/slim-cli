@@ -94,7 +94,7 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    ```
    - To apply a best practice using AI customization:
    ```bash
-   python slim_cli.py apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/your_org/your_repo.git --use-ai
+   python slim_cli.py apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/your_org/your_repo.git --use-ai --model openai/gpt-4o
    ```
    
 3. **Deploy a best practice**
