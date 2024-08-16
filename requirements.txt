@@ -4,3 +4,4 @@ openai
 python-dotenv
 rich
 gitpython
+azure-identity
