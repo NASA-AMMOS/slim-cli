@@ -18,6 +18,8 @@ from rich.table import Table
 import git
 import urllib
 
+
+
 # Constants
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/issue-154/static/data/slim-registry.json"
 SUPPORTED_MODELS = {
@@ -214,28 +216,41 @@ def read_file_content(file_path: str) -> Optional[str]:
         logging.error(f"Error reading file {file_path}: {e}")
         return None
 
-import os
-import requests
-from azure.identity import ClientSecretCredential
-from dotenv import load_dotenv
 
-load_dotenv()
 
-TENANT_ID = os.getenv("AZURE_TENANT_ID")
-CLIENT_ID = os.getenv("AZURE_CLIENT_ID")
-CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET")
-API_ENDPOINT = os.getenv("API_ENDPOINT")
-DEPLOYMENT_ID = os.getenv("DEPLOYMENT_ID")
 
-authority = "https://login.microsoftonline.com"
-credential = ClientSecretCredential(
-    tenant_id=TENANT_ID,
-    client_id=CLIENT_ID,
-    client_secret=CLIENT_SECRET,
-    authority=authority,
-)
 
 def generate_with_azure(prompt: str, model_name: str) -> Optional[str]:
+    from azure.identity import ClientSecretCredential
+    from dotenv import load_dotenv
+    
+    load_dotenv()
+
+    TENANT_ID = os.getenv("AZURE_TENANT_ID")
+    CLIENT_ID = os.getenv("AZURE_CLIENT_ID")
+    CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET")
+    API_ENDPOINT = os.getenv("API_ENDPOINT")
+    DEPLOYMENT_ID = os.getenv("DEPLOYMENT_ID")
+
+    # Check if all required environment variables are set
+    if not all([TENANT_ID, CLIENT_ID, CLIENT_SECRET, API_ENDPOINT, DEPLOYMENT_ID]):
+        missing_vars = [var for var, value in [
+            ("AZURE_TENANT_ID", TENANT_ID),
+            ("AZURE_CLIENT_ID", CLIENT_ID),
+            ("AZURE_CLIENT_SECRET", CLIENT_SECRET),
+            ("API_ENDPOINT", API_ENDPOINT),
+            ("DEPLOYMENT_ID", DEPLOYMENT_ID),
+        ] if value is None]
+        raise ValueError(f"Missing environment variables: {', '.join(missing_vars)}")
+
+    authority = "https://login.microsoftonline.com"
+    credential = ClientSecretCredential(
+        tenant_id=TENANT_ID,
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET,
+        authority=authority,
+    )
+
     access_token = credential.get_token("https://cognitiveservices.azure.com/.default").token
     headers = {
         "Authorization": f"Bearer {access_token}",
