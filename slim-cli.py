@@ -138,6 +138,8 @@ def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str
     
         
     # Generate the content using the specified model
+    print("model: ")
+    print(model)
     new_content = generate_content(prompt, model)
     #print("output: ")
     #print(new_content)
@@ -215,10 +217,6 @@ def read_file_content(file_path: str) -> Optional[str]:
     except IOError as e:
         logging.error(f"Error reading file {file_path}: {e}")
         return None
-
-
-
-
 
 def generate_with_azure(prompt: str, model_name: str) -> Optional[str]:
     from azure.identity import ClientSecretCredential
@@ -474,7 +472,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
         # Process best practice by ID
         if best_practice_id == 'SLIM-1.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'GOVERNANCE.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
@@ -488,7 +486,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")
         elif best_practice_id == 'SLIM-1.2':
             applied_file_path = download_and_place_file(git_repo, uri, 'GOVERNANCE.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
@@ -501,11 +499,11 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")
         elif best_practice_id == 'SLIM-3.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'README.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
-                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
                         f.write(ai_content)
@@ -514,7 +512,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")
         elif best_practice_id == 'SLIM-4.1':
             applied_file_path = download_and_place_file(git_repo, uri, '.github/ISSUE_TEMPLATE/bug_report.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
@@ -527,7 +525,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")    
         elif best_practice_id == 'SLIM-4.2':
             applied_file_path = download_and_place_file(git_repo, uri, '.github/ISSUE_TEMPLATE/bug_report.yml')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
@@ -540,7 +538,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")   
         elif best_practice_id == 'SLIM-4.3':
             applied_file_path = download_and_place_file(git_repo, uri, '.github/ISSUE_TEMPLATE/new_feature.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
@@ -553,7 +551,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")   
         elif best_practice_id == 'SLIM-4.4':
             applied_file_path = download_and_place_file(git_repo, uri, '.github/ISSUE_TEMPLATE/new_feature.yml')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
@@ -566,7 +564,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")  
         elif best_practice_id == 'SLIM-5.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'CHANGELOG.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
@@ -576,7 +574,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")  
         elif best_practice_id == 'SLIM-7.1':
             applied_file_path = download_and_place_file(git_repo, uri, '.github/PULL_REQUEST_TEMPLATE.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
@@ -586,7 +584,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")  
         elif best_practice_id == 'SLIM-8.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'CODE_OF_CONDUCT.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
@@ -599,7 +597,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")
         elif best_practice_id == 'SLIM-9.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'CONTRIBUTING.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
@@ -609,7 +607,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")  
         elif best_practice_id == 'SLIM-13.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'TESTING.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
@@ -837,7 +835,7 @@ def create_parser():
     parser_apply.set_defaults(func=lambda args: apply_best_practices(
         best_practice_ids=args.best_practice_ids,
         use_ai_flag=bool(args.use_ai),
-        model=args.use_ai, 
+        model=args.use_ai if args.use_ai else None, 
         repo_urls=args.repo_urls,
         existing_repo_dir=args.repo_dir,
         target_dir_to_clone_to=args.clone_to_dir
@@ -870,7 +868,7 @@ def create_parser():
     parser_apply_deploy.set_defaults(func=lambda args: apply_and_deploy_best_practices(
         best_practice_ids=args.best_practice_ids,
         use_ai_flag=bool(args.use_ai),
-        model=args.use_ai,
+        model=args.use_ai if args.use_ai else None,
         remote_name=args.remote_name,
         commit_message=args.commit_message,
         repo_urls=args.repo_urls,
