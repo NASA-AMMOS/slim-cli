@@ -296,12 +296,27 @@ def generate_with_openai(prompt: str, model_name: str) -> Optional[str]:
         #return str(response.choices[0].message.content)
 
 def generate_with_ollama(prompt: str, model_name: str) -> Optional[str]:
+    import ollama
+
     try:
-        response = subprocess.run(['ollama', 'run', model_name, prompt], capture_output=True, text=True, check=True)
-        return response.stdout.strip()
-    except subprocess.CalledProcessError as e:
+        response = ollama.chat(model=model_name, messages=[
+        {
+            'role': 'user',
+            'content': prompt,
+        },
+        ])
+        print(response['message']['content'])
+        return (response['message']['content'])
+    except Exception as e:
         logging.error(f"Error running Ollama model: {e}")
         return None
+
+    #try:
+    #    response = subprocess.run(['ollama', 'run', model_name, prompt], capture_output=True, text=True, check=True)
+    #    return response.stdout.strip()
+    #except subprocess.CalledProcessError as e:
+    #    logging.error(f"Error running Ollama model: {e}")
+    #    return None
 
 def download_and_place_file(repo, url, filename, target_relative_path_in_repo=''):
     # Create the full path where the file will be saved. By default write to root.
