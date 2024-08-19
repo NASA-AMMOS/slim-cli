@@ -18,11 +18,14 @@ from rich.table import Table
 import git
 import urllib
 
+
+
 # Constants
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/issue-154/static/data/slim-registry.json"
 SUPPORTED_MODELS = {
     "openai": ["gpt-3.5-turbo", "gpt-4o"],
-    "ollama": ["llama2", "mistral", "codellama"],
+    "ollama": ["llama3.1", "mistral", "codellama"],
+    "azure" : ["gpt-3.5-turbo", "gpt-4o"],
     # Add more models as needed
 }
 GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = 'slim-best-practices'
@@ -90,6 +93,9 @@ def create_slim_registry_dictionary(practices):
         i += 1
     return asset_mapping
 
+def get_ai_model_pairs(supported_models):
+    # return a list of "key/value" pairs
+    return [f"{key}/{model}" for key, models in supported_models.items() for model in models]
 
 def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str = "openai/gpt-4o") -> Optional[str]:
     """
@@ -120,18 +126,23 @@ def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str
     # Fetch the code base for SLIM-3.1 readme (limited to specific file types)
     if best_practice_id == 'SLIM-1.1': #governance 
         reference = fetch_readme(repo_path)
+        # Construct the prompt for the AI
+        prompt = construct_prompt(template_content, best_practice, reference)   
     elif best_practice_id == 'SLIM-3.1': #readme
         reference = fetch_code_base(repo_path)
+        # Construct the prompt for the AI
+        prompt = construct_prompt(template_content, best_practice, reference)
     else:
         reference = fetch_readme(repo_path)
+        # Construct the prompt for the AI
+        prompt = construct_prompt(template_content, best_practice, reference)
     if not reference:
         return None
     
-    # Construct the prompt for the AI
-    prompt = construct_prompt(template_content, best_practice, reference)
-    print("prompt: ")
-    print(prompt)
+        
     # Generate the content using the specified model
+    print("model: ")
+    print(model)
     new_content = generate_content(prompt, model)
     #print("output: ")
     #print(new_content)
@@ -162,11 +173,14 @@ def fetch_code_base(repo_path: str) -> Optional[str]:
 def construct_prompt(template_content: str, best_practice: Dict[str, Any], reference: str) -> str:
     return (
         f"Fill out all blanks in the template below that start with INSERT. Return the result as Markdown code.\n\n"
-        #f"Best Practice: {best_practice['title']}\n"
-        #f"Description: {best_practice['description']}\n\n"
+        ##f"Best Practice: {best_practice['title']}\n"
+        ##f"Description: {best_practice['description']}\n\n"
         f"Template and output format:\n{template_content}\n\n"
         f"Use the info:\n{reference}...\n\n"
         f"Show only the updated template output as markdown code."
+        
+        #f"Use the info:\n{reference}...\n\n"
+        #f"Generate unit tests"
     )
 
 def generate_content(prompt: str, model: str) -> Optional[str]:
@@ -175,6 +189,16 @@ def generate_content(prompt: str, model: str) -> Optional[str]:
     if model_provider == "openai":
         collected_response = []
         for token in generate_with_openai(prompt, model_name):
+            if token is not None:
+                print(token, end='', flush=True)
+                collected_response.append(token)
+            else:
+                print("\nError occurred during generation.")
+        print()  # Print a newline at the end
+        return ''.join(collected_response)
+    elif model_provider == "azure":
+        collected_response = []
+        for token in generate_with_azure(prompt, model_name):
             if token is not None:
                 print(token, end='', flush=True)
                 collected_response.append(token)
@@ -197,14 +221,68 @@ def read_file_content(file_path: str) -> Optional[str]:
         logging.error(f"Error reading file {file_path}: {e}")
         return None
 
+def generate_with_azure(prompt: str, model_name: str) -> Optional[str]:
+    from azure.identity import ClientSecretCredential
+    from dotenv import load_dotenv
+    
+    load_dotenv()
+
+    TENANT_ID = os.getenv("AZURE_TENANT_ID")
+    CLIENT_ID = os.getenv("AZURE_CLIENT_ID")
+    CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET")
+    API_ENDPOINT = os.getenv("API_ENDPOINT")
+    DEPLOYMENT_ID = os.getenv("DEPLOYMENT_ID")
+
+    # Check if all required environment variables are set
+    if not all([TENANT_ID, CLIENT_ID, CLIENT_SECRET, API_ENDPOINT, DEPLOYMENT_ID]):
+        missing_vars = [var for var, value in [
+            ("AZURE_TENANT_ID", TENANT_ID),
+            ("AZURE_CLIENT_ID", CLIENT_ID),
+            ("AZURE_CLIENT_SECRET", CLIENT_SECRET),
+            ("API_ENDPOINT", API_ENDPOINT),
+            ("DEPLOYMENT_ID", DEPLOYMENT_ID),
+        ] if value is None]
+        raise ValueError(f"Missing environment variables: {', '.join(missing_vars)}")
+
+    authority = "https://login.microsoftonline.com"
+    credential = ClientSecretCredential(
+        tenant_id=TENANT_ID,
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET,
+        authority=authority,
+    )
+
+    access_token = credential.get_token("https://cognitiveservices.azure.com/.default").token
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "deploymentId": DEPLOYMENT_ID,
+        "messages": [{"role": "user", "content": prompt}],
+        "stream": True
+    }
+
+    try:
+        response = requests.post(API_ENDPOINT, headers=headers, json=data, stream=True)
+        response.raise_for_status()
+
+        for line in response.iter_lines():
+            if line:
+                chunk = line.decode("utf-8")
+                # Assuming the response format and extracting content accordingly
+                if 'delta' in chunk:
+                    content = chunk.get("choices", [{}])[0].get("delta", {}).get("content")
+                    if content:
+                        yield content
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        yield None
 
 def generate_with_openai(prompt: str, model_name: str) -> Optional[str]:
     from openai import OpenAI
     client = OpenAI(api_key = os.getenv('OPENAI_API_KEY'))
-    #if not openai.api_key:
-    #    logging.error("OpenAI API key is missing.")
-    #    return None
-    
+        
     try:
         response = client.chat.completions.create(
             model=model_name,
@@ -221,12 +299,27 @@ def generate_with_openai(prompt: str, model_name: str) -> Optional[str]:
         #return str(response.choices[0].message.content)
 
 def generate_with_ollama(prompt: str, model_name: str) -> Optional[str]:
+    import ollama
+
     try:
-        response = subprocess.run(['ollama', 'run', model_name, prompt], capture_output=True, text=True, check=True)
-        return response.stdout.strip()
-    except subprocess.CalledProcessError as e:
+        response = ollama.chat(model=model_name, messages=[
+        {
+            'role': 'user',
+            'content': prompt,
+        },
+        ])
+        print(response['message']['content'])
+        return (response['message']['content'])
+    except Exception as e:
         logging.error(f"Error running Ollama model: {e}")
         return None
+
+    #try:
+    #    response = subprocess.run(['ollama', 'run', model_name, prompt], capture_output=True, text=True, check=True)
+    #    return response.stdout.strip()
+    #except subprocess.CalledProcessError as e:
+    #    logging.error(f"Error running Ollama model: {e}")
+    #    return None
 
 def download_and_place_file(repo, url, filename, target_relative_path_in_repo=''):
     # Create the full path where the file will be saved. By default write to root.
@@ -259,7 +352,7 @@ def generate_git_branch_name(best_practice_ids):
     else:
         return None
 
-def apply_best_practices(best_practice_ids, use_ai_flag, repo_urls = None, existing_repo_dir = None, target_dir_to_clone_to = None):
+def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls = None, existing_repo_dir = None, target_dir_to_clone_to = None):
     
     for repo_url in repo_urls:
         if len(best_practice_ids) > 1:
@@ -278,6 +371,7 @@ def apply_best_practices(best_practice_ids, use_ai_flag, repo_urls = None, exist
                         apply_best_practice(
                             best_practice_id=best_practice_id, 
                             use_ai_flag=use_ai_flag, 
+                            model=model,
                             repo_url=repo_url, 
                             target_dir_to_clone_to=target_dir_to_clone_to, 
                             branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS)
@@ -288,23 +382,25 @@ def apply_best_practices(best_practice_ids, use_ai_flag, repo_urls = None, exist
                         apply_best_practice(
                             best_practice_id=best_practice_id, 
                             use_ai_flag=use_ai_flag, 
+                            model=model,
                             repo_url=repo_url, 
                             target_dir_to_clone_to=repo_dir, 
                             branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS)
             else:
                 for best_practice_id in best_practice_ids:
-                    apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, existing_repo_dir=existing_repo_dir)
+                    apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, model=model, existing_repo_dir=existing_repo_dir)
         elif len(best_practice_ids) == 1:
             apply_best_practice(
                 best_practice_id=best_practice_ids[0], 
                 use_ai_flag=use_ai_flag, 
+                model=model,
                 repo_url=repo_url, 
                 existing_repo_dir=existing_repo_dir, 
                 target_dir_to_clone_to=target_dir_to_clone_to)
         else:
             logging.error(f"No best practice IDs specified.")
 
-def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None, branch = None):
+def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None, branch = None):
     applied_file_path = None # default return value is invalid applied best practice
 
     logging.debug(f"AI features {'enabled' if use_ai_flag else 'disabled'} for applying best practices")
@@ -394,12 +490,12 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
         # Process best practice by ID
         if best_practice_id == 'SLIM-1.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'GOVERNANCE.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
 
-                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path) #template file path 
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model) #template file path 
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
                         f.write(ai_content)
@@ -408,11 +504,11 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")
         elif best_practice_id == 'SLIM-1.2':
             applied_file_path = download_and_place_file(git_repo, uri, 'GOVERNANCE.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
-                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
                         f.write(ai_content)
@@ -421,11 +517,11 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")
         elif best_practice_id == 'SLIM-3.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'README.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
-                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
                         f.write(ai_content)
@@ -434,11 +530,11 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")
         elif best_practice_id == 'SLIM-4.1':
             applied_file_path = download_and_place_file(git_repo, uri, '.github/ISSUE_TEMPLATE/bug_report.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
-                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
                         f.write(ai_content)
@@ -447,11 +543,11 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")    
         elif best_practice_id == 'SLIM-4.2':
             applied_file_path = download_and_place_file(git_repo, uri, '.github/ISSUE_TEMPLATE/bug_report.yml')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
-                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
                         f.write(ai_content)
@@ -460,11 +556,11 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")   
         elif best_practice_id == 'SLIM-4.3':
             applied_file_path = download_and_place_file(git_repo, uri, '.github/ISSUE_TEMPLATE/new_feature.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
-                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
                         f.write(ai_content)
@@ -473,11 +569,11 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")   
         elif best_practice_id == 'SLIM-4.4':
             applied_file_path = download_and_place_file(git_repo, uri, '.github/ISSUE_TEMPLATE/new_feature.yml')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
-                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
                         f.write(ai_content)
@@ -486,8 +582,8 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")  
         elif best_practice_id == 'SLIM-5.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'CHANGELOG.md')
-            if use_ai_flag:
-                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+            if use_ai_flag and model:
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
                         f.write(ai_content)
@@ -496,8 +592,8 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")  
         elif best_practice_id == 'SLIM-7.1':
             applied_file_path = download_and_place_file(git_repo, uri, '.github/PULL_REQUEST_TEMPLATE.md')
-            if use_ai_flag:
-                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+            if use_ai_flag and model:
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
                         f.write(ai_content)
@@ -506,11 +602,11 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")  
         elif best_practice_id == 'SLIM-8.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'CODE_OF_CONDUCT.md')
-            if use_ai_flag:
+            if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
                 # Custom AI processing code to go here using and modifying applied_file_path content
-                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
                         f.write(ai_content)
@@ -519,8 +615,8 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")
         elif best_practice_id == 'SLIM-9.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'CONTRIBUTING.md')
-            if use_ai_flag:
-                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+            if use_ai_flag and model:
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
                         f.write(ai_content)
@@ -529,14 +625,14 @@ def apply_best_practice(best_practice_id, use_ai_flag, repo_url = None, existing
                     logging.warning(f"AI generation failed for best practice {best_practice_id}")  
         elif best_practice_id == 'SLIM-13.1':
             applied_file_path = download_and_place_file(git_repo, uri, 'TESTING.md')
-            if use_ai_flag:
-                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path)
+            if use_ai_flag and model:
+                ai_content = use_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
                 if ai_content:
                     with open(applied_file_path, 'w') as f:
                         f.write(ai_content)
                     logging.info(f"Applied AI-generated content to {applied_file_path}")
                 else:
-                    logging.warning(f"AI generation failed for best practice {best_practice_id}")  
+                    logging.warning(f"AI generation failed for best practice {best_practice_id}")
         else:
             applied_file_path = None # nothing was modified 
             logging.warning(f"SLIM best practice {best_practice_id} not supported.")
@@ -615,7 +711,7 @@ def deploy_best_practice(best_practice_id, repo_dir, remote_name='origin', commi
         return False
 
 
-def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, remote_name = GIT_DEFAULT_REMOTE_NAME, commit_message = GIT_DEFAULT_COMMIT_MESSAGE, repo_urls=None, existing_repo_dir=None, target_dir_to_clone_to=None):
+def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remote_name = GIT_DEFAULT_REMOTE_NAME, commit_message = GIT_DEFAULT_COMMIT_MESSAGE, repo_urls=None, existing_repo_dir=None, target_dir_to_clone_to=None):
     branch_name = generate_git_branch_name(best_practice_ids)
 
     for repo_url in repo_urls:
@@ -629,6 +725,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, remote_name 
                         git_repo = apply_best_practice(
                             best_practice_id=best_practice_id, 
                             use_ai_flag=use_ai_flag, 
+                            model=model,
                             repo_url=repo_url, 
                             target_dir_to_clone_to=target_dir_to_clone_to, 
                             branch=branch_name)
@@ -650,6 +747,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, remote_name 
                         git_repo = apply_best_practice(
                             best_practice_id=best_practice_id, 
                             use_ai_flag=use_ai_flag, 
+                            model=model,
                             repo_url=repo_url, 
                             target_dir_to_clone_to=repo_dir, 
                             branch=branch_name)
@@ -666,7 +764,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, remote_name 
                         logging.error(f"Unable to deploy best practice '{best_practice_id}' because apply failed.")
             else:
                 for best_practice_id in best_practice_ids:
-                    git_repo = apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, existing_repo_dir=existing_repo_dir)
+                    git_repo = apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, model=model, existing_repo_dir=existing_repo_dir)
                 
                 # deploy just the last best practice, which deploys others as well
                 if git_repo:
@@ -682,6 +780,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, remote_name 
             git_repo = apply_best_practice(
                 best_practice_id=best_practice_ids[0], 
                 use_ai_flag=use_ai_flag, 
+                model=model,
                 repo_url=repo_url, 
                 existing_repo_dir=existing_repo_dir, 
                 target_dir_to_clone_to=branch_name)
@@ -689,7 +788,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, remote_name 
             # deploy just the last best practice, which deploys others as well
             if git_repo:
                 deploy_best_practice(
-                    best_practice_id=best_practice_id,
+                    best_practice_id=best_practice_ids[0],
                     repo_dir=git_repo.working_tree_dir,
                     remote_name=remote_name,
                     commit_message=commit_message,
@@ -699,25 +798,26 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, remote_name 
         else:
             logging.error(f"No best practice IDs specified.")
 
-    # for best_practice_id in best_practice_ids:
-    #     result = apply_and_deploy_best_practice(
-    #         best_practice_id, 
-    #         use_ai_flag, 
-    #         remote_name, 
-    #         commit_message, 
-    #         repo_url, 
-    #         existing_repo_dir, 
-    #         target_dir_to_clone_to,
-    #         branch=branch_name)
-    #     if not result:
-    #         logging.error(f"Failed to apply and deploy best practice ID: {best_practice_id}")
+    for best_practice_id in best_practice_ids:
+        result = apply_and_deploy_best_practice(
+            best_practice_id, 
+            use_ai_flag,
+            model,
+            remote_name, 
+            commit_message, 
+            repo_url, 
+            existing_repo_dir, 
+            target_dir_to_clone_to,
+            branch=branch_name)
+        if not result:
+            logging.error(f"Failed to apply and deploy best practice ID: {best_practice_id}")
 
-def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, remote_name=GIT_DEFAULT_REMOTE_NAME, commit_message=GIT_DEFAULT_COMMIT_MESSAGE, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None, branch = None):
+def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote_name=GIT_DEFAULT_REMOTE_NAME, commit_message=GIT_DEFAULT_COMMIT_MESSAGE, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None, branch = None):
     logging.debug("AI customization enabled for applying and deploying best practices" if use_ai_flag else "AI customization disabled")
     logging.debug(f"Applying and deploying best practice ID: {best_practice_id}")
 
     # Apply the best practice
-    git_repo = apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, repo_url=repo_url, existing_repo_dir=existing_repo_dir, target_dir_to_clone_to=target_dir_to_clone_to, branch=branch)
+    git_repo = apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, model=model, repo_url=repo_url, existing_repo_dir=existing_repo_dir, target_dir_to_clone_to=target_dir_to_clone_to, branch=branch)
     
     # Deploy the best practice if applied successfully 
     if git_repo:
@@ -747,10 +847,13 @@ def create_parser():
     parser_apply.add_argument('--repo-urls', nargs='+', required=False, help='Repository URLs to apply to. Do not use if --repo-dir specified')
     parser_apply.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
     parser_apply.add_argument('--clone-to_dir', required=False, help='Local path to clone repository to. Compatible with --repo-urls')
-    parser_apply.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
+    #parser_apply.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
+    parser_apply.add_argument('--use-ai', metavar='MODEL', help=f"Automatically customize the application of the best practice with an AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}")
+    #parser_apply.add_argument('--model', required=False, help='Model name (openai/gpt-4o) for using ai')
     parser_apply.set_defaults(func=lambda args: apply_best_practices(
         best_practice_ids=args.best_practice_ids,
-        use_ai_flag=args.use_ai,
+        use_ai_flag=bool(args.use_ai),
+        model=args.use_ai if args.use_ai else None, 
         repo_urls=args.repo_urls,
         existing_repo_dir=args.repo_dir,
         target_dir_to_clone_to=args.clone_to_dir
@@ -775,12 +878,15 @@ def create_parser():
     parser_apply_deploy.add_argument('--repo-urls', nargs='+', required=False, help='Repository URLs to apply to. Do not use if --repo-dir specified')
     parser_apply_deploy.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
     parser_apply_deploy.add_argument('--clone-to-dir', required=False, help='Local path to clone repository to. Compatible with --repo-urls')
-    parser_apply_deploy.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
+    parser_apply_deploy.add_argument('--use-ai', metavar='MODEL', help='Automatically customize the application of the best practice with the specified AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}')
+    #parser_apply_deploy.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
+    #parser_apply_deploy.add_argument('--model', required=False, help='Model name (ollama/gpt-4o) for using ai')
     parser_apply_deploy.add_argument('--remote-name', required=False, default=GIT_DEFAULT_REMOTE_NAME, help=f"Name of the remote to push changes to. Default: '{GIT_DEFAULT_REMOTE_NAME}")
     parser_apply_deploy.add_argument('--commit-message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}")
     parser_apply_deploy.set_defaults(func=lambda args: apply_and_deploy_best_practices(
         best_practice_ids=args.best_practice_ids,
-        use_ai_flag=args.use_ai,
+        use_ai_flag=bool(args.use_ai),
+        model=args.use_ai if args.use_ai else None,
         remote_name=args.remote_name,
         commit_message=args.commit_message,
         repo_urls=args.repo_urls,
