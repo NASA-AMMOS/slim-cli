@@ -1,29 +1,18 @@
-
-🚧 This repo is under construction. Do not use. 🚧
-
 <hr>
 
 <div align="center">
 
-[INSERT YOUR LOGO IMAGE HERE (IF APPLICABLE)]
-<!-- ☝️ Replace with your logo (if applicable) via ![](https://uri-to-your-logo-image) ☝️ -->
-<!-- ☝️ If you see logo rendering errors, make sure you're not using indentation, or try an HTML IMG tag -->
-
 <h1 align="center">SLIM CLI Tool</h1>
-<!-- ☝️ Replace with your repo name ☝️ -->
 
 </div>
 
 <pre align="center">Automate the application of best practices to your git repositories</pre>
-<!-- ☝️ Replace with a single sentence describing the purpose of your repo / proj ☝️ -->
 
 <!-- Header block for project -->
-
-[INSERT YOUR BADGES HERE (SEE: https://shields.io)] [![SLIM](https://img.shields.io/badge/Best%20Practices%20from-SLIM-blue)](https://nasa-ammos.github.io/slim/)
+[![SLIM](https://img.shields.io/badge/Best%20Practices%20from-SLIM-blue)](https://nasa-ammos.github.io/slim/)
 <!-- ☝️ Add badges via: https://shields.io e.g. ![](https://img.shields.io/github/your_chosen_action/NASA-AMMOS/your_repo) ☝️ -->
 
-[INSERT SCREENSHOT OF YOUR SOFTWARE, IF APPLICABLE]
-<!-- ☝️ Screenshot of your software (if applicable) via ![](https://uri-to-your-screenshot) ☝️ -->
+<img width="1242" alt="slim-cli-screen" src="https://github.com/user-attachments/assets/5a38e016-04ea-4e4d-b2b8-5e443367c899">
 
 SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessly with your development workflow. It fetches and applies structured SLIM best practices directly into your Git repositories. The tool leverages artificial intelligence capabilities to customize and tailor the application of SLIM best practices based on your repository's specifics.
 
@@ -31,10 +20,10 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
 
 ## Features
 
-- Command-line interface for applying SLIM best practices into Git development workflows
-- Fetches the latest SLIM best practices dynamically from SLIM's registry
-- Allows customization of best practices using advanced AI models before applying them to repositories
-- Deploys, or git adds, commits, and pushes changes to your repository's remote
+- Command-line interface for applying SLIM best practices into Git development workflows.
+- Fetches the latest SLIM best practices dynamically from SLIM's registry.
+- Allows customization of best practices using advanced AI models before applying them to repositories.
+- Deploys, or git adds, commits, and pushes changes to your repository's remote.
   
 ## Contents
 
@@ -94,7 +83,7 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    ```
    - To apply a best practice using AI customization:
    ```bash
-   python slim_cli.py apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/your_org/your_repo.git --use-ai openai/gpt-4o
+   python slim-cli.py apply --best-practice-ids SLIM-123 --repo-urls https://github.com/your_org/your_repo.git --use-ai openai/gpt-4o
    ```
    
 3. **Deploy a best practice**
@@ -126,7 +115,6 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    ```
 
 Each command can be modified with additional flags as needed for more specific tasks or environments.
-
 
 ## Changelog
 
