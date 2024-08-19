@@ -93,6 +93,9 @@ def create_slim_registry_dictionary(practices):
         i += 1
     return asset_mapping
 
+def get_ai_model_pairs(supported_models):
+    # return a list of "key/value" pairs
+    return [f"{key}/{model}" for key, models in supported_models.items() for model in models]
 
 def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str = "openai/gpt-4o") -> Optional[str]:
     """
@@ -845,7 +848,7 @@ def create_parser():
     parser_apply.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
     parser_apply.add_argument('--clone-to_dir', required=False, help='Local path to clone repository to. Compatible with --repo-urls')
     #parser_apply.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
-    parser_apply.add_argument('--use-ai', metavar='MODEL', help='Automatically customize the application of the best practice with the specified AI model (e.g., openai/gpt-4o')
+    parser_apply.add_argument('--use-ai', metavar='MODEL', help=f"Automatically customize the application of the best practice with an AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}")
     #parser_apply.add_argument('--model', required=False, help='Model name (openai/gpt-4o) for using ai')
     parser_apply.set_defaults(func=lambda args: apply_best_practices(
         best_practice_ids=args.best_practice_ids,
@@ -875,7 +878,7 @@ def create_parser():
     parser_apply_deploy.add_argument('--repo-urls', nargs='+', required=False, help='Repository URLs to apply to. Do not use if --repo-dir specified')
     parser_apply_deploy.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
     parser_apply_deploy.add_argument('--clone-to-dir', required=False, help='Local path to clone repository to. Compatible with --repo-urls')
-    parser_apply_deploy.add_argument('--use-ai', metavar='MODEL', help='Automatically customize the application of the best practice with the specified AI model')
+    parser_apply_deploy.add_argument('--use-ai', metavar='MODEL', help='Automatically customize the application of the best practice with the specified AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}')
     #parser_apply_deploy.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
     #parser_apply_deploy.add_argument('--model', required=False, help='Model name (ollama/gpt-4o) for using ai')
     parser_apply_deploy.add_argument('--remote-name', required=False, default=GIT_DEFAULT_REMOTE_NAME, help=f"Name of the remote to push changes to. Default: '{GIT_DEFAULT_REMOTE_NAME}")
