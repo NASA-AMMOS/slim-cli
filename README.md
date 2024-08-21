@@ -77,22 +77,23 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    - `--repo-urls`: List of repository URLs to apply the best practices to; not used if `--repo-dir` is specified.
    - `--repo-dir`: Local directory path of the repository where the best practices will be applied.
    - `--clone-to-dir`: Path where the repository should be cloned if not present locally. Compatible with `--repo-urls`.
-   - `--use-ai`: Enables AI features to customize the application of best practices based on the project’s specific needs.
+   - `--use-ai`: Enables AI features to customize the application of best practices based on the project’s specific needs. Specify the model provider and model name as an argument (e.g., `azure/gpt-4o`).
    ```bash
-   python slim-cli.py apply --best-practice-ids SLIM-123 SLIM-456 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2
+   python slim-cli.py apply --best-practice-ids SLIM-123 SLIM-456 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 
    ```
    - To apply a best practice using AI customization:
    ```bash
-   # Apply a specific best practice using AI customization (OpenAI API)
-   python slim-cli.py apply --best-practice-ids SLIM-123 --repo-urls https://github.com/your_org/your_repo.git --use-ai openai/gpt-4o
+   # Apply a specific best practice using AI customization
+   python slim-cli.py apply --best-practice-ids SLIM-123 --repo-urls https://github.com/your_org/your_repo.git --use-ai <model provider>/<model name>
    ```
+   Example usage: 
    ```bash
    # Apply and deploy a best practice using Azure's GPT-4o model
-   python slim-cli.py apply-deploy --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai azure/gpt-4o
+   python slim-cli.py apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai azure/gpt-4o
    ```
    ```bash
    # Apply and deploy a best practice using Ollama's LLaMA 3.1 model
-   python slim-cli.py apply-deploy --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai ollama/llama3.1:405b
+   python slim-cli.py apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai ollama/llama3.1:405b
    ```
    
 3. **Deploy a best practice**
