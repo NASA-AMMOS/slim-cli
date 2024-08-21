@@ -83,7 +83,16 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    ```
    - To apply a best practice using AI customization:
    ```bash
+   # Apply a specific best practice using AI customization (OpenAI API)
    python slim-cli.py apply --best-practice-ids SLIM-123 --repo-urls https://github.com/your_org/your_repo.git --use-ai openai/gpt-4o
+   ```
+   ```bash
+   # Apply and deploy a best practice using Azure's GPT-4o model
+   python slim-cli.py apply-deploy --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai azure/gpt-4o
+   ```
+   ```bash
+   # Apply and deploy a best practice using Ollama's LLaMA 3.1 model
+   python slim-cli.py apply-deploy --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai ollama/llama3.1:405b
    ```
    
 3. **Deploy a best practice**
