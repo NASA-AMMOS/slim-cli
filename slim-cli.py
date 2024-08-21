@@ -97,6 +97,38 @@ def get_ai_model_pairs(supported_models):
     # return a list of "key/value" pairs
     return [f"{key}/{model}" for key, models in supported_models.items() for model in models]
 
+def is_open_source(repo_url):
+    """
+    Check if the repository is open-source by inspecting its license type.
+    Returns True if the repository is open-source, False otherwise.
+    """
+    try:
+        # Extract owner and repo name from the URL
+        owner_repo = repo_url.rstrip('/').split('/')[-2:]
+        owner, repo = owner_repo[0], owner_repo[1]
+
+        # Use the GitHub API to fetch the repository license
+        api_url = f"https://api.github.com/repos/{owner}/{repo}/license"
+        headers = {
+            "Accept": "application/vnd.github.v3+json",
+            "Authorization": f"token {os.getenv('GITHUB_API_TOKEN')}"  # Optional: Use GitHub token for higher rate limits
+        }
+        response = requests.get(api_url, headers=headers)
+        if response.status_code == 200:
+            license_data = response.json()
+            license_name = license_data.get('license', {}).get('spdx_id', '')
+            open_source_licenses = [
+                "MIT", "Apache-2.0", "GPL-3.0", "GPL-2.0", "BSD-3-Clause", 
+                "BSD-2-Clause", "LGPL-3.0", "MPL-2.0", "CDDL-1.0", "EPL-2.0"
+            ]
+            return license_name in open_source_licenses
+        else:
+            print(f"Failed to fetch license information. Status code: {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"An error occurred while checking the license: {e}")
+        return False
+        
 def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str = "openai/gpt-4o") -> Optional[str]:
     """
     Uses AI to generate or modify content based on the provided best practice and repository.
@@ -107,6 +139,14 @@ def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str
     :param model: Name of the AI model to use (example: "openai/gpt-4o", "ollama/llama3.1:70b").
     :return: Generated or modified content as a string, or None if an error occurs.
     """
+    # Check if the model provider is Azure or OpenAI
+    model_provider, model_name = model.split('/')
+    
+    if model_provider in ["openai", "azure"] and not is_open_source(repo_path):
+        logging.error(f"Azure and OpenAI features are disabled for non-open-source repositories.")
+        return None
+
+    
     logging.debug(f"Using AI to apply best practice ID: {best_practice_id} in repository {repo_path}")
     
     # Fetch best practice information
