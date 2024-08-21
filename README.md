@@ -47,7 +47,21 @@ This guide provides a quick way to get started with our project. Please see our 
 
 * Python 3.7+
 * Git
-* OpenAI API key (for AI features)
+* `.env` file to properly configure the environment for Azure and OpenAI APIs
+  ```bash
+  # .env for Azure
+  AZURE_TENANT_ID=<Your-Azure-Tenant-ID>
+  AZURE_CLIENT_ID=<Your-Azure-Client-ID>
+  AZURE_CLIENT_SECRET=<Your-Azure-Client-Secret>
+  API_ENDPOINT=<Your-Azure-OpenAI-API-Endpoint>
+  API_VERSION=<Azure-OpenAI-API-Version>
+  APIM_SUBSCRIPTION_KEY=<Your-Azure-Subscription-Key>
+  ```
+  ```bash
+  # .env for OpenAI
+  OPENAI_API_KEY=<Your-OpenAI-API-Key>
+  ```
+
   
 ### Setup Instructions
 
