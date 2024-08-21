@@ -141,11 +141,7 @@ def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str
     
         
     # Generate the content using the specified model
-    print("model: ")
-    print(model)
     new_content = generate_content(prompt, model)
-    #print("output: ")
-    #print(new_content)
 
     return new_content
 
@@ -190,22 +186,22 @@ def generate_content(prompt: str, model: str) -> Optional[str]:
         collected_response = []
         for token in generate_with_openai(prompt, model_name):
             if token is not None:
-                print(token, end='', flush=True)
+                #print(token, end='', flush=True)
                 collected_response.append(token)
             else:
                 print("\nError occurred during generation.")
         print()  # Print a newline at the end
         return ''.join(collected_response)
     elif model_provider == "azure":
-        collected_response = []
-        for token in generate_with_azure(prompt, model_name):
-            if token is not None:
-                print(token, end='', flush=True)
-                collected_response.append(token)
-            else:
-                print("\nError occurred during generation.")
-        print()  # Print a newline at the end
-        return ''.join(collected_response)
+        #collected_response = []
+        #for token in generate_with_azure(prompt, model_name):
+        #    if token is not None:
+        #        print(token, end='', flush=True)
+        #        collected_response.append(token)
+        #    else:
+        #        print("\nError occurred during generation.")
+        #print()  # Print a newline at the end
+        return generate_with_azure(prompt, model_name)
     elif model_provider == "ollama":
         return generate_with_ollama(prompt, model_name)
     else:
@@ -222,62 +218,56 @@ def read_file_content(file_path: str) -> Optional[str]:
         return None
 
 def generate_with_azure(prompt: str, model_name: str) -> Optional[str]:
-    from azure.identity import ClientSecretCredential
+    from azure.identity import ClientSecretCredential, get_bearer_token_provider
+    from openai import AzureOpenAI
     from dotenv import load_dotenv
+    import numpy as np
     
-    load_dotenv()
-
-    TENANT_ID = os.getenv("AZURE_TENANT_ID")
-    CLIENT_ID = os.getenv("AZURE_CLIENT_ID")
-    CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET")
-    API_ENDPOINT = os.getenv("API_ENDPOINT")
-    DEPLOYMENT_ID = os.getenv("DEPLOYMENT_ID")
-
-    # Check if all required environment variables are set
-    if not all([TENANT_ID, CLIENT_ID, CLIENT_SECRET, API_ENDPOINT, DEPLOYMENT_ID]):
-        missing_vars = [var for var, value in [
-            ("AZURE_TENANT_ID", TENANT_ID),
-            ("AZURE_CLIENT_ID", CLIENT_ID),
-            ("AZURE_CLIENT_SECRET", CLIENT_SECRET),
-            ("API_ENDPOINT", API_ENDPOINT),
-            ("DEPLOYMENT_ID", DEPLOYMENT_ID),
-        ] if value is None]
-        raise ValueError(f"Missing environment variables: {', '.join(missing_vars)}")
-
-    authority = "https://login.microsoftonline.com"
-    credential = ClientSecretCredential(
-        tenant_id=TENANT_ID,
-        client_id=CLIENT_ID,
-        client_secret=CLIENT_SECRET,
-        authority=authority,
-    )
-
-    access_token = credential.get_token("https://cognitiveservices.azure.com/.default").token
-    headers = {
-        "Authorization": f"Bearer {access_token}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "deploymentId": DEPLOYMENT_ID,
-        "messages": [{"role": "user", "content": prompt}],
-        "stream": True
-    }
-
     try:
-        response = requests.post(API_ENDPOINT, headers=headers, json=data, stream=True)
-        response.raise_for_status()
+        load_dotenv()
 
-        for line in response.iter_lines():
-            if line:
-                chunk = line.decode("utf-8")
-                # Assuming the response format and extracting content accordingly
-                if 'delta' in chunk:
-                    content = chunk.get("choices", [{}])[0].get("delta", {}).get("content")
-                    if content:
-                        yield content
+        APIM_SUBSCRIPTION_KEY = os.getenv("APIM_SUBSCRIPTION_KEY")
+        default_headers = {}
+        if APIM_SUBSCRIPTION_KEY != None:
+            # only set this if the APIM API requires a subscription...
+            default_headers["Ocp-Apim-Subscription-Key"] = APIM_SUBSCRIPTION_KEY 
+
+        # Set up authority and credentials for Azure authentication
+        credential = ClientSecretCredential(
+            tenant_id=os.getenv("AZURE_TENANT_ID"),
+            client_id=os.getenv("AZURE_CLIENT_ID"),
+            client_secret=os.getenv("AZURE_CLIENT_SECRET"),
+            authority="https://login.microsoftonline.com",
+        )
+
+        token_provider = get_bearer_token_provider(credential, "https://cognitiveservices.azure.com/.default")
+
+        client = AzureOpenAI(
+            # azure_ad_token=access_token.token,
+            azure_ad_token_provider=token_provider,
+            api_version=os.getenv("API_VERSION"),
+            azure_endpoint=os.getenv("API_ENDPOINT"),
+            default_headers=default_headers,
+        )
+
+        completion = client.chat.completions.create(
+            messages = [
+                {
+                    "role": "system",
+                    "content": "As a SLIM Best Practice User, your role is to understand, apply, and implement the best practices for Software Lifecycle Improvement and Modernization (SLIM) within your software projects. You should aim to optimize your software development processes, enhance the quality of your software products, and ensure continuous improvement across all stages of the software lifecycle.",
+                },
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+            model=model_name
+        )
+        return completion.choices[0].message.content
     except Exception as e:
-        print(f"An error occurred: {e}")
-        yield None
+        print(f"An error occurred running on Azure model: {str(e)}")
+        return None
+
 
 def generate_with_openai(prompt: str, model_name: str) -> Optional[str]:
     from openai import OpenAI
@@ -308,7 +298,7 @@ def generate_with_ollama(prompt: str, model_name: str) -> Optional[str]:
             'content': prompt,
         },
         ])
-        print(response['message']['content'])
+        #print(response['message']['content'])
         return (response['message']['content'])
     except Exception as e:
         logging.error(f"Error running Ollama model: {e}")
