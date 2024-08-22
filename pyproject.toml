@@ -1,0 +1,64 @@
+[project]
+name = 'slim-cli'
+dynamic = ['version']
+requires-python = '>=3.7'
+dependencies = [
+    # Note: these dependencies were taking from original `requirements.txt`
+    # file (now retired in favor of this file, `pyproject.toml`). However,
+    # pessimistic version constraints were added in order to avoid the
+    # Dependency Confusion Vulnerability.
+
+    'azure-identity ~= 1.17.1',
+    'gitpython ~= 3.1.43',
+    'ollama ~= 0.3.1',
+    'openai ~= 1.42.0',
+    'python-dotenv ~= 1.0.1',
+    'requests ~= 2.32.3',
+    'rich ~= 13.7.1',
+
+    # Commenting-out tabulate since it's not used in the code currenty:
+    # 'tabulate ~= 0.9.0',
+]
+authors = [
+    {name = 'James Ray', email='James.A.Ray@jpl.nasa.gov'},
+    {name = 'Kyongsik Yun', email='kyongsik.yun@jpl.nasa.gov'},
+    {name = 'Rishi Verma', email='Rishi.Verma@jpl.nasa.gov'},
+    {name = 'Sean Kelly', email='kelly@seankelly.biz'}
+]
+description = 'Automation of the application of software lifecycle best practices to your GitHub repositories'
+readme = 'README.md'
+keywords = ['software', 'development', 'automation', 'practice', 'slim', 'nasa', 'ammos']
+classifiers = [
+    'Development Status :: 2 - Pre-Alpha',
+    'Environment :: Console',
+    'Intended Audience :: Developers',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: Apache Software License',
+    'Natural Language :: English',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python :: 3',
+]
+license = {file = 'LICENSE'}
+
+
+[project.urls]
+Homepage = 'https://github.com/SLIM/slim-cli'
+Issues = 'https://github.com/SLIM/slim-cli/issues'
+
+
+[project.scripts]
+slim = 'jpl.slim.cli:main'
+
+
+[tool.hatch.version]
+path = 'src/jpl/slim/VERSION.txt'
+pattern = '(?P<version>.+)'
+
+
+[tool.hatch.build.targets.wheel]
+packages = ['src/jpl']
+
+
+[build-system]
+requires = ['hatchling']
+build-backend = 'hatchling.build'

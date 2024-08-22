@@ -1,23 +1,17 @@
 import argparse
-import logging
-import sys
-import requests
-import re
+import git
 import json
+import logging
 import os
-import textwrap
-import subprocess
-from tabulate import tabulate
+import requests
 import tempfile
+import textwrap
+import urllib
 import uuid
-import openai
-from dotenv import load_dotenv
 from typing import Optional, Dict, Any
 from rich.console import Console
 from rich.table import Table
-import git
-import urllib
-
+from . import VERSION
 
 
 # Constants
@@ -864,6 +858,7 @@ def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote_
 
 def create_parser():
     parser = argparse.ArgumentParser(description='This tool automates the application of best practices to git repositories.')
+    parser.add_argument('--version', action='version', version=VERSION)
     parser.add_argument('-d', '--dry-run', action='store_true', help='Generate a dry-run plan of activities to be performed')
     
     subparsers = parser.add_subparsers(dest='command', required=True)

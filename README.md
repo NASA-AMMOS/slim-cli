@@ -65,15 +65,23 @@ This guide provides a quick way to get started with our project. Please see our 
   
 ### Setup Instructions
 
-1. Clone the repository
-   ```bash
-   git clone https://github.com/NASA-AMMOS/slim-cli.git
-   cd slim-cli
-   ```
-2. Install dependencies
-   ```bash
-   pip install -r requirements.txt
-   ```
+As the SLIM CLI is written in Python, you'll need Python 3.7 or later. Usually, you'll want to create a virtual environment in order to isolate the dependencies of SLIM from other Python-using applications. Install into that environment using `pip`:
+
+    pip install slim-cli
+
+This installs the latest SLIM CLI and its dependencies from the [Python Package Index](https://pypi.org/). The new console script `slim` is now ready for use. Confirm by running either:
+
+    slim --version
+    slim --help
+
+To upgrade:
+
+    pip install --upgrade slim-cli
+
+Or select a specific version, such as `X.Y.Z`:
+
+    pip install slim-cli==X.Y.Z
+
 
 ### Run Instructions
 
@@ -82,7 +90,7 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
 1. **List all available best practices**
    - This command lists all best practices fetched from the SLIM registry.
    ```bash
-   python slim-cli.py list
+   slim list
    ```
 
 2. **Apply best practices to repositories**
@@ -93,21 +101,21 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    - `--clone-to-dir`: Path where the repository should be cloned if not present locally. Compatible with `--repo-urls`.
    - `--use-ai`: Enables AI features to customize the application of best practices based on the project’s specific needs. Specify the model provider and model name as an argument (e.g., `azure/gpt-4o`).
    ```bash
-   python slim-cli.py apply --best-practice-ids SLIM-123 SLIM-456 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 
+   slim apply --best-practice-ids SLIM-123 SLIM-456 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 
    ```
    - To apply a best practice using AI customization:
    ```bash
    # Apply a specific best practice using AI customization
-   python slim-cli.py apply --best-practice-ids SLIM-123 --repo-urls https://github.com/your_org/your_repo.git --use-ai <model provider>/<model name>
+   slim apply --best-practice-ids SLIM-123 --repo-urls https://github.com/your_org/your_repo.git --use-ai <model provider>/<model name>
    ```
    Example usage: 
    ```bash
    # Apply and deploy a best practice using Azure's GPT-4o model
-   python slim-cli.py apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai azure/gpt-4o
+   slim apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai azure/gpt-4o
    ```
    ```bash
    # Apply and deploy a best practice using Ollama's LLaMA 3.1 model
-   python slim-cli.py apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai ollama/llama3.1:405b
+   slim apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai ollama/llama3.1:405b
    ```
    
 3. **Deploy a best practice**
@@ -117,7 +125,7 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    - `--remote-name`: Specifies the remote name in the git configuration to which the changes will be pushed.
    - `--commit-message`: A message describing the changes for the commit.
    ```bash
-   python slim-cli.py deploy --best-practice-ids SLIM-123 SLIM-456 --repo-dir /path/to/repo --remote-name origin --commit-message "Apply SLIM best practices"
+   slim deploy --best-practice-ids SLIM-123 SLIM-456 --repo-dir /path/to/repo --remote-name origin --commit-message "Apply SLIM best practices"
    ```
 
 4. **Apply and deploy a best practice**
@@ -129,7 +137,7 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    - `--commit-message`: A message describing the changes for the commit.
    - `--use-ai`: If specified, enables AI customization of the best practice before applying. False by default.
    ```bash
-   python slim-cli.py apply-deploy --best-practice-ids SLIM-123 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 --remote-name origin --commit-message "Integrated SLIM best practice with AI customization"
+   slim apply-deploy --best-practice-ids SLIM-123 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 --remote-name origin --commit-message "Integrated SLIM best practice with AI customization"
    ```
    Example output:
    ```
@@ -157,6 +165,30 @@ Interested in contributing to our project? Please see our: [CONTRIBUTING.md](CON
 For guidance on how to interact with our team, please see our code of conduct located at: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 
 For guidance on our governance approach, including decision-making process and our various roles, please see our governance model at: [GOVERNANCE.md](GOVERNANCE.md)
+
+
+### Local Development
+
+For local development of SLIM CLI, clone the GitHub repository, create a virtual environment, and then install the package in editable mode into it:
+```bash
+git clone --quiet https://github.com/NASA-AMMOS/slim-cli.git
+cd slim-cli
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --editable .
+```
+
+The `slim` console-script is now ready in editable mode; changes you make to the source files under `src` are immediately reflected when run.
+
+To publish a new version of SLIM CLI to the Python Package Index, typically you'll update the `VERSION.txt` file; then do:
+```bash
+pip install build wheel twine
+python3 -m build .
+twine upload dist/*
+```
+
+(Note: this can and should eventually be automated with GitHub Actions.)
+
 
 ## License
 
