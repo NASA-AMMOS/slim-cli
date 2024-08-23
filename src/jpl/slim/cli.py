@@ -135,10 +135,11 @@ def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str
     """
     # Check if the model provider is Azure or OpenAI
     model_provider, model_name = model.split('/')
-    
-    if model_provider in ["openai", "azure"] and not is_open_source(repo_path):
-        logging.error(f"Azure and OpenAI features are disabled for non-open-source repositories.")
-        return None
+
+    # checking open source is in progress... 
+    #if model_provider in ["openai", "azure"] and not is_open_source(repo_path):
+    #    logging.error(f"Azure and OpenAI features are disabled for non-open-source repositories.")
+    #    return None
 
     
     logging.debug(f"Using AI to apply best practice ID: {best_practice_id} in repository {repo_path}")
