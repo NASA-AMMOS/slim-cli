@@ -1,9 +1,0 @@
-requests
-tabulate
-openai
-python-dotenv
-rich
-gitpython
-azure-identity
-ollama
-argparse
