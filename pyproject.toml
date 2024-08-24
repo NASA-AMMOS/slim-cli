@@ -20,9 +20,8 @@ dependencies = [
     # 'tabulate ~= 0.9.0',
 ]
 authors = [
-    {name = 'James Ray', email='James.A.Ray@jpl.nasa.gov'},
-    {name = 'Kyongsik Yun', email='kyongsik.yun@jpl.nasa.gov'},
     {name = 'Rishi Verma', email='Rishi.Verma@jpl.nasa.gov'},
+    {name = 'Kyongsik Yun', email='kyongsik.yun@jpl.nasa.gov'},
     {name = 'Sean Kelly', email='kelly@seankelly.biz'}
 ]
 description = 'Automation of the application of software lifecycle best practices to your GitHub repositories'
