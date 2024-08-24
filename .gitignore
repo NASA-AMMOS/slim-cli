@@ -13,3 +13,4 @@ downloads
 .venv
 venv
 __pycache__
+.env
