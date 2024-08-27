@@ -1,4 +1,5 @@
 import argparse
+import subprocess
 import git
 import json
 import logging
@@ -24,6 +25,7 @@ SUPPORTED_MODELS = {
 }
 GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = 'slim-best-practices'
 GIT_DEFAULT_REMOTE_NAME = 'origin'
+GIT_CUSTOM_REMOTE_NAME = 'slim-custom'
 GIT_DEFAULT_COMMIT_MESSAGE = 'SLIM-CLI Best Practices Bot Commit',
 
 def setup_logging():
@@ -680,7 +682,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
         logging.error(f"Failed to apply best practice {best_practice_id}")
         return None
 
-def deploy_best_practices(best_practice_ids, repo_dir, remote_name = GIT_DEFAULT_REMOTE_NAME, commit_message = GIT_DEFAULT_COMMIT_MESSAGE):
+def deploy_best_practices(best_practice_ids, repo_dir, remote = None, commit_message = GIT_DEFAULT_COMMIT_MESSAGE):
     # Use shared branch if multiple best_practice_ids else use default branch name
     branch_name = generate_git_branch_name(best_practice_ids)
 
@@ -688,11 +690,11 @@ def deploy_best_practices(best_practice_ids, repo_dir, remote_name = GIT_DEFAULT
         deploy_best_practice(
             best_practice_id=best_practice_id, 
             repo_dir=repo_dir, 
-            remote_name=remote_name, 
+            remote=remote, 
             commit_message=commit_message,
             branch=branch_name)
 
-def deploy_best_practice(best_practice_id, repo_dir, remote_name='origin', commit_message='Default commit message', branch=None):
+def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message='Default commit message', branch=None):
     branch_name = branch if branch else best_practice_id
     
     logging.debug(f"Deploying branch: {branch_name}")
@@ -705,8 +707,19 @@ def deploy_best_practice(best_practice_id, repo_dir, remote_name='origin', commi
         repo.git.checkout(branch_name)
         logging.debug(f"Checked out to branch {branch_name}")
 
-        # Fetch latest info from remote
-        repo.git.fetch(remote_name)
+        if remote:
+            # Use the current GitHub user's default organization as the prefix for the remote
+            remote_url = f"{remote}/{repo.working_tree_dir.split('/')[-1]}"
+            remote_name = GIT_CUSTOM_REMOTE_NAME
+            remote_exists = any(repo_remote.url == remote_url for repo_remote in repo.remotes)
+            if not remote_exists:
+                repo.create_remote(remote_name, remote_url)
+            else:
+                repo.git.fetch(remote_name)
+        else:
+            # Default to using the 'origin' remote
+            remote_name = GIT_DEFAULT_REMOTE_NAME
+            repo.git.fetch(remote_name)
 
         # Check if the branch exists on the remote
         remote_refs = repo.git.ls_remote('--heads', remote_name, branch_name)
@@ -745,10 +758,11 @@ def deploy_best_practice(best_practice_id, repo_dir, remote_name='origin', commi
         return False
 
 
-def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remote_name = GIT_DEFAULT_REMOTE_NAME, commit_message = GIT_DEFAULT_COMMIT_MESSAGE, repo_urls=None, existing_repo_dir=None, target_dir_to_clone_to=None):
+def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remote = None, commit_message = GIT_DEFAULT_COMMIT_MESSAGE, repo_urls=None, existing_repo_dir=None, target_dir_to_clone_to=None):
     branch_name = generate_git_branch_name(best_practice_ids)
 
     for repo_url in repo_urls:
+        git_repo = None  # Ensure git_repo is reset for each iteration
         if len(best_practice_ids) > 1:
             if repo_url:
                 parsed_url = urllib.parse.urlparse(repo_url)
@@ -769,7 +783,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                         deploy_best_practice(
                             best_practice_id=best_practice_id,
                             repo_dir=git_repo.working_tree_dir,
-                            remote_name=remote_name,
+                            remote=remote,
                             commit_message=commit_message,
                             branch=branch_name)
                     else:
@@ -791,7 +805,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                         deploy_best_practice(
                             best_practice_id=best_practice_id,
                             repo_dir=git_repo.working_tree_dir,
-                            remote_name=remote_name,
+                            remote=remote,
                             commit_message=commit_message,
                             branch=branch_name)
                     else:
@@ -805,7 +819,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                     deploy_best_practice(
                         best_practice_id=best_practice_id,
                         repo_dir=git_repo.working_tree_dir,
-                        remote_name=remote_name,
+                        remote=remote,
                         commit_message=commit_message,
                         branch=branch_name)
                 else:
@@ -824,7 +838,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                 deploy_best_practice(
                     best_practice_id=best_practice_ids[0],
                     repo_dir=git_repo.working_tree_dir,
-                    remote_name=remote_name,
+                    remote=remote,
                     commit_message=commit_message,
                     branch=branch_name)
             else:
@@ -832,21 +846,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
         else:
             logging.error(f"No best practice IDs specified.")
 
-    for best_practice_id in best_practice_ids:
-        result = apply_and_deploy_best_practice(
-            best_practice_id, 
-            use_ai_flag,
-            model,
-            remote_name, 
-            commit_message, 
-            repo_url, 
-            existing_repo_dir, 
-            target_dir_to_clone_to,
-            branch=branch_name)
-        if not result:
-            logging.error(f"Failed to apply and deploy best practice ID: {best_practice_id}")
-
-def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote_name=GIT_DEFAULT_REMOTE_NAME, commit_message=GIT_DEFAULT_COMMIT_MESSAGE, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None, branch = None):
+def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote=None, commit_message=GIT_DEFAULT_COMMIT_MESSAGE, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None, branch = None):
     logging.debug("AI customization enabled for applying and deploying best practices" if use_ai_flag else "AI customization disabled")
     logging.debug(f"Applying and deploying best practice ID: {best_practice_id}")
 
@@ -855,7 +855,7 @@ def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote_
     
     # Deploy the best practice if applied successfully 
     if git_repo:
-        result = deploy_best_practice(best_practice_id=best_practice_id, repo_dir=git_repo.working_tree_dir, remote_name=remote_name, commit_message=commit_message, branch=branch)
+        result = deploy_best_practice(best_practice_id=best_practice_id, repo_dir=git_repo.working_tree_dir, remote=remote, commit_message=commit_message, branch=branch)
         if result:
             logging.info(f"Successfully applied and deployed best practice ID: {best_practice_id}")
             return True
@@ -897,12 +897,12 @@ def create_parser():
     parser_deploy = subparsers.add_parser('deploy', help='Deploys a best practice, i.e. places the best practice in a git repo, adds, commits, and pushes to the git remote.')
     parser_deploy.add_argument('--best-practice-ids', nargs='+', required=True, help='Best practice IDs to deploy')
     parser_deploy.add_argument('--repo-dir', required=False, help='Repository directory location on local machine')
-    parser_deploy.add_argument('--remote-name', required=False, default=GIT_DEFAULT_REMOTE_NAME, help=f"Name of the remote to push changes to. Default: '{GIT_DEFAULT_REMOTE_NAME}")
+    parser_deploy.add_argument('--remote', required=False, default=None, help=f"Push to a specified remote. If not specified, pushes to '{GIT_DEFAULT_REMOTE_NAME}")
     parser_deploy.add_argument('--commit-message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}")
     parser_deploy.set_defaults(func=lambda args: deploy_best_practices(
         best_practice_ids=args.best_practice_ids,
         repo_dir=args.repo_dir,
-        remote_name=args.remote_name,
+        remote=args.remote,
         commit_message=args.commit_message
     ))
 
@@ -914,13 +914,13 @@ def create_parser():
     parser_apply_deploy.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
     parser_apply_deploy.add_argument('--clone-to-dir', required=False, help='Local path to clone repository to. Compatible with --repo-urls')
     parser_apply_deploy.add_argument('--use-ai', metavar='MODEL', help='Automatically customize the application of the best practice with the specified AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}')
-    parser_apply_deploy.add_argument('--remote-name', required=False, default=GIT_DEFAULT_REMOTE_NAME, help=f"Name of the remote to push changes to. Default: '{GIT_DEFAULT_REMOTE_NAME}")
+    parser_apply_deploy.add_argument('--remote', required=False, default=None, help=f"Push to a specified remote. If not specified, pushes to '{GIT_DEFAULT_REMOTE_NAME}")
     parser_apply_deploy.add_argument('--commit-message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}")
     parser_apply_deploy.set_defaults(func=lambda args: apply_and_deploy_best_practices(
         best_practice_ids=args.best_practice_ids,
         use_ai_flag=bool(args.use_ai),
         model=args.use_ai if args.use_ai else None,
-        remote_name=args.remote_name,
+        remote=args.remote,
         commit_message=args.commit_message,
         repo_urls=repo_file_to_list(args.repo_urls_file) if args.repo_urls_file else args.repo_urls,
         existing_repo_dir=args.repo_dir,
