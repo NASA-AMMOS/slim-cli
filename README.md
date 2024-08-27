@@ -1,3 +1,4 @@
+
 <hr>
 
 <div align="center">
@@ -36,6 +37,9 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
 - [Changelog](#changelog)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 - [Contributing](#contributing)
+  - [Local Development](#local-development)
+  - [Running Tests](#running-tests)
+  - [Publishing a New Version](#publishing-a-new-version)
 - [License](#license)
 - [Support](#support)
 
@@ -81,6 +85,7 @@ To upgrade:
 Or select a specific version, such as `X.Y.Z`:
 
     pip install slim-cli==X.Y.Z
+
 
 
 ### Run Instructions
@@ -166,7 +171,6 @@ For guidance on how to interact with our team, please see our code of conduct lo
 
 For guidance on our governance approach, including decision-making process and our various roles, please see our governance model at: [GOVERNANCE.md](GOVERNANCE.md)
 
-
 ### Local Development
 
 For local development of SLIM CLI, clone the GitHub repository, create a virtual environment, and then install the package in editable mode into it:
@@ -180,6 +184,34 @@ pip install --editable .
 
 The `slim` console-script is now ready in editable mode; changes you make to the source files under `src` are immediately reflected when run.
 
+### Running Tests
+
+We use `pytest` for testing. The test files are located within the `tests` subdirectory. To run the tests, ensure you are in the root directory of the project (where the `pyproject.toml` or `setup.py` is located) and have `pytest` installed. You can install `pytest` via pip:
+
+```bash
+pip install pytest
+```
+
+To execute all tests, simply run:
+
+```bash
+pytest
+```
+
+If you want to run a specific test file, you can specify the path to the test file:
+
+```bash
+pytest tests/jpl/slim/test_cli.py
+```
+
+This will run all the tests in the specified file. You can also use `pytest` options like `-v` for verbose output or `-s` to see print statements in the output:
+
+```bash
+pytest -v -s
+```
+
+### Publishing a New Version
+
 To publish a new version of SLIM CLI to the Python Package Index, typically you'll update the `VERSION.txt` file; then do:
 ```bash
 pip install build wheel twine
@@ -188,7 +220,6 @@ twine upload dist/*
 ```
 
 (Note: this can and should eventually be automated with GitHub Actions.)
-
 
 ## License
 
