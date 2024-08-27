@@ -376,6 +376,15 @@ def generate_git_branch_name(best_practice_ids):
         return best_practice_ids[0]
     else:
         return None
+    
+def repo_file_to_list(file_path):
+    # open the file at the given path
+    with open(file_path, 'r') as file:
+        # read all lines and strip any leading/trailing whitespace
+        repos = [line.strip() for line in file.readlines()]
+    # return the list of lines
+    return repos
+
 
 def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls = None, existing_repo_dir = None, target_dir_to_clone_to = None):
     
@@ -808,7 +817,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                 model=model,
                 repo_url=repo_url, 
                 existing_repo_dir=existing_repo_dir, 
-                target_dir_to_clone_to=branch_name)
+                target_dir_to_clone_to=target_dir_to_clone_to)
             
             # deploy just the last best practice, which deploys others as well
             if git_repo:
@@ -871,16 +880,15 @@ def create_parser():
     parser_apply = subparsers.add_parser('apply', help='Applies a best practice, i.e. places a best practice in a git repo in the right spot with appropriate content')
     parser_apply.add_argument('--best-practice-ids', nargs='+', required=True, help='Best practice IDs to apply')
     parser_apply.add_argument('--repo-urls', nargs='+', required=False, help='Repository URLs to apply to. Do not use if --repo-dir specified')
+    parser_apply.add_argument('--repo-urls-file', required=False, help='Path to a file containing repository URLs')
     parser_apply.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
-    parser_apply.add_argument('--clone-to_dir', required=False, help='Local path to clone repository to. Compatible with --repo-urls')
-    #parser_apply.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
+    parser_apply.add_argument('--clone-to-dir', required=False, help='Local path to clone repository to. Compatible with --repo-urls')
     parser_apply.add_argument('--use-ai', metavar='MODEL', help=f"Automatically customize the application of the best practice with an AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}")
-    #parser_apply.add_argument('--model', required=False, help='Model name (openai/gpt-4o) for using ai')
     parser_apply.set_defaults(func=lambda args: apply_best_practices(
         best_practice_ids=args.best_practice_ids,
         use_ai_flag=bool(args.use_ai),
         model=args.use_ai if args.use_ai else None, 
-        repo_urls=args.repo_urls,
+        repo_urls=repo_file_to_list(args.repo_urls_file) if args.repo_urls_file else args.repo_urls,
         existing_repo_dir=args.repo_dir,
         target_dir_to_clone_to=args.clone_to_dir
     ))
@@ -902,11 +910,10 @@ def create_parser():
     parser_apply_deploy = subparsers.add_parser('apply-deploy', help='Applies and deploys a best practice')
     parser_apply_deploy.add_argument('--best-practice-ids', nargs='+', required=True, help='Best practice IDs to apply')
     parser_apply_deploy.add_argument('--repo-urls', nargs='+', required=False, help='Repository URLs to apply to. Do not use if --repo-dir specified')
+    parser_apply_deploy.add_argument('--repo-urls-file', required=False, help='Path to a file containing repository URLs')
     parser_apply_deploy.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
     parser_apply_deploy.add_argument('--clone-to-dir', required=False, help='Local path to clone repository to. Compatible with --repo-urls')
     parser_apply_deploy.add_argument('--use-ai', metavar='MODEL', help='Automatically customize the application of the best practice with the specified AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}')
-    #parser_apply_deploy.add_argument('--use-ai', action='store_true', help='Automatically customize the application of the best practice')
-    #parser_apply_deploy.add_argument('--model', required=False, help='Model name (ollama/gpt-4o) for using ai')
     parser_apply_deploy.add_argument('--remote-name', required=False, default=GIT_DEFAULT_REMOTE_NAME, help=f"Name of the remote to push changes to. Default: '{GIT_DEFAULT_REMOTE_NAME}")
     parser_apply_deploy.add_argument('--commit-message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}")
     parser_apply_deploy.set_defaults(func=lambda args: apply_and_deploy_best_practices(
@@ -915,7 +922,7 @@ def create_parser():
         model=args.use_ai if args.use_ai else None,
         remote_name=args.remote_name,
         commit_message=args.commit_message,
-        repo_urls=args.repo_urls,
+        repo_urls=repo_file_to_list(args.repo_urls_file) if args.repo_urls_file else args.repo_urls,
         existing_repo_dir=args.repo_dir,
         target_dir_to_clone_to=args.clone_to_dir
     ))
