@@ -169,6 +169,12 @@ def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str
         reference = fetch_code_base(repo_path)
         # Construct the prompt for the AI
         prompt = construct_prompt(template_content, best_practice, reference)
+    elif best_practice_id == 'SLIM-13.1': #readme
+        reference1 = fetch_readme(repo_path)
+        reference2 = "\n".join(fetch_relative_file_paths(repo_path))
+        reference = "EXISTING README:\n" + reference1 + "\n\n" + "EXISTING DIRECTORY LISTING: " + reference2
+        # Construct the prompt for the AI
+        prompt = construct_prompt(template_content, best_practice, reference, "Within the provided testing template, only fill out the sections that plausibly have existing tests to fill out based on the directory listing provided (do not make up tests that do not exist).")
     else:
         reference = fetch_readme(repo_path)
         # Construct the prompt for the AI
@@ -203,17 +209,20 @@ def fetch_code_base(repo_path: str) -> Optional[str]:
                 code_base += read_file_content(file_path) or ""
     return code_base if code_base else None
 
-def construct_prompt(template_content: str, best_practice: Dict[str, Any], reference: str) -> str:
+def fetch_relative_file_paths(directory):
+    relative_paths = []
+    for root, _, files in os.walk(directory):
+        for file in files:
+            # Get the relative file path and add it to the list
+            relative_path = os.path.relpath(os.path.join(root, file), directory)
+            relative_paths.append(relative_path)
+    return relative_paths
+
+def construct_prompt(template_content: str, best_practice: Dict[str, Any], reference: str, comment: str = "") -> str:
     return (
-        f"Fill out all blanks in the template below that start with INSERT. Return the result as Markdown code.\n\n"
-        ##f"Best Practice: {best_practice['title']}\n"
-        ##f"Description: {best_practice['description']}\n\n"
-        f"Template and output format:\n{template_content}\n\n"
-        f"Use the info:\n{reference}...\n\n"
-        f"Show only the updated template output as markdown code."
-        
-        #f"Use the info:\n{reference}...\n\n"
-        #f"Generate unit tests"
+        f"Fill out all blanks in the template below that start with INSERT. Use the provided context information to fill the blanks. Return the template with filled out values. {comment}\n\n"
+        f"TEMPLATE:\n{template_content}\n\n"
+        f"CONTEXT INFORMATION:\n{reference}\n\n"
     )
 
 def generate_content(prompt: str, model: str) -> Optional[str]:
