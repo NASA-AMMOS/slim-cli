@@ -138,7 +138,7 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    - `--best-practice-ids`: List of best practice IDs to apply and then deploy.
    - `--repo-urls`: List of repository URLs for cloning if not already cloned; not used if `--repo-dir` is specified.
    - `--repo-dir`: Specifies the directory of the repository where the best practice will be applied and changes committed.
-   - `--remote-name`: Specifies the remote to which the changes will be pushed.
+   - `--remote-name`: Specifies the remote to which the changes will be pushed. Format should be a GitHub-like URL base. For example `https://github.com/my_github_user`
    - `--commit-message`: A message describing the changes for the commit.
    - `--use-ai`: If specified, enables AI customization of the best practice before applying. False by default.
    ```bash

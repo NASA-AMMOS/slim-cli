@@ -906,7 +906,7 @@ def create_parser():
     parser_deploy = subparsers.add_parser('deploy', help='Deploys a best practice, i.e. places the best practice in a git repo, adds, commits, and pushes to the git remote.')
     parser_deploy.add_argument('--best-practice-ids', nargs='+', required=True, help='Best practice IDs to deploy')
     parser_deploy.add_argument('--repo-dir', required=False, help='Repository directory location on local machine')
-    parser_deploy.add_argument('--remote', required=False, default=None, help=f"Push to a specified remote. If not specified, pushes to '{GIT_DEFAULT_REMOTE_NAME}")
+    parser_deploy.add_argument('--remote', required=False, default=None, help=f"Push to a specified remote. If not specified, pushes to '{GIT_DEFAULT_REMOTE_NAME}. Format should be a GitHub-like URL base. For example `https://github.com/my_github_user`")
     parser_deploy.add_argument('--commit-message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}")
     parser_deploy.set_defaults(func=lambda args: deploy_best_practices(
         best_practice_ids=args.best_practice_ids,
@@ -923,7 +923,7 @@ def create_parser():
     parser_apply_deploy.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
     parser_apply_deploy.add_argument('--clone-to-dir', required=False, help='Local path to clone repository to. Compatible with --repo-urls')
     parser_apply_deploy.add_argument('--use-ai', metavar='MODEL', help='Automatically customize the application of the best practice with the specified AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}')
-    parser_apply_deploy.add_argument('--remote', required=False, default=None, help=f"Push to a specified remote. If not specified, pushes to '{GIT_DEFAULT_REMOTE_NAME}")
+    parser_apply_deploy.add_argument('--remote', required=False, default=None, help=f"Push to a specified remote. If not specified, pushes to '{GIT_DEFAULT_REMOTE_NAME}. Format should be a GitHub-like URL base. For example `https://github.com/my_github_user`")
     parser_apply_deploy.add_argument('--commit-message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}")
     parser_apply_deploy.set_defaults(func=lambda args: apply_and_deploy_best_practices(
         best_practice_ids=args.best_practice_ids,
