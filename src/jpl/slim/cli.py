@@ -306,9 +306,9 @@ def generate_with_azure(prompt: str, model_name: str) -> Optional[str]:
 
 def generate_with_openai(prompt: str, model_name: str) -> Optional[str]:
     from openai import OpenAI
-    client = OpenAI(api_key = os.getenv('OPENAI_API_KEY'))
-        
-    try:
+    load_dotenv()
+    try:    
+        client = OpenAI(api_key = os.getenv('OPENAI_API_KEY'))
         response = client.chat.completions.create(
             model=model_name,
             messages=[{"role": "user", "content": prompt}],
@@ -318,10 +318,8 @@ def generate_with_openai(prompt: str, model_name: str) -> Optional[str]:
             if chunk.choices[0].delta.content is not None:
                 yield chunk.choices[0].delta.content
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"An error occurred running OpenAI model: {e}")
         yield None
-
-        #return str(response.choices[0].message.content)
 
 def generate_with_ollama(prompt: str, model_name: str) -> Optional[str]:
     import ollama
