@@ -366,6 +366,9 @@ def download_and_place_file(repo, url, filename, target_relative_path_in_repo=''
     # Fetch the file from the URL
     response = requests.get(url)
     if response.status_code == 200:
+        # Ensure the parent directories exist
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
         # Write the content to the file in the repository
         with open(file_path, 'wb') as file:
             file.write(response.content)
@@ -397,51 +400,61 @@ def repo_file_to_list(file_path):
 
 def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls = None, existing_repo_dir = None, target_dir_to_clone_to = None):
     
-    for repo_url in repo_urls:
-        if len(best_practice_ids) > 1:
-            if repo_url:
-                logging.debug(f"Using repository URL {repo_url} for group of best_practice_ids {best_practice_ids}")
-
-                parsed_url = urllib.parse.urlparse(repo_url)
-                repo_name = os.path.basename(parsed_url.path)
-                repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
-                if target_dir_to_clone_to: # If target_dir_to_clone_to is specified, append repo name to target_dir_to_clone_to
-                    #repo_dir = os.path.join(target_dir_to_clone_to, repo_name)
-                    #os.makedirs(repo_dir, exist_ok=True) # Make the dir only if it doesn't exist
-                    #logging.debug(f"Set clone directory for group of best_practice_ids to {repo_dir}")
-
-                    for best_practice_id in best_practice_ids:
-                        apply_best_practice(
-                            best_practice_id=best_practice_id, 
-                            use_ai_flag=use_ai_flag, 
-                            model=model,
-                            repo_url=repo_url, 
-                            target_dir_to_clone_to=target_dir_to_clone_to, 
-                            branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS)
-                else: # else make a temporary directory
-                    repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
-                    logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
-                    for best_practice_id in best_practice_ids:
-                        apply_best_practice(
-                            best_practice_id=best_practice_id, 
-                            use_ai_flag=use_ai_flag, 
-                            model=model,
-                            repo_url=repo_url, 
-                            target_dir_to_clone_to=repo_dir, 
-                            branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS)
-            else:
-                for best_practice_id in best_practice_ids:
-                    apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, model=model, existing_repo_dir=existing_repo_dir)
-        elif len(best_practice_ids) == 1:
+    if existing_repo_dir:
+        branch = GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS if len(best_practice_ids) > 0 else best_practice_ids[0]
+        for best_practice_id in best_practice_ids:
             apply_best_practice(
-                best_practice_id=best_practice_ids[0], 
+                best_practice_id=best_practice_id, 
                 use_ai_flag=use_ai_flag, 
                 model=model,
-                repo_url=repo_url, 
-                existing_repo_dir=existing_repo_dir, 
-                target_dir_to_clone_to=target_dir_to_clone_to)
-        else:
-            logging.error(f"No best practice IDs specified.")
+                existing_repo_dir=existing_repo_dir,
+                branch=branch)
+    else:
+        for repo_url in repo_urls:
+            if len(best_practice_ids) > 1:
+                if repo_url:
+                    logging.debug(f"Using repository URL {repo_url} for group of best_practice_ids {best_practice_ids}")
+
+                    parsed_url = urllib.parse.urlparse(repo_url)
+                    repo_name = os.path.basename(parsed_url.path)
+                    repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
+                    if target_dir_to_clone_to: # If target_dir_to_clone_to is specified, append repo name to target_dir_to_clone_to
+                        #repo_dir = os.path.join(target_dir_to_clone_to, repo_name)
+                        #os.makedirs(repo_dir, exist_ok=True) # Make the dir only if it doesn't exist
+                        #logging.debug(f"Set clone directory for group of best_practice_ids to {repo_dir}")
+
+                        for best_practice_id in best_practice_ids:
+                            apply_best_practice(
+                                best_practice_id=best_practice_id, 
+                                use_ai_flag=use_ai_flag, 
+                                model=model,
+                                repo_url=repo_url, 
+                                target_dir_to_clone_to=target_dir_to_clone_to, 
+                                branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS)
+                    else: # else make a temporary directory
+                        repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+                        logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
+                        for best_practice_id in best_practice_ids:
+                            apply_best_practice(
+                                best_practice_id=best_practice_id, 
+                                use_ai_flag=use_ai_flag, 
+                                model=model,
+                                repo_url=repo_url, 
+                                target_dir_to_clone_to=repo_dir, 
+                                branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS)
+                else:
+                    for best_practice_id in best_practice_ids:
+                        apply_best_practice(best_practice_id=best_practice_id, use_ai_flag=use_ai_flag, model=model, existing_repo_dir=existing_repo_dir)
+            elif len(best_practice_ids) == 1:
+                apply_best_practice(
+                    best_practice_id=best_practice_ids[0], 
+                    use_ai_flag=use_ai_flag, 
+                    model=model,
+                    repo_url=repo_url, 
+                    existing_repo_dir=existing_repo_dir, 
+                    target_dir_to_clone_to=target_dir_to_clone_to)
+            else:
+                logging.error(f"No best practice IDs specified.")
 
 def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, existing_repo_dir = None, target_dir_to_clone_to = None, branch = None):
     applied_file_path = None # default return value is invalid applied best practice
@@ -490,11 +503,6 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
 
             # Change directory to the cloned repository
             os.chdir(target_dir_to_clone_to)
-
-            # Check if the branch exists
-            print(f"*** GIT REPO: {git_repo}")
-            print(f"*** git_repo.head.is_valid(): {git_repo.head.is_valid()}")
-            print(f"*** git_repo.heads: {git_repo.heads}")
 
             if git_repo.head.is_valid():
                 if best_practice_id in git_repo.heads:
