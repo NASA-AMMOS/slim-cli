@@ -16,7 +16,7 @@ from . import VERSION
 
 
 # Constants
-SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/issue-154/static/data/slim-registry.json"
+SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/yunks128-patch-1/static/data/slim-registry.json"
 SUPPORTED_MODELS = {
     "openai": ["gpt-3.5-turbo", "gpt-4o"],
     "ollama": ["llama3.1", "mistral", "codellama"],
@@ -47,7 +47,7 @@ def fetch_best_practices_from_file(file_path):
 def list_practices(args):
     logging.debug("Listing all best practices...")
     practices = fetch_best_practices(SLIM_REGISTRY_URI)
-    # practices = fetch_best_practices_from_file("slim-registry.json")
+    #practices = fetch_best_practices_from_file("slim-registry.json")
 
     if not practices:
         print("No practices found or failed to fetch practices.")
@@ -540,7 +540,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url = None, e
 
         # Process best practice by ID
         if best_practice_id == 'SLIM-1.1':
-            applied_file_path = download_and_place_file(git_repo, uri, 'GOVERNANCE.md')
+            applied_file_path = download_and_place_file(git_repo, uri, 'GOVERNANCE-TEMPLATE-SMALL-TEAMS.md')
             if use_ai_flag and model:
                 #logging.warning(f"AI apply features unsupported for best practice {best_practice_id} currently")
 
