@@ -153,6 +153,26 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
 
 Each command can be modified with additional flags as needed for more specific tasks or environments.
 
+### Running the CLI Locally
+
+The CLI can be run using Python's module syntax.
+
+#### Basic Usage
+```bash
+python -m jpl.slim.cli  [options]
+```
+
+#### Examples
+
+1. Apply deployment best practices:
+```bash
+python -m jpl.slim.cli apply-deploy \
+    --best-practice-ids SLIM-3.1 \
+    --repo-urls https://github.com/yunks128/maap-py \
+    --use-ai azure/gpt-4o
+```
+
+
 ## Changelog
 
 See our [CHANGELOG.md](CHANGELOG.md) for a history of our changes.

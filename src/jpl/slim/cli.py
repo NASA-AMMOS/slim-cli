@@ -14,7 +14,6 @@ from rich.console import Console
 from rich.table import Table
 from . import VERSION
 
-
 # Constants
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/yunks128-patch-1/static/data/slim-registry.json"
 SUPPORTED_MODELS = {
@@ -317,6 +316,7 @@ def generate_with_azure(prompt: str, model_name: str) -> Optional[str]:
 
 def generate_with_openai(prompt: str, model_name: str) -> Optional[str]:
     from openai import OpenAI
+    from dotenv import load_dotenv
     load_dotenv()
     try:    
         client = OpenAI(api_key = os.getenv('OPENAI_API_KEY'))
