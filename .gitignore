@@ -14,4 +14,3 @@ downloads
 venv
 __pycache__
 .env
-hysds/
