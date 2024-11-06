@@ -43,12 +43,11 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
     - [Features](#features-1)
     - [Usage](#usage)
     - [Options](#options)
-    - [Examples](#examples)
     - [Naming Conventions](#naming-conventions)
     - [Generated Test Structure](#generated-test-structure)
   - [Running the CLI Locally](#running-the-cli-locally)
     - [Basic Usage](#basic-usage-1)
-    - [Examples](#examples-1)
+    - [Examples](#examples)
 - [Changelog](#changelog)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 - [Contributing](#contributing)
@@ -252,9 +251,10 @@ The slim CLI includes an AI-powered test generation feature that can automatical
 - **Dependency Mocking**: Includes appropriate mocking setup for external dependencies
 
 #### Usage
+Generate tests for an entire repository:
 
 ```bash
-slim test generate [options]
+python -m jpl.slim.cli generate-tests --repo-dir ./my-project --output-dir ./my-project/tests
 ```
 
 #### Options
@@ -264,13 +264,7 @@ slim test generate [options]
 - `--model` (Optional): AI model to use (default: "azure/gpt-4o")
 - `--verbose`, `-v` (Optional): Enable detailed logging
 
-#### Examples
 
-Generate tests for an entire repository:
-
-```bash
-python -m jpl.slim.cli generate-tests --repo-dir ./my-project --output-dir ./my-project/tests
-```
 
 #### Naming Conventions
 
