@@ -39,9 +39,16 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
     - [AI-Enhanced Documentation](#ai-enhanced-documentation)
     - [Generated Content](#generated-content)
     - [Integration with Docusaurus](#integration-with-docusaurus)
+  - [Unit Test Generation](#unit-test-generation)
+    - [Features](#features-1)
+    - [Usage](#usage)
+    - [Options](#options)
+    - [Examples](#examples)
+    - [Naming Conventions](#naming-conventions)
+    - [Generated Test Structure](#generated-test-structure)
   - [Running the CLI Locally](#running-the-cli-locally)
     - [Basic Usage](#basic-usage-1)
-    - [Examples](#examples)
+    - [Examples](#examples-1)
 - [Changelog](#changelog)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 - [Contributing](#contributing)
@@ -226,6 +233,72 @@ cp -r /path/to/output/* my-docs/docs/
 cd my-docs
 npm start
 ```
+
+
+### Unit Test Generation
+
+The slim CLI includes an AI-powered test generation feature that can automatically create unit tests for your codebase. This tool analyzes your source code and generates appropriate test files using testing frameworks for each supported language.
+
+#### Features
+
+- **Multi-Language Support**: Generates tests for Python, JavaScript, TypeScript, Java, C++, and C#
+- **Framework-Specific**: Uses appropriate testing frameworks for each language:
+  - Python: pytest
+  - JavaScript/TypeScript: Jest
+  - Java: JUnit
+  - C++: Google Test
+  - C#: NUnit
+- **Comprehensive Testing**: Generates tests for normal operations, edge cases, and error scenarios
+- **Dependency Mocking**: Includes appropriate mocking setup for external dependencies
+
+#### Usage
+
+```bash
+slim test generate [options]
+```
+
+#### Options
+
+- `--repo-dir` (Required): Path to your repository directory
+- `--output-dir` (Optional): Custom output directory for generated tests
+- `--model` (Optional): AI model to use (default: "azure/gpt-4o")
+- `--verbose`, `-v` (Optional): Enable detailed logging
+
+#### Examples
+
+Generate tests for an entire repository:
+
+```bash
+python -m jpl.slim.cli generate-tests --repo-dir ./my-project --output-dir ./my-project/tests
+```
+
+#### Naming Conventions
+
+Generated test files follow language-specific conventions:
+
+| Language | Test File Format | Example |
+|----------|-----------------|----------|
+| Python | `test_*.py` | `test_utils.py` |
+| JavaScript | `*.test.js` | `utils.test.js` |
+| TypeScript | `*.spec.ts` | `utils.spec.ts` |
+| Java | `Test*.java` | `TestUtils.java` |
+| C++ | `*_test.cpp` | `utils_test.cpp` |
+| C# | `*Tests.cs` | `UtilsTests.cs` |
+
+#### Generated Test Structure
+
+Tests are generated with:
+- Appropriate imports and framework setup
+- Test class/suite organization
+- Setup and teardown methods when needed
+- Comprehensive test cases covering:
+  - Normal operation
+  - Edge cases
+  - Error handling
+  - External dependency mocking
+
+
+
 
 
 

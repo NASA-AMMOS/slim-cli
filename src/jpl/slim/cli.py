@@ -955,6 +955,16 @@ def create_parser():
         help=f"Enhance documentation using AI model. Supported models: {get_ai_model_pairs(SUPPORTED_MODELS)}")
     parser_docs.set_defaults(func=handle_generate_docs)
 
+    # Test generation command
+    parser_tests = subparsers.add_parser('generate-tests',
+        help='Generates unit test files for Python code in the repository')
+    parser_tests.add_argument('--repo-dir', required=True,
+        help='Repository directory location on local machine')
+    parser_tests.add_argument('--output-dir', required=True,
+        help='Directory where test files should be generated')
+    parser_tests.add_argument('--use-ai', metavar='MODEL',
+        help=f"Generate tests using AI model. Supported models: {get_ai_model_pairs(SUPPORTED_MODELS)}")
+    parser_tests.set_defaults(func=handle_generate_tests)
 
     return parser
 
@@ -1007,6 +1017,46 @@ def handle_generate_docs(args):
             return True
     except Exception as e:
         logging.error(f"Documentation generation failed: {str(e)}")
+        return False
+
+def handle_generate_tests(args):
+    """Handle the generate-tests command."""
+    logging.debug(f"Generating tests for repository: {args.repo_dir}")
+    
+    # Validate repository directory
+    if not os.path.isdir(args.repo_dir):
+        logging.error(f"Repository directory does not exist: {args.repo_dir}")
+        return False
+        
+    # Initialize and run test generator
+    try:
+        from .testgen import TestGenerator
+
+        generator = TestGenerator(
+            repo_path=args.repo_dir,
+            output_dir=args.output_dir,
+            model=args.use_ai
+        )
+        
+        if generator.generate_tests():
+            logging.info(f"Successfully generated tests in {args.output_dir}")
+            
+            # Print next steps
+            print("\nTest files generated successfully!")
+            print("\nNext steps:")
+            print("1. Install pytest if you haven't already:")
+            print("   pip install pytest")
+            print("\n2. Review the generated tests and modify as needed")
+            print("\n3. Run the tests:")
+            print("   python -m pytest")
+            
+            return True
+        else:
+            logging.error("Test generation failed")
+            return False
+            
+    except Exception as e:
+        logging.error(f"Test generation failed: {str(e)}")
         return False
 
 def main():
