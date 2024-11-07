@@ -941,7 +941,123 @@ def create_parser():
         existing_repo_dir=args.repo_dir,
         target_dir_to_clone_to=args.clone_to_dir
     ))
+
+    # Update Docusaurus documentation generator command with AI support
+    parser_docs = subparsers.add_parser('generate-docs', 
+        help='Generates Docusaurus documentation from repository content')
+    parser_docs.add_argument('--repo-dir', required=True, 
+        help='Repository directory location on local machine')
+    parser_docs.add_argument('--output-dir', required=True,
+        help='Directory where documentation should be generated')
+    parser_docs.add_argument('--config', required=False,
+        help='Optional YAML configuration file for documentation generation')
+    parser_docs.add_argument('--use-ai', metavar='MODEL',
+        help=f"Enhance documentation using AI model. Supported models: {get_ai_model_pairs(SUPPORTED_MODELS)}")
+    parser_docs.set_defaults(func=handle_generate_docs)
+
+    # Test generation command
+    parser_tests = subparsers.add_parser('generate-tests',
+        help='Generates unit test files for Python code in the repository')
+    parser_tests.add_argument('--repo-dir', required=True,
+        help='Repository directory location on local machine')
+    parser_tests.add_argument('--output-dir', required=True,
+        help='Directory where test files should be generated')
+    parser_tests.add_argument('--use-ai', metavar='MODEL',
+        help=f"Generate tests using AI model. Supported models: {get_ai_model_pairs(SUPPORTED_MODELS)}")
+    parser_tests.set_defaults(func=handle_generate_tests)
+
     return parser
+
+def handle_generate_docs(args):
+    """Handle the generate-docs command."""
+    logging.debug(f"Generating documentation from repository: {args.repo_dir}")
+    
+    # Validate repository directory
+    if not os.path.isdir(args.repo_dir):
+        logging.error(f"Repository directory does not exist: {args.repo_dir}")
+        return False
+        
+    # Load configuration if provided
+    config = None
+    if args.config:
+        try:
+            with open(args.config, 'r') as f:
+                config = yaml.safe_load(f)
+        except Exception as e:
+            logging.warning(f"Failed to load configuration file: {str(e)}")
+    
+    # Log AI usage
+    if args.use_ai:
+        logging.info(f"AI enhancement enabled using model: {args.use_ai}")
+    
+    # Initialize and run documentation generator
+    try:
+        from .docgen import DocusaurusGenerator
+        generator = DocusaurusGenerator(
+            repo_path=args.repo_dir,
+            output_dir=args.output_dir,
+            config=config,
+            use_ai=args.use_ai
+        )
+        
+        if generator.generate():
+            logging.info(f"Successfully generated documentation in {args.output_dir}")
+            
+            # Print next steps
+            print("\nDocumentation generated successfully!")
+            print("\nNext steps:")
+            print("1. Install Docusaurus if you haven't already:")
+            print("   npx create-docusaurus@latest my-docs classic")
+            print("\n2. Copy the generated files to your Docusaurus docs directory:")
+            print(f"   cp -r {args.output_dir}/* my-docs/docs/")
+            print("\n3. Start the Docusaurus development server:")
+            print("   cd my-docs")
+            print("   npm start")
+            
+            return True
+    except Exception as e:
+        logging.error(f"Documentation generation failed: {str(e)}")
+        return False
+
+def handle_generate_tests(args):
+    """Handle the generate-tests command."""
+    logging.debug(f"Generating tests for repository: {args.repo_dir}")
+    
+    # Validate repository directory
+    if not os.path.isdir(args.repo_dir):
+        logging.error(f"Repository directory does not exist: {args.repo_dir}")
+        return False
+        
+    # Initialize and run test generator
+    try:
+        from .testgen import TestGenerator
+
+        generator = TestGenerator(
+            repo_path=args.repo_dir,
+            output_dir=args.output_dir,
+            model=args.use_ai
+        )
+        
+        if generator.generate_tests():
+            logging.info(f"Successfully generated tests in {args.output_dir}")
+            
+            # Print next steps
+            print("\nTest files generated successfully!")
+            print("\nNext steps:")
+            print("1. Install pytest if you haven't already:")
+            print("   pip install pytest")
+            print("\n2. Review the generated tests and modify as needed")
+            print("\n3. Run the tests:")
+            print("   python -m pytest")
+            
+            return True
+        else:
+            logging.error("Test generation failed")
+            return False
+            
+    except Exception as e:
+        logging.error(f"Test generation failed: {str(e)}")
+        return False
 
 def main():
     parser = create_parser()
