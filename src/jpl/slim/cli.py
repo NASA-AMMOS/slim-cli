@@ -15,7 +15,7 @@ from rich.table import Table
 from . import VERSION
 
 # Constants
-SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/yunks128-patch-1/static/data/slim-registry.json"
+SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/data/slim-registry.json"
 SUPPORTED_MODELS = {
     "openai": ["gpt-3.5-turbo", "gpt-4o"],
     "ollama": ["llama3.1", "mistral", "codellama"],
