@@ -79,7 +79,20 @@ This guide provides a quick way to get started with our project. Please see our 
   # .env for OpenAI
   OPENAI_API_KEY=<Your-OpenAI-API-Key>
   ```
+* **Steps to use `ollama/llama3.3` as the local AI model:**
+  1. **Download and Install `ollama`:**  
+     Visit the [official Ollama website](https://ollama.com/) to download and install `ollama` for your operating system. Follow the installation instructions provided.
 
+  2. **Start the `ollama` Service:**  
+     Launch the `ollama` service to enable local model hosting. Run the following command in your terminal:
+     ```bash
+     ollama serve
+     ```
+  3. **Run and Test the Model:**  
+     Verify the `ollama/llama3.3` model is working correctly by running the following command. Note that the first run may take some time to download the model:
+     ```bash
+     ollama run llama3.3
+     ```
   
 ### Setup Instructions
 
