@@ -134,7 +134,7 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
    ```
    ```bash
    # Apply and deploy a best practice using Ollama's LLaMA 3.1 model
-   slim apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai ollama/llama3.1:405b
+   slim apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai ollama/llama3.3
    ```
    
 3. **Deploy a best practice**
@@ -190,12 +190,12 @@ You can enable AI enhancement of the documentation using supported language mode
 python -m jpl.slim.cli generate-docs \
   --repo-dir /path/to/your/repo \
   --output-dir /path/to/output \
-  --use-ai azure/gpt-4o
+  --use-ai ollama/llama3.3
 ```
 
 Example usage:
 ```bash
-python -m jpl.slim.cli generate-docs --repo-dir ./hysds --output-dir ./hysds/outputs --use-ai azure/gpt-4o
+python -m jpl.slim.cli generate-docs --repo-dir ./hysds --output-dir ./hysds/outputs --use-ai ollama/llama3.3
 ```
 
 #### Generated Content
