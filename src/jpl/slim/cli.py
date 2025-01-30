@@ -18,7 +18,7 @@ from . import VERSION
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/data/slim-registry.json"
 SUPPORTED_MODELS = {
     "openai": ["gpt-3.5-turbo", "gpt-4o"],
-    "ollama": ["llama3.3", "mistral", "codellama"],
+    "ollama": ["llama3.3", "deepseek-r1", "mistral", "codellama"],
     "azure" : ["gpt-3.5-turbo", "gpt-4o"],
     # Add more models as needed
 }
