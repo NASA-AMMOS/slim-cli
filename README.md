@@ -113,11 +113,13 @@ Or select a specific version, such as `X.Y.Z`:
 
     pip install slim-cli==X.Y.Z
 
-
-
 ### Run Instructions
 
 This section provides detailed commands to interact with the SLIM CLI. Each command includes various options that you can specify to tailor the tool's behavior to your needs.
+
+**NOTE:**
+To specify a logging level for the app, choose between `DEBUG`, `INFO` (default), `WARNING`, `ERROR`, `CRITICAL`: 
+```slim --logging DEBUG```
 
 1. **List all available best practices**
    - This command lists all best practices fetched from the SLIM registry.
@@ -237,7 +239,9 @@ npx create-docusaurus@latest my-docs classic
 
 2. Copy the generated files to your Docusaurus docs directory:
 ```bash
-cp -r /path/to/output/* my-docs/docs/
+cp /path/to/output/*.md my-docs/docs/
+cp /path/to/output/*.js my-docs/
+cp -r /path/to/output/static/* my-docs/static/
 ```
 
 3. Start the Docusaurus development server:

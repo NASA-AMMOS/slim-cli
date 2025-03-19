@@ -9,6 +9,7 @@ import tempfile
 import textwrap
 import urllib
 import uuid
+import sys
 from typing import Optional, Dict, Any
 from rich.console import Console
 from rich.table import Table
@@ -18,7 +19,7 @@ from . import VERSION
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/data/slim-registry.json"
 SUPPORTED_MODELS = {
     "openai": ["gpt-3.5-turbo", "gpt-4o"],
-    "ollama": ["llama3.3", "deepseek-r1", "mistral", "codellama"],
+    "ollama": ["llama3.3", "mistral", "codellama"],
     "azure" : ["gpt-3.5-turbo", "gpt-4o"],
     # Add more models as needed
 }
@@ -27,8 +28,8 @@ GIT_DEFAULT_REMOTE_NAME = 'origin'
 GIT_CUSTOM_REMOTE_NAME = 'slim-custom'
 GIT_DEFAULT_COMMIT_MESSAGE = 'SLIM-CLI Best Practices Bot Commit',
 
-def setup_logging():
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+def setup_logging(logging_level):
+    logging.basicConfig(level=logging_level, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def fetch_best_practices(url):
     response = requests.get(url)
@@ -885,7 +886,14 @@ def create_parser():
     parser = argparse.ArgumentParser(description='This tool automates the application of best practices to git repositories.')
     parser.add_argument('--version', action='version', version=VERSION)
     parser.add_argument('-d', '--dry-run', action='store_true', help='Generate a dry-run plan of activities to be performed')
-    
+    parser.add_argument(
+        '-l', '--logging',
+        required=False,
+        default='INFO',  # default is a string; we'll convert it to logging.INFO below
+        type=lambda s: getattr(logging, s.upper(), None),
+        help='Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL'
+    )
+
     subparsers = parser.add_subparsers(dest='command', required=True)
 
     parser_list = subparsers.add_parser('list', help='Lists all available best practice from the SLIM')
@@ -1066,7 +1074,11 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
 
-    setup_logging()
+    if args.logging is None:
+        print("Invalid logging level provided. Choose from DEBUG, INFO, WARNING, ERROR, CRITICAL.")
+        sys.exit(1)
+    else:
+        setup_logging(args.logging)
 
     if args.dry_run:
         logging.debug("Dry run activated")
