@@ -617,7 +617,7 @@ export default function HomepageFeatures() {{
         for section_name, content in sections.items():
             if content:
                 # Extract headings
-                headings = re.findall(r'^(#{1,6})\s+([^\n#].*?)$', content, re.MULTILINE)
+                headings = re.findall(r'^(#{1,6})\s+([^\n#][^\n]*)$', content, re.MULTILINE)
                 
                 search_index.append({
                     'id': section_name,
