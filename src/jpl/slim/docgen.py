@@ -28,7 +28,7 @@ class DocusaurusGenerator:
             repo_path: Path to the repository
             output_dir: Directory where documentation should be generated
             config: Optional configuration dictionary
-            use_ai: Optional AI model to use for enhanced documentation (e.g., "openai/gpt-4")
+            use_ai: Optional AI model to use for enhanced documentation (e.g., "openai/gpt-4o")
         """
         self.repo_path = repo_path
         self.output_dir = output_dir
@@ -45,111 +45,94 @@ class DocusaurusGenerator:
         if self.use_ai:
             self.logger.info(f"AI enhancement enabled using model: {self.use_ai}")
 
-
     def _generate_homepage(self):
         """Generate src/pages/index.js and src/components/HomepageFeatures/index.js"""
+        # Define constants to avoid duplication
+        INDEX_JS = 'index.js'
+        PACKAGE_JSON = 'package.json'
+        
         project_name = os.path.basename(self.repo_path)
         repo_url = ""
         description = f"{project_name} documentation and resources."
 
         # Extract from package.json if available
-        package_json = os.path.join(self.repo_path, 'package.json')
-        if os.path.exists(package_json):
-            with open(package_json, 'r') as f:
+        package_json_path = os.path.join(self.repo_path, PACKAGE_JSON)
+        if os.path.exists(package_json_path):
+            with open(package_json_path, 'r') as f:
                 package_data = json.load(f)
-                if 'name' in package_data:
-                    project_name = package_data['name']
-                if 'description' in package_data:
-                    description = package_data['description']
+                project_name = package_data.get('name', project_name)
+                description = package_data.get('description', description)
+                
                 if 'repository' in package_data:
-                    repo_url = package_data['repository'] if isinstance(package_data['repository'], str) else package_data['repository'].get('url', '')
+                    repo_data = package_data['repository']
+                    repo_url = repo_data if isinstance(repo_data, str) else repo_data.get('url', '')
 
+        # Create content for index.js
         index_js_content = f"""import React from 'react';
-import Layout from '@theme/Layout';
-import HomepageFeatures from '../components/HomepageFeatures';
+    import Layout from '@theme/Layout';
+    import HomepageFeatures from '../components/HomepageFeatures';
 
-export default function Home() {{
-  return (
-    <Layout
-      title="{project_name}"
-      description="{description}">
-      <main>
-        <HomepageFeatures />
-      </main>
-    </Layout>
-  );
-}}
-"""
+    export default function Home() {{
+    return (
+        <Layout
+        title="{project_name}"
+        description="{description}">
+        <main>
+            <HomepageFeatures />
+        </main>
+        </Layout>
+    );
+    }}
+    """
 
+        # Create content for HomepageFeatures/index.js
         homepage_features_content = f"""import React from 'react';
-import styles from './styles.module.css';
+    import styles from './styles.module.css';
 
-export default function HomepageFeatures() {{
-  return (
-    <section className={{styles.features}}>
-      <div className="container">
-        <div className="row">
-          <div className="col col--4">
-            <h3>Quick Start</h3>
-            <p>Get started with {project_name} quickly by following the documentation and guides.</p>
-          </div>
-          <div className="col col--4">
-            <h3>Features</h3>
-            <p>{description}</p>
-          </div>
-          <div className="col col--4">
-            <h3>Repository</h3>
-            <p><a href=\"{repo_url}\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Repository</a></p>
-          </div>
+    export default function HomepageFeatures() {{
+    return (
+        <section className={{styles.features}}>
+        <div className="container">
+            <div className="row">
+            <div className="col col--4">
+                <h3>Quick Start</h3>
+                <p>Get started with {project_name} quickly by following the documentation and guides.</p>
+            </div>
+            <div className="col col--4">
+                <h3>Features</h3>
+                <p>{description}</p>
+            </div>
+            <div className="col col--4">
+                <h3>Repository</h3>
+                <p><a href=\"{repo_url}\" target=\"_blank\" rel=\"noopener noreferrer\">GitHub Repository</a></p>
+            </div>
+            </div>
         </div>
-      </div>
-    </section>
-  );
-}}
-"""
+        </section>
+    );
+    }}
+    """
 
+        # Apply AI enhancement if enabled
         if self.use_ai:
-            index_js_content = self._enhance_with_ai(index_js_content, 'index.js')
+            index_js_content = self._enhance_with_ai(index_js_content, INDEX_JS)
             homepage_features_content = self._enhance_with_ai(homepage_features_content, 'HomepageFeatures')
 
-        index_js_path = os.path.join(self.output_dir, 'src', 'pages')
-        features_js_path = os.path.join(self.output_dir, 'src', 'components', 'HomepageFeatures')
-        os.makedirs(index_js_path, exist_ok=True)
-        os.makedirs(features_js_path, exist_ok=True)
+        # Create directories and write files
+        index_js_dir = os.path.join(self.output_dir, 'src', 'pages')
+        features_js_dir = os.path.join(self.output_dir, 'src', 'components', 'HomepageFeatures')
+        
+        os.makedirs(index_js_dir, exist_ok=True)
+        os.makedirs(features_js_dir, exist_ok=True)
 
-        with open(os.path.join(index_js_path, 'index.js'), 'w') as f:
+        with open(os.path.join(index_js_dir, INDEX_JS), 'w') as f:
             f.write(index_js_content)
 
-        with open(os.path.join(features_js_path, 'index.js'), 'w') as f:
+        with open(os.path.join(features_js_dir, INDEX_JS), 'w') as f:
             f.write(homepage_features_content)
 
-        self.logger.info("Generated homepage index.js and HomepageFeatures/index.js")
-
-
-    def _generate_logo_svg(self) -> None:
-        """Generate a simple SVG logo based on the repo name."""
-        svg_content = f'''<svg width="300" height="100" xmlns="http://www.w3.org/2000/svg">
-  <rect width="300" height="100" fill="#4183c4"/>
-  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="Arial" font-size="32">
-    {os.path.basename(self.repo_path).upper()}
-  </text>
-</svg>'''
-
-        img_dir = os.path.join(self.output_dir, 'static', 'img')
-        os.makedirs(img_dir, exist_ok=True)
-        svg_path = os.path.join(img_dir, 'logo.svg')
-
-        with open(svg_path, 'w') as f:
-            f.write(svg_content)
-
-        favicon_path = os.path.join(img_dir, 'favicon.svg')
-        shutil.copy(svg_path, favicon_path)
-
-        self.logger.info("Generated dynamic logo.svg and favicon.svg")
-
-
-
-
+        self.logger.info(f"Generated homepage {INDEX_JS} and HomepageFeatures/{INDEX_JS}")
+        
     def generate(self) -> bool:
         try:
             sections = {
@@ -190,7 +173,7 @@ export default function HomepageFeatures() {{
             return False
 
 
-
+####################################################################
     def _generate_docusaurus_config(self) -> None:
         """
         Generate the docusaurus.config.js file for the documentation site.
@@ -203,14 +186,48 @@ export default function HomepageFeatures() {{
         """
         self.logger.debug("Starting docusaurus config generation")
         
+        # Extract project information
+        project_info = self._extract_project_info()
+        
+        # Generate and write config file
+        self._write_docusaurus_config_file(project_info)
+        
+        # Create supporting files
+        self._create_supporting_files(project_info)
+        
+        self.logger.info("Generated Docusaurus configuration")
+
+    def _extract_project_info(self) -> dict:
+        """Extract project information from repository and package files."""
         # Extract project name from repository
         project_name = os.path.basename(self.repo_path)
         repo_name = project_name
-        
-        # Try to find more details in package.json or setup.py if they exist
         description = f"{project_name} Documentation"
         repo_url = ""
+        org_name = ""
         
+        # Try to find more details in package.json if it exists
+        project_info = self._extract_package_json_info(project_name, description, repo_url)
+        project_name = project_info["project_name"]
+        description = project_info["description"]
+        repo_url = project_info["repo_url"]
+        
+        # Extract organization and repo name from git if available
+        git_info = self._extract_git_info(org_name, repo_name, repo_url)
+        org_name = git_info["org_name"]
+        repo_name = git_info["repo_name"]
+        repo_url = git_info["repo_url"]
+        
+        return {
+            "project_name": project_name,
+            "repo_name": repo_name,
+            "description": description,
+            "repo_url": repo_url,
+            "org_name": org_name
+        }
+
+    def _extract_package_json_info(self, project_name, description, repo_url):
+        """Extract information from package.json if it exists."""
         package_json = os.path.join(self.repo_path, 'package.json')
         if os.path.exists(package_json):
             try:
@@ -221,15 +238,26 @@ export default function HomepageFeatures() {{
                     if 'description' in package_data:
                         description = package_data['description']
                     if 'repository' in package_data:
-                        if isinstance(package_data['repository'], str):
-                            repo_url = package_data['repository']
-                        elif isinstance(package_data['repository'], dict) and 'url' in package_data['repository']:
-                            repo_url = package_data['repository']['url']
+                        repo_url = self._extract_repo_url_from_package(package_data)
             except Exception as e:
                 self.logger.warning(f"Error reading package.json: {str(e)}")
         
-        # Extract organization and repo name from git if available
-        org_name = ""
+        return {
+            "project_name": project_name,
+            "description": description,
+            "repo_url": repo_url
+        }
+
+    def _extract_repo_url_from_package(self, package_data):
+        """Extract repository URL from package data."""
+        if isinstance(package_data['repository'], str):
+            return package_data['repository']
+        elif isinstance(package_data['repository'], dict) and 'url' in package_data['repository']:
+            return package_data['repository']['url']
+        return ""
+
+    def _extract_git_info(self, org_name, repo_name, repo_url):
+        """Extract organization and repo information from git."""
         try:
             repo = git.Repo(self.repo_path)
             for remote in repo.remotes:
@@ -244,13 +272,35 @@ export default function HomepageFeatures() {{
         except Exception as e:
             self.logger.warning(f"Error extracting git information: {str(e)}")
         
-        # Generate JavaScript configuration file
+        return {
+            "org_name": org_name,
+            "repo_name": repo_name,
+            "repo_url": repo_url
+        }
+
+    def _write_docusaurus_config_file(self, project_info):
+        """Write the docusaurus.config.js file."""
         config_path = os.path.join(self.output_dir, 'docusaurus.config.js')
         self.logger.debug(f"Writing config to: {config_path}")
         
         with open(config_path, 'w') as f:
-            f.write(f"""/** @type {{import('@docusaurus/types').DocusaurusConfig}} */
-    module.exports = {{
+            f.write(self._generate_config_header(project_info))
+            f.write(self._generate_navbar_config(project_info))
+            f.write(self._generate_footer_config(project_info))
+            f.write("""
+            },
+        },
+        };
+        """)
+
+    def _generate_config_header(self, project_info):
+        """Generate the header part of the config file."""
+        repo_name = project_info["repo_name"]
+        description = project_info["description"]
+        org_name = project_info["org_name"]
+        
+        return f"""/** @type {{{{import('@docusaurus/types').DocusaurusConfig}}}} */
+    module.exports = {{{{
     title: "{repo_name}",
     tagline: "{description}",
     url: "{self.config.get('url', 'https://your-docusaurus-site.example.com')}",
@@ -263,51 +313,72 @@ export default function HomepageFeatures() {{
     presets: [
         [
         "@docusaurus/preset-classic",
-        {{
-            docs: {{
+        {{{{
+            docs: {{{{
             sidebarPath: require.resolve('./sidebars.js'),
             routeBasePath: "/",
-            }},
-            theme: {{
+            }}}},
+            theme: {{{{
             customCss: require.resolve('./src/css/custom.css'),
-            }},
-        }},
+            }}}},
+        }}}},
         ],
     ],
-    themeConfig: {{
-        navbar: {{
+    themeConfig: {{{{
+        navbar: {{{{
         title: "{repo_name}",
-        logo: {{
+        logo: {{{{
             alt: "{repo_name} Logo",
             src: "img/logo.svg",
-        }},
+        }}}},
         items: [
-            {{
+            {{{{
             to: "/",
             label: "Documentation",
             position: "left",
             activeBaseRegex: "^/$|^/(?!.+)",
-            }},
-            {{
+            }}}},
+            {{{{
             to: "/overview",
             label: "Overview",
             position: "left",
-            }},
-            {{
+            }}}},
+            {{{{
             to: "/api",
             label: "API",
             position: "left",
-            }},""")
-            
-            if repo_url:
-                f.write(f"""
-            {{
+            }}}},"""
+
+    def _generate_navbar_config(self, project_info):
+        """Generate the navbar configuration."""
+        repo_url = project_info["repo_url"]
+        if repo_url:
+            return f"""
+            {{{{
             href: "{repo_url}",
             label: "GitHub",
             position: "right",
-            }},""")
-                
-            f.write("""
+            }}}},
+        ],
+        }},
+        footer: {{{{
+        style: "dark",
+        links: [
+            {{{{
+            title: "Docs",
+            items: [
+                {{{{
+                label: "Overview",
+                to: "/overview",
+                }}}},
+                {{{{
+                label: "API",
+                to: "/api",
+                }}}},
+            ],
+            }}}},"""
+        else:
+            return """
         ],
         },
         footer: {
@@ -325,29 +396,38 @@ export default function HomepageFeatures() {{
                 to: "/api",
                 },
             ],
-            },""")
-            
-            if repo_url:
-                f.write(f"""
-            {{
+            },"""
+
+    def _generate_footer_config(self, project_info):
+        """Generate the footer configuration."""
+        repo_url = project_info["repo_url"]
+        org_name = project_info["org_name"]
+        
+        community_section = ""
+        if repo_url:
+            community_section = f"""
+            {{{{
             title: "Community",
             items: [
-                {{
+                {{{{
                 label: "GitHub",
                 href: "{repo_url}",
-                }},
+                }}}},
             ],
-            }},""")
-                
-            f.write(f"""
-        ],
-        copyright: "Copyright © {datetime.now().year} {org_name or 'Project Contributors'}. Built with Docusaurus.",
-        }},
-    }},
-    }};
-    """)
+            }}}},"""
         
-        # Create basic custom CSS file
+        return community_section + f"""
+        ],
+        copyright: "Copyright © {datetime.now().year} {org_name or 'Project Contributors'}. Built with Docusaurus."
+        """
+
+    def _create_supporting_files(self, project_info):
+        """Create supporting files for the Docusaurus site."""
+        self._create_custom_css_file()
+        self._create_logo_files()
+
+    def _create_custom_css_file(self):
+        """Create the custom CSS file."""
         os.makedirs(os.path.join(self.output_dir, 'src', 'css'), exist_ok=True)
         with open(os.path.join(self.output_dir, 'src', 'css', 'custom.css'), 'w') as f:
             f.write("""
@@ -363,10 +443,14 @@ export default function HomepageFeatures() {{
     --ifm-code-font-size: 95%;
     }
     """)
+
+    def _create_logo_files(self):
+        """Create logo and favicon files."""
+        img_dir = os.path.join(self.output_dir, 'static', 'img')
+        os.makedirs(img_dir, exist_ok=True)
         
         # Create a placeholder logo file
-        os.makedirs(os.path.join(self.output_dir, 'static', 'img'), exist_ok=True)
-        with open(os.path.join(self.output_dir, 'static', 'img', 'logo.svg'), 'w') as f:
+        with open(os.path.join(img_dir, 'logo.svg'), 'w') as f:
             f.write("""<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
     <rect width="200" height="200" fill="#4183c4"/>
     <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="Arial" font-size="40">
@@ -376,12 +460,10 @@ export default function HomepageFeatures() {{
         
         # Create a placeholder favicon
         shutil.copy(
-            os.path.join(self.output_dir, 'static', 'img', 'logo.svg'),
-            os.path.join(self.output_dir, 'static', 'img', 'favicon.svg')
+            os.path.join(img_dir, 'logo.svg'),
+            os.path.join(img_dir, 'favicon.svg')
         )
-        
-        self.logger.info("Generated Docusaurus configuration")
-
+#################################################################### end of docusaurus config gen
 
 
     def _enhance_with_ai(self, content: str, section_name: str) -> str:
