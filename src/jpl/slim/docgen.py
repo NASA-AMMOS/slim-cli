@@ -699,7 +699,7 @@ class DocusaurusGenerator:
         for section_name, content in sections.items():
             if content:
                 # Extract headings
-                headings = re.findall(r'^(#{1,6})\s+([^\n#][^\n]*)$', content, re.MULTILINE)
+                headings = re.findall(r'^(#{1,6})\s+(.*?)(?:\s+#{1,6}\s*)?$', content, re.MULTILINE)
                 
                 search_index.append({
                     'id': section_name,
