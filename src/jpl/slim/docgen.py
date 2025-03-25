@@ -691,6 +691,29 @@ class DocusaurusGenerator:
         )
 
 
+    def extract_headings_without_regex(content):
+        headings = []
+        for line in content.splitlines():
+            line = line.strip()
+            if line and line[0] == '#':
+                # Count the number of # characters at the beginning
+                level = 0
+                for char in line:
+                    if char == '#':
+                        level += 1
+                    else:
+                        break
+                
+                if level <= 6 and level > 0 and line[level:level+1].isspace():
+                    # Extract the heading text, trimming spaces
+                    heading_text = line[level:].strip()
+                    
+                    # Remove trailing hashes if present
+                    heading_text = heading_text.rstrip('#').rstrip()
+                    
+                    headings.append((('#' * level), heading_text))
+        
+        return headings
 
     def _generate_search_index(self, sections: Dict[str, Optional[str]]) -> None:
         """Generate search index for documentation."""
@@ -699,7 +722,7 @@ class DocusaurusGenerator:
         for section_name, content in sections.items():
             if content:
                 # Extract headings
-                headings = re.findall(r'^(#{1,6})\s+(.*?)(?:\s+#{1,6}\s*)?$', content, re.MULTILINE)
+                headings = extract_headings_without_regex(content)
                 
                 search_index.append({
                     'id': section_name,
