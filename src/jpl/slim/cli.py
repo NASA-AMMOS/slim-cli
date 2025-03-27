@@ -34,9 +34,8 @@ def setup_logging(logging_level):
 def fetch_best_practices(url):
     response = requests.get(url)
     response.raise_for_status()
-    practices = response.json()
 
-    return practices
+    return response.json()
 
 # THIS FUNCTION IS TEMPORARY FOR TESTING ONLY
 def fetch_best_practices_from_file(file_path):
@@ -47,7 +46,6 @@ def fetch_best_practices_from_file(file_path):
 def list_practices(args):
     logging.debug("Listing all best practices...")
     practices = fetch_best_practices(SLIM_REGISTRY_URI)
-    #practices = fetch_best_practices_from_file("slim-registry.json")
 
     if not practices:
         print("No practices found or failed to fetch practices.")
@@ -68,8 +66,7 @@ def list_practices(args):
 
 def create_slim_registry_dictionary(practices):
     asset_mapping = {}
-    i = 1  # Start the manual index for practices with assets
-    for practice in practices:
+    for i, practice in enumerate(practices, start=1):
         title = practice.get('title', 'N/A')
         description = practice.get('description', 'N/A')
         
@@ -86,7 +83,6 @@ def create_slim_registry_dictionary(practices):
                 }
         else:
             asset_mapping[f"SLIM-{i}"] = {'title': title, 'description': description, 'asset_name': 'None'}
-        i += 1
     return asset_mapping
 
 def get_ai_model_pairs(supported_models):
@@ -135,14 +131,6 @@ def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str
     :param model: Name of the AI model to use (example: "openai/gpt-4o", "ollama/llama3.1:70b").
     :return: Generated or modified content as a string, or None if an error occurs.
     """
-    # Check if the model provider is Azure or OpenAI
-    model_provider, model_name = model.split('/')
-
-    # checking open source is in progress... 
-    #if model_provider in ["openai", "azure"] and not is_open_source(repo_path):
-    #    logging.error(f"Azure and OpenAI features are disabled for non-open-source repositories.")
-    #    return None
-
     
     logging.debug(f"Using AI to apply best practice ID: {best_practice_id} in repository {repo_path}")
     
@@ -160,33 +148,31 @@ def use_ai(best_practice_id: str, repo_path: str, template_path: str, model: str
     if not template_content:
         return None
     
-    # Fetch the code base for SLIM-3.1 readme (limited to specific file types)
+    # Fetch appropriate reference content based on best practice ID
     if best_practice_id == 'SLIM-1.1': #governance 
         reference = fetch_readme(repo_path)
-        # Construct the prompt for the AI
-        prompt = construct_prompt(template_content, best_practice, reference)   
+        additional_instruction = ""
     elif best_practice_id == 'SLIM-3.1': #readme
         reference = fetch_code_base(repo_path)
-        # Construct the prompt for the AI
-        prompt = construct_prompt(template_content, best_practice, reference)
+        additional_instruction = ""
     elif best_practice_id == 'SLIM-13.1': #readme
         reference1 = fetch_readme(repo_path)
         reference2 = "\n".join(fetch_relative_file_paths(repo_path))
         reference = "EXISTING README:\n" + reference1 + "\n\n" + "EXISTING DIRECTORY LISTING: " + reference2
-        # Construct the prompt for the AI
-        prompt = construct_prompt(template_content, best_practice, reference, "Within the provided testing template, only fill out the sections that plausibly have existing tests to fill out based on the directory listing provided (do not make up tests that do not exist).")
+        additional_instruction = "Within the provided testing template, only fill out the sections that plausibly have existing tests to fill out based on the directory listing provided (do not make up tests that do not exist)."
     else:
         reference = fetch_readme(repo_path)
-        # Construct the prompt for the AI
-        prompt = construct_prompt(template_content, best_practice, reference)
+        additional_instruction = ""
+    
     if not reference:
         return None
-    
         
-    # Generate the content using the specified model
-    new_content = generate_content(prompt, model)
+    # Construct the prompt for the AI
+    prompt = construct_prompt(template_content, best_practice, reference, additional_instruction if best_practice_id == 'SLIM-13.1' else "")
+    
+    # Generate and return the content using the specified model
+    return generate_content(prompt, model)
 
-    return new_content
 
 def fetch_readme(repo_path: str) -> Optional[str]:
     readme_files = ['README.md', 'README.txt', 'README.rst']  # Add more variations as needed
@@ -1017,7 +1003,10 @@ def handle_generate_docs(args):
             print("1. Install Docusaurus if you haven't already:")
             print("   npx create-docusaurus@latest my-docs classic")
             print("\n2. Copy the generated files to your Docusaurus docs directory:")
-            print(f"   cp -r {args.output_dir}/* my-docs/docs/")
+            print(f"   cp -r {args.output_dir}/*.md my-docs/docs/")
+            print(f"   cp -r {args.output_dir}/docusaurus.config.js my-docs/")
+            print(f"   cp -r {args.output_dir}/sidebars.js my-docs/")
+            print(f"   cp -r {args.output_dir}/static/* my-docs/static/")
             print("\n3. Start the Docusaurus development server:")
             print("   cd my-docs")
             print("   npm start")

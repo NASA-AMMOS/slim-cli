@@ -239,7 +239,10 @@ npx create-docusaurus@latest my-docs classic
 
 2. Copy the generated files to your Docusaurus docs directory:
 ```bash
-cp -r /path/to/output/* my-docs/docs/
+cp /path/to/output/*.md my-docs/docs/
+cp /path/to/output/docusaurus.config.js my-docs/
+cp /path/to/output/sidebars.js my-docs/
+cp -r /path/to/output/static/* my-docs/static/
 ```
 
 3. Start the Docusaurus development server:
