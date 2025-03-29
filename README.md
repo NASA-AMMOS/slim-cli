@@ -182,6 +182,26 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
 
 Each command can be modified with additional flags as needed for more specific tasks or environments.
 
+5. **Generate documentation**
+   - Generates Docusaurus documentation for a repository.
+   - `--repo-dir`: Path to the repository directory.
+   - `--output-dir`: Directory where the generated documentation will be saved.
+   - `--use-ai`: Optional. Enables AI enhancement of documentation. Specify the model provider and model name (e.g., `ollama/llama3.3`).
+   ```bash
+   slim generate-docs --repo-dir /path/to/repo --output-dir /path/to/output --use-ai ollama/llama3.3
+   ```
+
+6. **Generate tests**
+   - Generates unit tests for a repository using AI.
+   - `--repo-dir`: Path to the repository directory.
+   - `--output-dir`: Optional. Directory where the generated tests will be saved.
+   - `--model`: Optional. AI model to use (default: "azure/gpt-4o").
+   - `--verbose`, `-v`: Optional. Enable detailed logging.
+   ```bash
+   slim generate-tests --repo-dir /path/to/repo --output-dir /path/to/tests --model ollama/llama3.3
+   ```
+
+
 
 ### Generate Docusaurus documentation
 
@@ -367,27 +387,21 @@ The `slim` console-script is now ready in editable mode; changes you make to the
 
 ### Running Tests
 
-We use `pytest` for testing. The test files are located within the `tests` subdirectory. To run the tests, ensure you are in the root directory of the project (where the `pyproject.toml` or `setup.py` is located) and have `pytest` installed. You can install `pytest` via pip:
+We use `pytest` for testing. For detailed information about our testing framework, test structure, and how to run tests, please refer to our [TESTING.md](TESTING.md) document.
+
+Here's a quick summary:
 
 ```bash
+# Install pytest
 pip install pytest
-```
 
-To execute all tests, simply run:
-
-```bash
+# Run all tests
 pytest
-```
 
-If you want to run a specific test file, you can specify the path to the test file:
-
-```bash
+# Run a specific test file
 pytest tests/jpl/slim/test_cli.py
-```
 
-This will run all the tests in the specified file. You can also use `pytest` options like `-v` for verbose output or `-s` to see print statements in the output:
-
-```bash
+# Run tests with verbose output
 pytest -v -s
 ```
 
