@@ -5,9 +5,24 @@ import sys
 import tempfile
 import urllib.parse
 import uuid
-import yaml
-import git
-import requests
+try:
+    import yaml
+except ImportError:
+    print("Error: The 'pyyaml' package is required but not installed.")
+    print("Please install it using: pip install pyyaml")
+    sys.exit(1)
+try:
+    import git
+except ImportError:
+    print("Error: The 'gitpython' package is required but not installed.")
+    print("Please install it using: pip install gitpython")
+    sys.exit(1)
+try:
+    import requests
+except ImportError:
+    print("Error: The 'requests' package is required but not installed.")
+    print("Please install it using: pip install requests")
+    sys.exit(1)
 from typing import Optional, Dict, Any
 from . import VERSION
 
