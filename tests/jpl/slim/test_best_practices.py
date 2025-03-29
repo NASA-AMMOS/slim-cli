@@ -97,7 +97,8 @@ class TestGovernancePractice:
         # Assert
         mock_download.assert_called_once()
         assert result is not None
-        assert isinstance(result, str)
+        # The apply method now returns a git.Repo object instead of a string
+        assert result == mock_repo_obj
 
     @patch('jpl.slim.best_practices.governance.git.Repo')
     @patch('jpl.slim.best_practices.governance.download_and_place_file')
@@ -131,13 +132,14 @@ class TestGovernancePractice:
         # Assert
         mock_download.assert_called_once()
         mock_use_ai.assert_called_once_with(
-            "SLIM-1.1", 
-            "/path/to/repo", 
-            "/path/to/downloaded/GOVERNANCE.md", 
+            "SLIM-1.1",
+            "/path/to/repo",
+            "/path/to/downloaded/GOVERNANCE.md",
             "openai/gpt-4o"
         )
         assert result is not None
-        assert isinstance(result, str)
+        # The apply method now returns a git.Repo object instead of a string
+        assert result == mock_repo_obj
 
     @patch('jpl.slim.best_practices.governance.git')
     def test_deploy_commits_and_pushes_changes(self, mock_git):

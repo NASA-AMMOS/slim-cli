@@ -97,9 +97,15 @@ def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message
         # Assuming repo_dir points to a local git repository directory
         repo = git.Repo(repo_dir)
 
-        # Checkout the branch
-        repo.git.checkout(branch_name)
-        logging.debug(f"Checked out to branch {branch_name}")
+        # Checkout the branch or create it if it doesn't exist
+        try:
+            repo.git.checkout(branch_name)
+            logging.debug(f"Checked out to branch {branch_name}")
+        except git.exc.GitCommandError:
+            # Branch doesn't exist, create it
+            logging.debug(f"Branch {branch_name} doesn't exist, creating it")
+            repo.git.checkout('-b', branch_name)
+            logging.debug(f"Created and checked out branch {branch_name}")
 
         if remote:
             # Use the current GitHub user's default organization as the prefix for the remote
@@ -146,6 +152,9 @@ def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message
 
         return True
     except git.exc.GitCommandError as e:
+        # Initialize remote_name to a default value if it's not defined yet
+        if 'remote_name' not in locals():
+            remote_name = "unknown"
         logging.error(f"Unable to deploy best practice id '{best_practice_id}' to remote '{remote_name}' on branch '{branch_name}'")
         logging.error(f"Git command failed: {str(e)}")
         logging.error(f"An error occurred: {str(e)}")

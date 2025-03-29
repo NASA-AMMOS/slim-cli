@@ -37,7 +37,7 @@ class GovernancePractice(BestPractice):
             branch (str, optional): Git branch to use. Defaults to None.
             
         Returns:
-            str: Path to the applied file
+            git.Repo: Git repository object if successful, None otherwise
         """
         logging.debug(f"Applying governance best practice {self.best_practice_id} to repository: {repo_path}")
         
@@ -97,9 +97,9 @@ class GovernancePractice(BestPractice):
         
         # Download the governance file
         applied_file_path = download_and_place_file(git_repo, self.uri, filename)
-        
         if not applied_file_path:
             logging.error(f"Failed to download governance file for best practice {self.best_practice_id}")
+            return None
             return None
         
         # Apply AI customization if requested
@@ -113,7 +113,10 @@ class GovernancePractice(BestPractice):
                 logging.warning(f"AI generation failed for best practice {self.best_practice_id}")
         
         logging.info(f"Applied governance best practice {self.best_practice_id} to repository {repo_path}")
-        return applied_file_path
+        
+        # Return the git repository object instead of the file path
+        # This ensures compatibility with apply_deploy_command.py which expects a git.Repo object
+        return git_repo
     
     def deploy(self, repo_path, remote=None, commit_message=None):
         """
