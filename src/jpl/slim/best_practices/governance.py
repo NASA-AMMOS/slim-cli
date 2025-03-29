@@ -23,7 +23,8 @@ class GovernancePractice(BestPractice):
     based on the SLIM-1.1, SLIM-1.2, and SLIM-1.3 best practices.
     """
     
-    def apply(self, repo_path, use_ai=False, model=None):
+    def apply(self, repo_path, use_ai=False, model=None, repo_url=None, 
+              target_dir_to_clone_to=None, branch=None):
         """
         Apply the governance best practice to a repository.
         
@@ -31,6 +32,9 @@ class GovernancePractice(BestPractice):
             repo_path (str): Path to the repository
             use_ai (bool, optional): Whether to use AI assistance. Defaults to False.
             model (str, optional): AI model to use if use_ai is True. Defaults to None.
+            repo_url (str, optional): Repository URL. Defaults to None.
+            target_dir_to_clone_to (str, optional): Directory to clone to. Defaults to None.
+            branch (str, optional): Git branch to use. Defaults to None.
             
         Returns:
             str: Path to the applied file
@@ -39,7 +43,39 @@ class GovernancePractice(BestPractice):
         
         # Get the git repository object
         try:
-            git_repo = git.Repo(repo_path)
+            # If repo_url is provided, we need to clone the repository
+            if repo_url:
+                logging.debug(f"Using repository URL {repo_url}")
+                if target_dir_to_clone_to:
+                    logging.debug(f"Cloning to directory {target_dir_to_clone_to}")
+                    git_repo = git.Repo.clone_from(repo_url, target_dir_to_clone_to)
+                    repo_path = target_dir_to_clone_to
+                else:
+                    # Create a temporary directory for cloning
+                    import tempfile
+                    import os
+                    temp_dir = tempfile.mkdtemp()
+                    logging.debug(f"Cloning to temporary directory {temp_dir}")
+                    git_repo = git.Repo.clone_from(repo_url, temp_dir)
+                    repo_path = temp_dir
+                
+                # Create and checkout branch if specified
+                if branch:
+                    if branch in git_repo.heads:
+                        git_repo.heads[branch].checkout()
+                    else:
+                        git_repo.git.checkout('-b', branch)
+                    logging.debug(f"Checked out branch {branch}")
+            else:
+                git_repo = git.Repo(repo_path)
+                
+                # Create and checkout branch if specified
+                if branch:
+                    if branch in git_repo.heads:
+                        git_repo.heads[branch].checkout()
+                    else:
+                        git_repo.git.checkout('-b', branch)
+                    logging.debug(f"Checked out branch {branch}")
         except git.exc.InvalidGitRepositoryError:
             logging.error(f"Error: {repo_path} is not a valid Git repository.")
             return None

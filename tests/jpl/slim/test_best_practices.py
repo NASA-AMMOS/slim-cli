@@ -78,6 +78,7 @@ class TestGovernancePractice:
     def test_apply_downloads_governance_file(self, mock_download, mock_git_repo):
         """Test that apply() downloads the governance file."""
         # Arrange
+        # Import inside the test to avoid circular imports
         from jpl.slim.best_practices.governance import GovernancePractice
         mock_download.return_value = "/path/to/downloaded/GOVERNANCE.md"
         mock_repo_obj = MagicMock()
@@ -105,6 +106,7 @@ class TestGovernancePractice:
     def test_apply_uses_ai_when_enabled(self, mock_open, mock_use_ai, mock_download, mock_git_repo):
         """Test that apply() uses AI when enabled."""
         # Arrange
+        # Import inside the test to avoid circular imports
         from jpl.slim.best_practices.governance import GovernancePractice
         mock_download.return_value = "/path/to/downloaded/GOVERNANCE.md"
         mock_use_ai.return_value = "AI-generated content"
@@ -141,6 +143,7 @@ class TestGovernancePractice:
     def test_deploy_commits_and_pushes_changes(self, mock_git):
         """Test that deploy() commits and pushes changes."""
         # Arrange
+        # Import inside the test to avoid circular imports
         from jpl.slim.best_practices.governance import GovernancePractice
         mock_repo = MagicMock()
         mock_git.Repo.return_value = mock_repo
