@@ -366,7 +366,7 @@ Questions about our project? Please see our: [FAQ](https://nasa-ammos.github.io/
 
 ## Contributing
 
-Interested in contributing to our project? Please see our: [CONTRIBUTING.md](CONTRIBUTING.md)
+Interested in contributing to our project? Please see our: [CONTRIBUTING.md](CONTRIBUTING.md). Specifically, see our section on [architecture and extensions](CONTRIBUTING.md#slim-architecture-and-extension-points) if you'd like to add support for a new best practice from SLIM or a new command. 
 
 For guidance on how to interact with our team, please see our code of conduct located at: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 

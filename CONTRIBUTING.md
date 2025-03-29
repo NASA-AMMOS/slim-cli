@@ -16,30 +16,20 @@ Our Code of Conduct helps facilitate a positive interaction environment for ever
 
 ### Developer Environment
 
-For patch contributions, see our [Developer Documentation]([INSERT YOUR DEVELOPMENT GUIDE LINK HERE]) for more details on how to set up your local environment, to best contribute to our project. 
+For patch contributions, see our [README.md](README.md) for more details on how to set up your local environment, to best contribute to our project. 
 
 At a minimum however to submit patches (if using Git), you'll want to ensure you have:
 1. An account on the Version Control System our project uses (i.e. GitHub).
 2. The Version Control System client (i.e. Git) installed on your local machine.
-3. The ability to edit, build, and test our project on your local machine. Again, see our [README.md](README.md) or detailed developer guide for more details 
+3. The ability to edit, build, and test our project on your local machine. Again, see our [README.md](README.md) for more details.
 
 ### Communication Channels
 
 Before contributing changes to our project, it's a great idea to be familiar with our communication channels and to socialize your potential contributions to get feedback early. This will help give you context for your contributions, no matter their form.
 
 Our communication channels are:
-- [Issue tracking system]([INSERT LINK TO ISSUE TRACKING SYSTEM]) - a regularly monitored area to report issues with our software or propose changes
-- [Discussion board]([INSERT LINK TO DISCUSSION BOARD OR MAILING LIST]) - an permanently archived place to hold conversations related to our project, and to propose as well as show+tell topics to the contributor team. This resource can be searched for old discussions.
-- [INSERT ADDITIONAL COMMUNICATION CHANNELS FOR YOUR PROJECT, EX: SLACK, TWITTER, YOUTUBE, ETC.]
-
-### Communication Channels
-
-Before contributing changes to our project, it's a great idea to be familiar with our communication channels and to socialize your potential contributions to get feedback early. This will help give you context for your contributions, no matter their form.
-
-Our communication channels are:
-- [Issue tracking system]([INSERT LINK TO ISSUE TRACKING SYSTEM]) - a regularly monitored area to report issues with our software or propose changes
-- [Discussion board](INSERT LINK TO DISCUSSION BOARD OR MAILING LIST) - an permanently archived place to hold conversations related to our project, and to propose as well as show+tell topics to the contributor team. This resource can be searched for old discussions.
-- [INSERT ADDITIONAL COMMUNICATION CHANNELS FOR YOUR PROJECT, EX: SLACK, TWITTER, YOUTUBE, ETC.]
+- [Issue tracking system](https://github.com/nasa-jpl/slim/issues) - a regularly monitored area to report issues with our software or propose changes
+- [Discussion board](https://github.com/nasa-jpl/slim/discussions) - an permanently archived place to hold conversations related to our project, and to propose as well as show+tell topics to the contributor team. This resource can be searched for old discussions.
 
 ## Our Development Process
 
@@ -62,17 +52,16 @@ See [this GitHub guide](https://docs.github.com/en/get-started/quickstart/fork-a
 
 #### Find or File an Issue
 
-Make sure people are aware you're working on a patch! Check out our [issue tracking system]([INSERT LINK TO YOUR ISSUE TRACKING SYSTEM]) and find an open issue you'd like to work against, or alternatively file a new issue and mention you're working on a patch.
+Make sure people are aware you're working on a patch! Check out our [issue tracking system](https://github.com/nasa-jpl/slim/issues) and find an open issue you'd like to work against, or alternatively file a new issue and mention you're working on a patch.
 
 #### Choose the Right Branch to Fork
 
 Our project typically has the following branches available, make sure to fork either the default branch or a branch someone else already tagged with a particular issue ticket you're working with.
-- `main`[INSERT DEFAULT VCS BRANCH NAME HERE] - default branch
-- [INSERT ADDITIONAL TYPICAL VCS BRANCH NAMES HERE] - 
+- `main` - default branch
 
 ### Make your Modifications
 
-Within your local development environment, this is the stage at which you'll propose your changes, and commit those changes back to version control. See the [README.md](README.md) or development guide for more specifics on what you'll need as prerequisites to setup your local development environment.
+Within your local development environment, this is the stage at which you'll propose your changes, and commit those changes back to version control. See the [README.md](README.md) for more specifics on what you'll need as prerequisites to setup your local development environment.
 
 #### Commit Messages
 
@@ -90,7 +79,7 @@ Commit should always be atomic. Keep solutions isolated whenever possible. Fille
 
 Pull requests are the core way our project will receive your patch contributions. Navigate to your branch on your own fork within the version control system, and submit a pull request or submit the patch text to our project. 
 
-Please make sure to provide a meaningful text description to your pull requests, whenever submitted. Our pull-request template will be auto-generated for you when you create your pull-request. See the template [here]([INSERT LINK TO YOUR PULL REQUEST TEMPLATE, ex: .github/PULL_REQUEST_TEMPLATE.md]). 
+Please make sure to provide a meaningful text description to your pull requests, whenever submitted.
 
 **Working on your first Pull Request?** See guide: [How to Contribute to an Open Source Project on GitHub](https://kcd.im/pull-request)
 
@@ -106,6 +95,204 @@ Reviewing pull-requests, or any kinds of proposed patch changes, is an art. That
 - **Reproducibility** - is your patch reproducible by others?
 - **Tests** - do you have or have conducted meaningful tests?
 
+## SLIM Architecture and Extension Points
+
+This section provides an overview of the SLIM codebase architecture and explains how to extend it by adding new best practices and commands.
+
+### Architectural Overview
+
+SLIM is designed with a modular architecture that makes it easy to extend with new functionality. The main components are:
+
+```mermaid
+flowchart TD
+    CLI[CLI Module] --> Commands[Commands Package]
+    CLI --> Manager[Manager Package]
+    Commands --> Manager
+    Manager --> BestPractices[Best Practices Package]
+    Commands --> BestPractices
+    Commands --> Utils[Utils Package]
+    BestPractices --> Utils
+    Manager --> Utils
+```
+
+#### Key Components
+
+1. **CLI Module** (`src/jpl/slim/cli.py`):
+   - Entry point for the command-line interface
+   - Parses arguments and dispatches to appropriate command handlers
+   - Registers all available commands
+
+2. **Commands Package** (`src/jpl/slim/commands/`):
+   - Contains modules for each subcommand of the SLIM CLI
+   - Each command module has:
+     - `setup_parser()` function to configure command arguments
+     - `handle_command()` function to execute the command
+
+3. **Best Practices Package** (`src/jpl/slim/best_practices/`):
+   - Contains the base class and implementations of best practices
+   - `BestPractice` abstract base class defines the interface
+   - Concrete implementations extend the base class
+
+4. **Manager Package** (`src/jpl/slim/manager/`):
+   - Contains the `BestPracticeManager` class
+   - Manages best practices and their lifecycle
+   - Retrieves best practices by ID
+
+5. **Utils Package** (`src/jpl/slim/utils/`):
+   - Contains utility functions for:
+     - Git operations (`git_utils.py`)
+     - I/O operations (`io_utils.py`)
+     - AI operations (`ai_utils.py`)
+
+### Extension Points
+
+SLIM is designed to be easily extended with new best practices and commands. Here's how to add new functionality:
+
+#### Adding a New Best Practice
+
+⚠️ NOTE: You'll want to ensure your best practice is referenced in the SLIM registry with assets, as this is a pre-requisite step to automating the application of a best practice:
+  1. See this guide on adding to the SLIM registry: https://nasa-ammos.github.io/slim/docs/contribute/submit-best-practice#add-entry-to-the-registry
+  2. Once added, run `slim list` to see and get the ID for the best practice you want to support. The ID numbers are automatically generated. 
+  3. Proceed with the below steps once you have an ID and best practice assets to work with.
+
+To add a new best practice to SLIM:
+
+1. **Create a new class** that inherits from `BestPractice` in the `src/jpl/slim/best_practices/` directory:
+
+```python
+from jpl.slim.best_practices.base import BestPractice
+
+class YourNewPractice(BestPractice):
+    """
+    Your new best practice implementation.
+    
+    This class implements a specific best practice for [describe purpose].
+    """
+    
+    def __init__(self):
+        """Initialize the best practice."""
+        super().__init__(
+            best_practice_id="your-practice-id",
+            uri="https://github.com/nasa-jpl/slim/your-practice",
+            title="Your Best Practice Title",
+            description="Description of your best practice"
+        )
+    
+    def apply(self, repo_path, use_ai=False, model=None, **kwargs):
+        """
+        Apply your best practice to a repository.
+        
+        Args:
+            repo_path (str): Path to the repository
+            use_ai (bool, optional): Whether to use AI assistance. Defaults to False.
+            model (str, optional): AI model to use if use_ai is True. Defaults to None.
+            
+        Returns:
+            str or None: Path to the applied file if successful, None otherwise
+        """
+        # Implementation of your best practice application
+        pass
+    
+    def deploy(self, repo_path, remote=None, commit_message=None):
+        """
+        Deploy changes made by applying your best practice.
+        
+        Args:
+            repo_path (str): Path to the repository
+            remote (str, optional): Remote repository to push changes to. Defaults to None.
+            commit_message (str, optional): Commit message for the changes. Defaults to None.
+            
+        Returns:
+            bool: True if deployment was successful, False otherwise
+        """
+        # Implementation of your best practice deployment
+        pass
+```
+
+2. **Register your best practice** in the `BestPracticeManager` class in `src/jpl/slim/manager/best_practices_manager.py`:
+
+   - Add your best practice to the appropriate section in the `get_best_practice` method
+   - Import your new best practice class at the top of the file
+
+#### Adding a New Command
+
+To add a new command to SLIM:
+
+1. **Create a new command module** in the `src/jpl/slim/commands/` directory:
+
+```python
+"""
+Your new command module for the SLIM CLI.
+
+This module contains the implementation of the 'your-command' subcommand.
+"""
+
+import logging
+from jpl.slim.manager.best_practices_manager import BestPracticeManager
+from jpl.slim.utils.io_utils import fetch_best_practices
+from jpl.slim.commands.common import SLIM_REGISTRY_URI
+
+def setup_parser(subparsers):
+    """
+    Set up the parser for the 'your-command' command.
+    
+    Args:
+        subparsers: Subparsers object from argparse
+        
+    Returns:
+        The parser for the 'your-command' command
+    """
+    parser = subparsers.add_parser('your-command', help='Description of your command')
+    parser.add_argument('--your-arg', required=True, help='Description of your argument')
+    # Add more arguments as needed
+    parser.set_defaults(func=handle_command)
+    return parser
+
+def handle_command(args):
+    """
+    Handle the 'your-command' command.
+    
+    Args:
+        args: Arguments from argparse
+    """
+    logging.info(f"Executing your-command with args: {args.your_arg}")
+    
+    # Implement your command logic here
+    # For example:
+    practices = fetch_best_practices(SLIM_REGISTRY_URI)
+    manager = BestPracticeManager(practices)
+    
+    # Your command-specific logic
+    # ...
+    
+    logging.info("Your command completed successfully")
+```
+
+2. **Register your command** in the CLI module (`src/jpl/slim/cli.py`):
+
+   - Import your command module at the top of the file:
+   ```python
+   from jpl.slim.commands.your_command import setup_parser as setup_your_command_parser
+   ```
+
+   - Add your command to the `create_parser` function:
+   ```python
+   setup_your_command_parser(subparsers)
+   ```
+
+3. **Update the `__init__.py`** in the commands package to expose your new command:
+
+   - Add your command module to the imports
+   - Add your command class to the `__all__` list
+
+### Testing Your Extensions
+
+After adding new best practices or commands, make sure to:
+
+1. Write unit tests for your new functionality in the `tests/` directory
+2. Run the existing test suite to ensure you haven't broken anything
+3. Test your new functionality manually with various inputs and edge cases
+
 ## Ways to Contribute
 
 ### ⚠️ Issue Tickets
@@ -114,7 +301,7 @@ Reviewing pull-requests, or any kinds of proposed patch changes, is an art. That
 
 Issue tickets are a very simple way to get involved in our project. It also helps new contributors get an understanding of the project more comprehensively. This is a great place to get started with the project if you're not sure where to start. 
 
-See our list of issues at: [INSERT LINK TO YOUR ISSUE TRACKING SYSTEM]
+See our list of issues at: [https://github.com/nasa-jpl/slim/issues](https://github.com/nasa-jpl/slim/issues)
 
 #### Cleaning up Duplicate Issues
 
@@ -132,11 +319,11 @@ This is a duplicate issue. Please migrate conversations over to [issue-XYZ](hype
 
 Issue tickets can vary in complexity, and issues labeled with `good first issue` labels are often a great way to get started with the project as a newcomer. 
 
-Take a look at our [issue tracking system]([INSERT LINK TO YOUR ISSUE TRACKING SYSTEM]), and filter by `good first issue` for issues that are low-complexity, and that will help you get familiar with our issue tracking and patch submission process.
+Take a look at our [issue tracking system](https://github.com/nasa-jpl/slim/issues), and filter by `good first issue` for issues that are low-complexity, and that will help you get familiar with our issue tracking and patch submission process.
 
 #### Suggesting New Issue Labels
 
-Labels within our [issue tracking system]([INSERT LINK TO YOUR ISSUE TRACKING SYSTEM]) are a great way to quickly sort through tickets. The project may not yet have labels to cover the full variety of issue tickets. Take a look through our list of issues, and if you notice a set of issue tickets that seem similar but are not categorized with an existing label, go ahead submit a request within one of the issues you've looked at with the following text:
+Labels within our [issue tracking system](https://github.com/nasa-jpl/slim/issues) are a great way to quickly sort through tickets. The project may not yet have labels to cover the full variety of issue tickets. Take a look through our list of issues, and if you notice a set of issue tickets that seem similar but are not categorized with an existing label, go ahead submit a request within one of the issues you've looked at with the following text:
 
 ```
 I've noticed several other issues that are of the same category as this issue. Shall we make a new label for these types of issues?
@@ -145,10 +332,10 @@ I've noticed several other issues that are of the same category as this issue. S
 #### Submitting Bug Issues
 
 Resolving bugs is a priority for our project. We welcome bug reports. However, please make sure to do the following prior to submitting a bug report:
-- **Check for duplicates** - there may be a bug report already describing your issue, so check the [issue tracking system]([INSERT LINK TO YOUR ISSUE TRACKING SYSTEM]) first.
+- **Check for duplicates** - there may be a bug report already describing your issue, so check the [issue tracking system](https://github.com/nasa-jpl/slim/issues) first.
 
 Here's some guidance on submitting a bug issue:
-1. Navigate to our [issue tracking system]([INSERT LINK TO YOUR ISSUE TRACKING SYSTEM]) and file a new issue
+1. Navigate to our [issue tracking system](https://github.com/nasa-jpl/slim/issues) and file a new issue
 2. Select a bug template (if available) for your issue
    1. Fill out the template fields to the best of your ability, including output snippets or screenshots where applicable
 3. Follow the general guidelines below for extra information about your bug
@@ -160,11 +347,11 @@ Here's some guidance on submitting a bug issue:
 #### Submitting New Feature Issues
 
 We welcome new feature requests to help grow our project. However, please make sure to do the following prior to submitting a new feature request:
-- **Check for duplicates** - there may be a new feature issue already describing your issue, so check the [issue tracking system]([INSERT LINK TO YOUR ISSUE TRACKING SYSTEM]) first
+- **Check for duplicates** - there may be a new feature issue already describing your issue, so check the [issue tracking system](https://github.com/nasa-jpl/slim/issues) first
 - **Consider alternatives** - is your feature really needed? Or is there a feature within our project or with a third-party that may help you achieve what you want?
 
 Here's some guidance on submitting a new feature issue:
-1. Navigate to our [issue tracking system]([INSERT LINK TO YOUR ISSUE TRACKING SYSTEM]) and file a new issue
+1. Navigate to our [issue tracking system](https://github.com/nasa-jpl/slim/issues) and file a new issue
 2. Select a new feature template (if available) for your issue
    1. Fill out the template fields to the best of your ability
 
@@ -172,7 +359,7 @@ Here's some guidance on submitting a new feature issue:
 
 Security vulnerabilities should **not** be filed to the regular issue tracking system.
 
-Report your security vulnerabilities to (see contact links): [INSERT SECURITY CONTACT LINK HERE]
+Report your security vulnerabilities to the project maintainers directly.
 
 Please be sure to:
 * Indicate the severity of the vulnerability
@@ -183,14 +370,14 @@ Please be sure to:
 
 Reviewing others' contributions is a great way to learn about best practices in both contributions as well as software. 
 
-Take a look at our [pull requests tracking system]([INSERT LINK FOR PULL REQUESTS TRACKING SYSTEM]), and try the following options for providing a review:
+Take a look at our [pull requests tracking system](https://github.com/nasa-jpl/slim/pulls), and try the following options for providing a review:
 1. Read the code / patch associated with the pull-request, and take note of any coding, bug, or documentation issues if found
 2. Try to recreate the pull-request patch on your local machine, and report if it has issues with your system in particular
 3. Scan over suggested feedback from other contributors, and provide feedback if necessary
 
-### 💻  Code
+### 💻 Code
 
-⚠️ It's **highly** advised that you take a look at our [issue tracking system]([INSERT LINK TO YOUR ISSUE TRACKING SYSTEM]) before considering any code contributions. Here's some guidelines:
+⚠️ It's **highly** advised that you take a look at our [issue tracking system](https://github.com/nasa-jpl/slim/issues) before considering any code contributions. Here's some guidelines:
 1. Check if any duplicate issues exist that cover your code contribution idea / task, and add comments to those tickets with your thoughts.
 2. If no duplicates exist, create a new issue ticket and get a conversation started before making code changes using our [communication channels](#communication-channels).
 
@@ -205,14 +392,11 @@ Some guidelines for code-specific contributions:
 - **Keep positive** - code contributions, by their nature, have direct impacts on the output and functionality of the project. Keep a positive spirit as your code is reviewed, and take it in stride if core contributors take time to review, give you suggestions for your code or respectfully decline your contribution. This is all part of the process for quality open source development. 
 - **Comments** - include *useful* comments throughout your code that explain the intention of a code block, not a step-by-step analysis. See our [inline code documentation](#inline-code-documentation) section for specifics. 
 
-[INSERT ADDITIONAL SECTIONS HERE FOR MORE SPECIFIC CLASSES OF CODE CONTRIBUTIONS DEPENDING ON YOUR MODULES, LANGUAGES, PLATFORMS IN USE BY YOUR PROJECT. THE MORE DETAILS YOU OFFER, THE MORE LIKELY SOMEONE IS TO UNDERSTAND HOW TO CONTRIBUTE]
-<!-- EXAMPLE: APIs, PyTest, etc. -->
-
 ### 📖 Documentation 
 
 Documentation is the core way our users and contributors learn about the project. We place a high value on the quality, thoroughness, and readability of our documentation. Writing or editing documentation is an excellent way to contribute to our project without performing active coding. 
 
-⚠️ It's **highly** advised that you take a look at our [issue-tracking system]([INSERT LINK TO YOUR ISSUE TRACKING SYSTEM]) before considering any documentation contributions. Here's some guidelines:
+⚠️ It's **highly** advised that you take a look at our [issue-tracking system](https://github.com/nasa-jpl/slim/issues) before considering any documentation contributions. Here's some guidelines:
 1. Check if any duplicate issues exist that cover your documentation contribution idea / task, and add comments to those tickets with your thoughts.
 2. If no duplicates exist, create a new issue ticket and get a conversation started before making documentation changes.
 
@@ -228,57 +412,18 @@ The overall structure of our project documentation is as follows:
   - [README.md](README.md) - top-level information about how to run, build, and contribute to the project
   - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - best practices and guidance on how to work well with other people in the project, and suggestions on dealing with interpersonal issues
   - [CONTRIBUTING.md](CONTRIBUTING.md) - guidance on contributing to the project
-  - `*.[INSERT YOUR CODING LANGUAGE FILE EXTENSIONS HERE]` - inline documentation available inside code files
-- [INSERT ADDITIONAL DOCUMENTATION CLASSES AND ORGANIZATION STRUCTURE HERE, SEE EXAMPLE IN COMMENTS BELOW]
-
-<!-- EXAMPLE:
-- Source-controlled documentation
-  - [README.md](README.md) - top-level information about how to run, build, and contribute to the project
-  - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - best practices and guidance on how to work well with other people in the project, and suggestions on dealing with interpersonal issues
-  - [CONTRIBUTING.md](CONTRIBUTING.md) - guidance on contributing to the project
-  - `*.py` - inline documentation available inside code files' function headers and code blocks
-  - [docs/](docs/)` - top-level directory containing source-controlled documentation built into statically hosted files on our documentation website
-- Hosted documentation
-  - [Wiki Main-page]()
-    - [Wiki Sub-page 1]()
-    - [Wiki Sub-page 2]() 
-- Discussion Boards
-  - [Discussion Board Topic 1]()
-  - [Discussion Board Topic 2]()
-- YouTube.com video tutorials
-  - [Channel page 1]()
-  - [Channel page 2]()
-- Application Programming Interface (API) documentation
-  - [Sub-module 1]()
-  - [Sub-module 2]()
-- etc.
--->
+  - `*.py` - inline documentation available inside code files
 
 For directions on contributing to our source-controlled documentation:
 1. Ensure you have development [prerequisites](#prerequisites) cleared.
 2. Have your [development environment](#developer-environment) set up properly.
 3. Go through our [development process](#our-development-process), including proposing changes to our project.
 
-<!-- OPTIONAL FOR HOSTED DOCUMENTATION >
-For directions on contributing to our hosted documentation:
-1. 
-2. 
-3. 
-
-[INSERT HOSTED DOCUMENTATION PLATFORM SPECIFIC INSTRUCTIONS HERE FOR HOW TO CONTRIBUTE]
--->
-
 #### Writing Style
 
 To ensure documentation is readable and consistent by newcomers and experts alike, here are some suggestions on writing style for English:
 - Use gender neutral pronouns (they/their/them) instead of he/she/his/her 
-- Avoid qualifiers that minimize the difficulty of a task at hand, e.g. avoid words like “easily”, “simply”, “just”, “merely”, “straightforward”, etc. Readers' expertise may not match your own, and qualifying complexity may deter some readers if the task does not match their level of experience. That being said, if a particular task is difficult or complex, do mention that. 
-
-#### Common Wording 
-
-Below are some commonly used words you'll want to leverage in your documentation contributions:
-- **GitHub** - one word, and capitalization of the 'G' and the 'H'
-- [INSERT YOUR PROJECT SPECIFIC COMMON TERMS AND HOW TO USE THEM]
+- Avoid qualifiers that minimize the difficulty of a task at hand, e.g. avoid words like "easily", "simply", "just", "merely", "straightforward", etc. Readers' expertise may not match your own, and qualifying complexity may deter some readers if the task does not match their level of experience. That being said, if a particular task is difficult or complex, do mention that. 
 
 #### Inline Code Documentation
 
@@ -295,16 +440,14 @@ When including media into our version-control system, it is recommended to use f
 - Images: JPEG format
 - Videos: H264 MPEG format
 - Sounds: MP3 format
-<!-- ADD TO OR MODIFY ABOVE DEFAULT SUGGESTIONS -->
 
 ### ❓ Questions
 
 Answering questions is an excellent way to learn more about our project, as well as get better known in our project community. 
 
 Here are just a few ways you can help answer questions for our project:
-- Answer open questions in our [discussion forum]([INSERT LINK TO DISCUSSION FORUM])
-- Answer open questions mentioned in our [issue tracking system]([INSERT LINK TO YOUR ISSUE TRACKING SYSTEM])
-<!-- ADD TO OR MODIFY DEPENDING ON YOUR COMMUNICATION CHANNELS LISTED AT THE BEGINNING OF THIS DOCUMENT-->
+- Answer open questions in our [discussion forum](https://github.com/nasa-jpl/slim/discussions)
+- Answer open questions mentioned in our [issue tracking system](https://github.com/nasa-jpl/slim/issues)
 
 When answering questions, keep the following in mind:
 - Be polite and friendly. See our [Code of Conduct](CODE_OF_CONDUCT.md) recommendations as you interact with others in the team.
@@ -330,4 +473,4 @@ A great way to contribute towards our project goals is to socialize and encourag
 - Help point project contributors and community members to conferences and publications where they may socialize their unique innovations
 - Schedule in-person or virtual happy-hours to help create a more social atmosphere within the project community
 
-For the above ideas, use our [communication channels](#communication-channels) to propose get-togethers.  
+For the above ideas, use our [communication channels](#communication-channels) to propose get-togethers.
