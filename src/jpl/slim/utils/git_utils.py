@@ -141,6 +141,8 @@ def is_open_source(repo_url):
         # Extract owner and repo name from the URL
         owner_repo = repo_url.rstrip('/').split('/')[-2:]
         owner, repo = owner_repo[0], owner_repo[1]
+        # Remove .git suffix if present
+        repo = repo[:-4] if repo.endswith('.git') else repo
 
         # Use the GitHub API to fetch the repository license
         api_url = f"https://api.github.com/repos/{owner}/{repo}/license"

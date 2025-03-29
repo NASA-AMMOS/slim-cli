@@ -104,21 +104,33 @@ class TestGitUtils:
     @patch('jpl.slim.utils.git_utils.requests.get')
     def test_is_open_source_true(self, mock_get):
         """Test checking if a repository is open source (true case)."""
-        # Arrange
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            'license': {'spdx_id': 'MIT'}
-        }
-        mock_get.return_value = mock_response
+        # Temporarily disable test mode for this test
+        original_test_mode = os.environ.get('SLIM_TEST_MODE')
+        os.environ['SLIM_TEST_MODE'] = 'False'
         
-        repo_url = 'https://github.com/user/repo'
-        
-        # Act
-        result = is_open_source(repo_url)
-        
-        # Assert
-        assert result is True
+        try:
+            # Arrange
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {
+                'license': {'spdx_id': 'MIT'}
+            }
+            mock_get.return_value = mock_response
+            
+            repo_url = 'https://github.com/user/repo'
+            
+            # Act
+            result = is_open_source(repo_url)
+            
+            # Assert
+            assert result is True
+            mock_get.assert_called_once()
+        finally:
+            # Restore original test mode
+            if original_test_mode is not None:
+                os.environ['SLIM_TEST_MODE'] = original_test_mode
+            else:
+                del os.environ['SLIM_TEST_MODE']
 
     @patch('jpl.slim.utils.git_utils.requests.get')
     def test_is_open_source_false(self, mock_get):

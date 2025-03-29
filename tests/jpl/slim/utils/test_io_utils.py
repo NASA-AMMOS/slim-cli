@@ -115,18 +115,31 @@ class TestIOUtils:
     @patch('jpl.slim.utils.io_utils.requests.get')
     def test_fetch_best_practices(self, mock_get):
         """Test fetching best practices from a URL."""
-        # Arrange
-        mock_response = MagicMock()
-        mock_response.json.return_value = [{'id': 1, 'title': 'Practice 1'}]
-        mock_get.return_value = mock_response
+        # Temporarily disable test mode for this test
+        original_test_mode = os.environ.get('SLIM_TEST_MODE')
+        os.environ['SLIM_TEST_MODE'] = 'False'
         
-        url = 'https://example.com/practices.json'
-        
-        # Act
-        result = fetch_best_practices(url)
-        
-        # Assert
-        mock_get.assert_called_once_with(url)
+        try:
+            # Arrange
+            mock_response = MagicMock()
+            mock_response.json.return_value = [{'id': 1, 'title': 'Practice 1'}]
+            mock_get.return_value = mock_response
+            
+            url = 'https://example.com/practices.json'
+            
+            # Act
+            result = fetch_best_practices(url)
+            
+            # Assert
+            mock_get.assert_called_once_with(url)
+            mock_response.raise_for_status.assert_called_once()
+            assert result == [{'id': 1, 'title': 'Practice 1'}]
+        finally:
+            # Restore original test mode
+            if original_test_mode is not None:
+                os.environ['SLIM_TEST_MODE'] = original_test_mode
+            else:
+                del os.environ['SLIM_TEST_MODE']
         mock_response.raise_for_status.assert_called_once()
         assert result == [{'id': 1, 'title': 'Practice 1'}]
 
