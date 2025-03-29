@@ -15,7 +15,8 @@ import git
 from jpl.slim.best_practices.base import BestPractice
 from jpl.slim.utils.io_utils import download_and_place_file
 from jpl.slim.utils.ai_utils import generate_with_ai
-from jpl.slim.commands.common import GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS
+# Import the constant directly to avoid circular imports
+GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = 'slim-best-practices'
 
 # Check if we're in test mode
 SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')

@@ -7,7 +7,8 @@ This module contains the BestPracticeManager class for retrieving and managing b
 import logging
 from typing import Dict, List, Optional, Any, Union
 
-from jpl.slim.best_practices import GovernancePractice, StandardPractice
+from jpl.slim.best_practices.governance import GovernancePractice
+from jpl.slim.best_practices.standard import StandardPractice
 from jpl.slim.utils.io_utils import create_slim_registry_dictionary
 
 
