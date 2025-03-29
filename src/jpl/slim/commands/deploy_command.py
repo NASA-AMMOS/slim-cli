@@ -5,6 +5,7 @@ This module contains the implementation of the 'deploy' subcommand,
 which deploys best practices to repositories.
 """
 
+import os
 import logging
 import git
 
