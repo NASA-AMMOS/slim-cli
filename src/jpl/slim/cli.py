@@ -11,6 +11,9 @@ import requests
 from typing import Optional, Dict, Any
 from . import VERSION
 
+# Set up test mode detection
+SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')
+
 # Import command modules
 from jpl.slim.commands.list_command import setup_parser as setup_list_parser
 from jpl.slim.commands.apply_command import setup_parser as setup_apply_parser
@@ -96,6 +99,10 @@ def get_ai_model_pairs(supported_models):
 #     Check if the repository is open-source by inspecting its license type.
 #     Returns True if the repository is open-source, False otherwise.
 #     """
+#     # In test mode, always return True to avoid API calls
+#     if SLIM_TEST_MODE:
+#         return True
+#         
 #     try:
 #         # Extract owner and repo name from the URL
 #         owner_repo = repo_url.rstrip('/').split('/')[-2:]
@@ -134,6 +141,10 @@ def get_ai_model_pairs(supported_models):
 #     :param model: Name of the AI model to use (example: "openai/gpt-4o", "ollama/llama3.1:70b").
 #     :return: Generated or modified content as a string, or None if an error occurs.
 #     """
+#     # In test mode, return a mock response instead of calling AI services
+#     if SLIM_TEST_MODE:
+#         logging.info(f"TEST MODE: Simulating AI generation for best practice {best_practice_id}")
+#         return f"Mock AI-generated content for {best_practice_id}"
 #     
 #     logging.debug(f"Using AI to apply best practice ID: {best_practice_id} in repository {repo_path}")
 #     
@@ -346,6 +357,21 @@ def get_ai_model_pairs(supported_models):
 #     #    return None
 # 
 # def download_and_place_file(repo, url, filename, target_relative_path_in_repo=''):
+#     # In test mode, simulate successful download without making actual HTTP requests
+#     if SLIM_TEST_MODE:
+#         logging.info(f"TEST MODE: Simulating download of {url} to {filename}")
+#         # Create the full path where the file would be saved
+#         target_directory = os.path.join(repo.working_tree_dir, target_relative_path_in_repo)
+#         file_path = os.path.join(target_directory, filename)
+#         
+#         # Ensure that the target directory exists, create if not
+#         os.makedirs(target_directory, exist_ok=True)
+#         
+#         # Create an empty file to simulate the download
+#         with open(file_path, 'w') as f:
+#             f.write(f"Mock content for {filename} downloaded from {url}")
+#         return True
+#     
 #     # Create the full path where the file will be saved. By default write to root.
 #     target_directory = os.path.join(repo.working_tree_dir, target_relative_path_in_repo)
 #     file_path = os.path.join(target_directory, filename)
