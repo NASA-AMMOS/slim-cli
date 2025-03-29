@@ -129,6 +129,11 @@ def is_open_source(repo_url):
     Returns:
         bool: True if the repository is open source, False otherwise
     """
+    # In test mode, always return True to avoid API calls
+    if os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't'):
+        logging.info(f"TEST MODE: Simulating license check for {repo_url}")
+        return True
+        
     try:
         # Extract owner and repo name from the URL
         owner_repo = repo_url.rstrip('/').split('/')[-2:]

@@ -23,6 +23,21 @@ def download_and_place_file(repo, url, filename, target_relative_path_in_repo=''
     Returns:
         str: Path to the downloaded file, or None if download failed
     """
+    # In test mode, simulate successful download without making actual HTTP requests
+    if os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't'):
+        logging.info(f"TEST MODE: Simulating download of {url} to {filename}")
+        # Create the full path where the file would be saved
+        target_directory = os.path.join(repo.working_tree_dir, target_relative_path_in_repo)
+        file_path = os.path.join(target_directory, filename)
+        
+        # Ensure that the target directory exists, create if not
+        os.makedirs(target_directory, exist_ok=True)
+        
+        # Create an empty file to simulate the download
+        with open(file_path, 'w') as f:
+            f.write(f"Mock content for {filename} downloaded from {url}")
+        return file_path
+    
     # Create the full path where the file will be saved. By default write to root.
     target_directory = os.path.join(repo.working_tree_dir, target_relative_path_in_repo)
     file_path = os.path.join(target_directory, filename)

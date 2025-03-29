@@ -83,6 +83,11 @@ def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message
     Returns:
         bool: True if deployment was successful, False otherwise
     """
+    # In test mode, simulate success without making actual changes
+    if os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't'):
+        logging.info(f"TEST MODE: Simulating deployment of best practice {best_practice_id}")
+        return True
+        
     branch_name = branch if branch else best_practice_id
     
     logging.debug(f"Deploying branch: {branch_name}")
