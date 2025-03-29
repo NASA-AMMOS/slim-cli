@@ -4,7 +4,6 @@ import tempfile
 import unittest
 from unittest.mock import mock_open, patch, MagicMock, call
 import argparse
-import subprocess
 import json
 
 from jpl.slim.cli import (
@@ -189,24 +188,34 @@ class TestApplyCommand:
             target_dir_to_clone_to=None
         )
     
-    @patch('subprocess.run')
-    def test_apply_command_subprocess(self, mock_run):
-        """Test apply command using subprocess."""
+    @patch('jpl.slim.cli.apply_best_practice')
+    def test_apply_best_practices_with_mocked_dependencies(self, mock_apply_best_practice):
+        """Test apply_best_practices with properly mocked dependencies."""
         # Setup
-        mock_run.return_value = MagicMock(returncode=0)
+        best_practice_ids = ["SLIM-1.1"]
+        repo_urls = ["https://github.com/user/repo.git"]
         
-        # Call subprocess
-        result = subprocess.run(
-            ["python", "-m", "jpl.slim.cli", "apply", 
-             "--best-practice-ids", "SLIM-1.1", 
-             "--repo-urls", "https://github.com/user/repo.git"],
-            capture_output=True,
-            text=True
+        # Call the function
+        apply_best_practices(
+            best_practice_ids=best_practice_ids,
+            use_ai_flag=False,
+            model=None,
+            repo_urls=repo_urls,
+            existing_repo_dir=None,
+            target_dir_to_clone_to=None
         )
         
         # Assertions
-        mock_run.assert_called_once()
-        assert mock_run.return_value.returncode == 0
+        # Verify apply_best_practice was called once for each best practice and repo combination
+        assert mock_apply_best_practice.call_count == len(best_practice_ids) * len(repo_urls)
+        mock_apply_best_practice.assert_any_call(
+            best_practice_id=best_practice_ids[0],
+            use_ai_flag=False,
+            model=None,
+            repo_url=repo_urls[0],
+            existing_repo_dir=None,
+            target_dir_to_clone_to=None
+        )
 
 
 class TestDeployCommand:
@@ -270,25 +279,33 @@ class TestDeployCommand:
             commit_message="Test commit message"
         )
     
-    @patch('subprocess.run')
-    def test_deploy_command_subprocess(self, mock_run):
-        """Test deploy command using subprocess."""
+    @patch('jpl.slim.cli.git.Repo')
+    @patch('jpl.slim.cli.deploy_best_practice')
+    def test_deploy_best_practices_with_mocked_git(self, mock_deploy_best_practice, mock_git_repo):
+        """Test deploy_best_practices with mocked git operations."""
         # Setup
-        mock_run.return_value = MagicMock(returncode=0)
+        best_practice_ids = ["SLIM-1.1"]
+        repo_dir = "/path/to/repo"
+        mock_repo = MagicMock()
+        mock_git_repo.return_value = mock_repo
         
-        # Call subprocess
-        result = subprocess.run(
-            ["python", "-m", "jpl.slim.cli", "deploy", 
-             "--best-practice-ids", "SLIM-1.1", 
-             "--repo-dir", "/path/to/repo",
-             "--commit-message", "Test commit message"],
-            capture_output=True,
-            text=True
+        # Call the function
+        deploy_best_practices(
+            best_practice_ids=best_practice_ids,
+            repo_dir=repo_dir,
+            remote=None,
+            commit_message="Test commit message"
         )
         
         # Assertions
-        mock_run.assert_called_once()
-        assert mock_run.return_value.returncode == 0
+        mock_git_repo.assert_called_once_with(repo_dir)
+        assert mock_deploy_best_practice.call_count == len(best_practice_ids)
+        mock_deploy_best_practice.assert_any_call(
+            best_practice_id=best_practice_ids[0],
+            repo=mock_repo,
+            remote=None,
+            commit_message="Test commit message"
+        )
 
 
 class TestApplyDeployCommand:
@@ -372,25 +389,48 @@ class TestApplyDeployCommand:
             target_dir_to_clone_to=None
         )
     
-    @patch('subprocess.run')
-    def test_apply_deploy_command_subprocess(self, mock_run):
-        """Test apply-deploy command using subprocess."""
+    @patch('jpl.slim.cli.git.Repo')
+    @patch('jpl.slim.cli.apply_best_practice')
+    @patch('jpl.slim.cli.deploy_best_practice')
+    @patch('tempfile.TemporaryDirectory')
+    def test_apply_and_deploy_best_practices_with_mocked_git(self, mock_temp_dir, mock_deploy, mock_apply, mock_git_repo):
+        """Test apply_and_deploy_best_practices with mocked git operations."""
         # Setup
-        mock_run.return_value = MagicMock(returncode=0)
+        best_practice_ids = ["SLIM-1.1"]
+        repo_urls = ["https://github.com/user/repo.git"]
+        mock_repo = MagicMock()
+        mock_git_repo.return_value = mock_repo
         
-        # Call subprocess
-        result = subprocess.run(
-            ["python", "-m", "jpl.slim.cli", "apply-deploy", 
-             "--best-practice-ids", "SLIM-1.1", 
-             "--repo-urls", "https://github.com/user/repo.git",
-             "--commit-message", "Test commit message"],
-            capture_output=True,
-            text=True
+        # Mock the temporary directory context manager
+        mock_context = MagicMock()
+        mock_context.__enter__.return_value = "/tmp/mock_dir"
+        mock_temp_dir.return_value = mock_context
+        
+        # Call the function
+        apply_and_deploy_best_practices(
+            best_practice_ids=best_practice_ids,
+            use_ai_flag=False,
+            model=None,
+            remote=None,
+            commit_message="Test commit message",
+            repo_urls=repo_urls,
+            existing_repo_dir=None,
+            target_dir_to_clone_to=None
         )
         
         # Assertions
-        mock_run.assert_called_once()
-        assert mock_run.return_value.returncode == 0
+        mock_temp_dir.assert_called_once()
+        assert mock_apply.call_count >= 1
+        assert mock_deploy.call_count >= 1
+        # Verify the apply and deploy functions were called with correct parameters
+        mock_apply.assert_any_call(
+            best_practice_id=best_practice_ids[0],
+            use_ai_flag=False,
+            model=None,
+            repo_url=repo_urls[0],
+            existing_repo_dir=None,
+            target_dir_to_clone_to="/tmp/mock_dir"
+        )
 
 
 class TestGenerateDocsCommand:
@@ -442,24 +482,36 @@ class TestGenerateDocsCommand:
         mock_setup_logging.assert_called_once()
         mock_handle_docs.assert_called_once_with(args)
     
-    @patch('subprocess.run')
-    def test_generate_docs_command_subprocess(self, mock_run):
-        """Test generate-docs command using subprocess."""
+    @patch('jpl.slim.cli.DocusaurusGenerator')
+    @patch('os.path.isdir')
+    def test_generate_docs_with_mocked_generator(self, mock_isdir, mock_generator_class):
+        """Test handle_generate_docs with mocked DocusaurusGenerator."""
         # Setup
-        mock_run.return_value = MagicMock(returncode=0)
+        mock_isdir.return_value = True
+        mock_generator = MagicMock()
+        mock_generator.generate.return_value = True
+        mock_generator_class.return_value = mock_generator
         
-        # Call subprocess
-        result = subprocess.run(
-            ["python", "-m", "jpl.slim.cli", "generate-docs", 
-             "--repo-dir", "/path/to/repo", 
-             "--output-dir", "/path/to/output"],
-            capture_output=True,
-            text=True
-        )
+        # Create args object
+        args = argparse.Namespace()
+        args.repo_dir = "/path/to/repo"
+        args.output_dir = "/path/to/output"
+        args.config = None
+        args.use_ai = None
+        
+        # Call the function
+        result = handle_generate_docs(args)
         
         # Assertions
-        mock_run.assert_called_once()
-        assert mock_run.return_value.returncode == 0
+        mock_isdir.assert_called_once_with("/path/to/repo")
+        mock_generator_class.assert_called_once_with(
+            repo_path="/path/to/repo",
+            output_dir="/path/to/output",
+            config=None,
+            use_ai=None
+        )
+        mock_generator.generate.assert_called_once()
+        assert result is True
 
 
 class TestGenerateTestsCommand:
@@ -509,24 +561,34 @@ class TestGenerateTestsCommand:
         mock_setup_logging.assert_called_once()
         mock_handle_tests.assert_called_once_with(args)
     
-    @patch('subprocess.run')
-    def test_generate_tests_command_subprocess(self, mock_run):
-        """Test generate-tests command using subprocess."""
+    @patch('jpl.slim.cli.TestGenerator')
+    @patch('os.path.isdir')
+    def test_generate_tests_with_mocked_generator(self, mock_isdir, mock_generator_class):
+        """Test handle_generate_tests with mocked TestGenerator."""
         # Setup
-        mock_run.return_value = MagicMock(returncode=0)
+        mock_isdir.return_value = True
+        mock_generator = MagicMock()
+        mock_generator.generate_tests.return_value = True
+        mock_generator_class.return_value = mock_generator
         
-        # Call subprocess
-        result = subprocess.run(
-            ["python", "-m", "jpl.slim.cli", "generate-tests", 
-             "--repo-dir", "/path/to/repo", 
-             "--output-dir", "/path/to/output"],
-            capture_output=True,
-            text=True
-        )
+        # Create args object
+        args = argparse.Namespace()
+        args.repo_dir = "/path/to/repo"
+        args.output_dir = "/path/to/output"
+        args.use_ai = None
+        
+        # Call the function
+        result = handle_generate_tests(args)
         
         # Assertions
-        mock_run.assert_called_once()
-        assert mock_run.return_value.returncode == 0
+        mock_isdir.assert_called_once_with("/path/to/repo")
+        mock_generator_class.assert_called_once_with(
+            repo_path="/path/to/repo",
+            output_dir="/path/to/output",
+            model=None
+        )
+        mock_generator.generate_tests.assert_called_once()
+        assert result is True
 
 
 class TestErrorHandling:
@@ -568,3 +630,26 @@ class TestErrorHandling:
         
         # Assertions
         mock_print_help.assert_called_once()
+    
+    @patch('jpl.slim.utils.git_utils.requests.get')
+    def test_is_open_source_with_mocked_api(self, mock_get):
+        """Test is_open_source function with mocked GitHub API."""
+        # Setup mock response
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            'license': {'spdx_id': 'MIT'}
+        }
+        mock_get.return_value = mock_response
+        
+        # Call function
+        from jpl.slim.utils.git_utils import is_open_source
+        result = is_open_source("https://github.com/user/repo.git")
+        
+        # Assertions
+        assert result is True
+        mock_get.assert_called_once()
+        # Verify the URL contains the expected path
+        args, kwargs = mock_get.call_args
+        assert "api.github.com/repos/" in args[0]
+        assert "user/repo/license" in args[0]
