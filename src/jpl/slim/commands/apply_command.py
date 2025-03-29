@@ -18,12 +18,10 @@ SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '
 
 from jpl.slim.utils.io_utils import (
     fetch_best_practices,
-    create_slim_registry_dictionary,
-    repo_file_to_list,
-    download_and_place_file
+    repo_file_to_list
 )
 from jpl.slim.utils.git_utils import generate_git_branch_name
-from jpl.slim.utils.ai_utils import generate_with_ai
+from jpl.slim.manager.best_practices_manager import BestPracticeManager
 from jpl.slim.commands.common import (
     SLIM_REGISTRY_URI,
     GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS
@@ -156,10 +154,8 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url=None, exi
     Returns:
         git.Repo: Git repository object if successful, None otherwise
     """
-    applied_file_path = None  # default return value is invalid applied best practice
-
     logging.debug(f"AI features {'enabled' if use_ai_flag else 'disabled'} for applying best practices")
-    logging.debug(f"Applying best practice ID: {best_practice_id} to repository: {repo_url}")
+    logging.debug(f"Applying best practice ID: {best_practice_id} to repository: {repo_url or existing_repo_dir}")
 
     # In test mode, simulate success without making actual API calls
     if SLIM_TEST_MODE:
@@ -180,211 +176,37 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url=None, exi
         print("No practices found or failed to fetch practices.")
         return None
 
-    asset_mapping = create_slim_registry_dictionary(practices)
-
-    if best_practice_id in asset_mapping:
-        uri = asset_mapping[best_practice_id].get('asset_uri')
-
-        try:
-            # Load the existing repository
-            if repo_url:
-                logging.debug(f"Using repository URL {repo_url}. URI: {uri}")
-
-                parsed_url = urllib.parse.urlparse(repo_url)
-                repo_name = os.path.basename(parsed_url.path)
-                repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
-                if target_dir_to_clone_to:  # If target_dir_to_clone_to is specified, append repo name to target_dir_to_clone_to
-                    target_dir_to_clone_to = os.path.join(target_dir_to_clone_to, repo_name)
-                    logging.debug(f"Set clone directory to {target_dir_to_clone_to}")
-                else:  # else make a temporary directory
-                    target_dir_to_clone_to = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
-                    logging.debug(f"Generating temporary clone directory at {target_dir_to_clone_to}")
-            elif existing_repo_dir:
-                target_dir_to_clone_to = existing_repo_dir
-                logging.debug(f"Using existing repository directory {existing_repo_dir}")
-            else:
-                logging.error("No repository information provided.")
-                return None
-
-            try:
-                git_repo = git.Repo(target_dir_to_clone_to)
-                logging.debug(f"Repository folder ({target_dir_to_clone_to}) exists already. Using existing directory.")
-            except Exception as e:
-                logging.debug(f"Repository folder ({target_dir_to_clone_to}) not a git repository yet already. Cloning repo {repo_url} contents into folder.")
-                if SLIM_TEST_MODE:
-                    # In test mode, just initialize a new repo instead of cloning
-                    git_repo = git.Repo.init(target_dir_to_clone_to)
-                    logging.debug(f"TEST MODE: Initialized new git repository at {target_dir_to_clone_to}")
-                else:
-                    git_repo = git.Repo.clone_from(repo_url, target_dir_to_clone_to)
-
-            # Change directory to the cloned repository
-            os.chdir(target_dir_to_clone_to)
-
-            if git_repo.head.is_valid():
-                if best_practice_id in git_repo.heads:
-                    # Check out the existing branch
-                    git_branch = git_repo.heads[best_practice_id] if not branch else git_repo.create_head(branch)
-                    git_branch.checkout()
-                    logging.warning(f"Git branch '{git_branch.name}' already exists in clone_to_dir '{target_dir_to_clone_to}'. Checking out existing branch.")
-                else:
-                    # Create and check out the new branch
-                    git_branch = git_repo.create_head(best_practice_id) if not branch else git_repo.create_head(branch)
-                    git_branch.checkout()
-                    logging.debug(f"Branch '{git_branch.name}' created and checked out successfully.")
-            else:
-                # Create an initial commit
-                with open(os.path.join(git_repo.working_dir, 'README.md'), 'w') as file:
-                    file.write("Initial commit")
-                git_repo.index.add(['README.md'])  # Add files to the index
-                git_repo.index.commit('Initial commit')  # Commit the changes
-                logging.debug("Initial commit created in the empty repository.")
-
-                # Empty repo, so only now create and check out the fresh branch
-                git_branch = git_repo.create_head(best_practice_id) if not branch else git_repo.create_head(branch)
-                git_branch.checkout()
-                logging.debug(f"Empty repository. Creating new branch '{git_branch.name}' and checked it out successfully.")
-
-        except git.exc.InvalidGitRepositoryError:
-            logging.error(f"Error: {target_dir_to_clone_to} is not a valid Git repository.")
-            return None
-        except git.exc.GitCommandError as e:
-            logging.error(f"Git command error: {e}")
-            return None
-        except Exception as e:
-            logging.error(f"An unexpected error occurred: {e}")
-            return None
-
-        # Process best practice by ID
-        if best_practice_id == 'SLIM-1.1':
-            applied_file_path = download_and_place_file(git_repo, uri, 'GOVERNANCE-TEMPLATE-SMALL-TEAMS.md')
-            if use_ai_flag and model:
-                ai_content = generate_with_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
-                if ai_content:
-                    with open(applied_file_path, 'w') as f:
-                        f.write(ai_content)
-                    logging.info(f"Applied AI-generated content to {applied_file_path}")
-                else:
-                    logging.warning(f"AI generation failed for best practice {best_practice_id}")
-        elif best_practice_id == 'SLIM-1.2':
-            applied_file_path = download_and_place_file(git_repo, uri, 'GOVERNANCE.md')
-            if use_ai_flag and model:
-                ai_content = generate_with_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
-                if ai_content:
-                    with open(applied_file_path, 'w') as f:
-                        f.write(ai_content)
-                    logging.info(f"Applied AI-generated content to {applied_file_path}")
-                else:
-                    logging.warning(f"AI generation failed for best practice {best_practice_id}")
-        elif best_practice_id == 'SLIM-3.1':
-            applied_file_path = download_and_place_file(git_repo, uri, 'README.md')
-            if use_ai_flag and model:
-                ai_content = generate_with_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
-                if ai_content:
-                    with open(applied_file_path, 'w') as f:
-                        f.write(ai_content)
-                    logging.info(f"Applied AI-generated content to {applied_file_path}")
-                else:
-                    logging.warning(f"AI generation failed for best practice {best_practice_id}")
-        elif best_practice_id == 'SLIM-4.1':
-            applied_file_path = download_and_place_file(git_repo, uri, '.github/ISSUE_TEMPLATE/bug_report.md')
-            if use_ai_flag and model:
-                ai_content = generate_with_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
-                if ai_content:
-                    with open(applied_file_path, 'w') as f:
-                        f.write(ai_content)
-                    logging.info(f"Applied AI-generated content to {applied_file_path}")
-                else:
-                    logging.warning(f"AI generation failed for best practice {best_practice_id}")    
-        elif best_practice_id == 'SLIM-4.2':
-            applied_file_path = download_and_place_file(git_repo, uri, '.github/ISSUE_TEMPLATE/bug_report.yml')
-            if use_ai_flag and model:
-                ai_content = generate_with_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
-                if ai_content:
-                    with open(applied_file_path, 'w') as f:
-                        f.write(ai_content)
-                    logging.info(f"Applied AI-generated content to {applied_file_path}")
-                else:
-                    logging.warning(f"AI generation failed for best practice {best_practice_id}")   
-        elif best_practice_id == 'SLIM-4.3':
-            applied_file_path = download_and_place_file(git_repo, uri, '.github/ISSUE_TEMPLATE/new_feature.md')
-            if use_ai_flag and model:
-                ai_content = generate_with_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
-                if ai_content:
-                    with open(applied_file_path, 'w') as f:
-                        f.write(ai_content)
-                    logging.info(f"Applied AI-generated content to {applied_file_path}")
-                else:
-                    logging.warning(f"AI generation failed for best practice {best_practice_id}")   
-        elif best_practice_id == 'SLIM-4.4':
-            applied_file_path = download_and_place_file(git_repo, uri, '.github/ISSUE_TEMPLATE/new_feature.yml')
-            if use_ai_flag and model:
-                ai_content = generate_with_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
-                if ai_content:
-                    with open(applied_file_path, 'w') as f:
-                        f.write(ai_content)
-                    logging.info(f"Applied AI-generated content to {applied_file_path}")
-                else:
-                    logging.warning(f"AI generation failed for best practice {best_practice_id}")  
-        elif best_practice_id == 'SLIM-5.1':
-            applied_file_path = download_and_place_file(git_repo, uri, 'CHANGELOG.md')
-            if use_ai_flag and model:
-                ai_content = generate_with_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
-                if ai_content:
-                    with open(applied_file_path, 'w') as f:
-                        f.write(ai_content)
-                    logging.info(f"Applied AI-generated content to {applied_file_path}")
-                else:
-                    logging.warning(f"AI generation failed for best practice {best_practice_id}")  
-        elif best_practice_id == 'SLIM-7.1':
-            applied_file_path = download_and_place_file(git_repo, uri, '.github/PULL_REQUEST_TEMPLATE.md')
-            if use_ai_flag and model:
-                ai_content = generate_with_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
-                if ai_content:
-                    with open(applied_file_path, 'w') as f:
-                        f.write(ai_content)
-                    logging.info(f"Applied AI-generated content to {applied_file_path}")
-                else:
-                    logging.warning(f"AI generation failed for best practice {best_practice_id}")  
-        elif best_practice_id == 'SLIM-8.1':
-            applied_file_path = download_and_place_file(git_repo, uri, 'CODE_OF_CONDUCT.md')
-            if use_ai_flag and model:
-                ai_content = generate_with_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
-                if ai_content:
-                    with open(applied_file_path, 'w') as f:
-                        f.write(ai_content)
-                    logging.info(f"Applied AI-generated content to {applied_file_path}")
-                else:
-                    logging.warning(f"AI generation failed for best practice {best_practice_id}")
-        elif best_practice_id == 'SLIM-9.1':
-            applied_file_path = download_and_place_file(git_repo, uri, 'CONTRIBUTING.md')
-            if use_ai_flag and model:
-                ai_content = generate_with_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
-                if ai_content:
-                    with open(applied_file_path, 'w') as f:
-                        f.write(ai_content)
-                    logging.info(f"Applied AI-generated content to {applied_file_path}")
-                else:
-                    logging.warning(f"AI generation failed for best practice {best_practice_id}")  
-        elif best_practice_id == 'SLIM-13.1':
-            applied_file_path = download_and_place_file(git_repo, uri, 'TESTING.md')
-            if use_ai_flag and model:
-                ai_content = generate_with_ai(best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
-                if ai_content:
-                    with open(applied_file_path, 'w') as f:
-                        f.write(ai_content)
-                    logging.info(f"Applied AI-generated content to {applied_file_path}")
-                else:
-                    logging.warning(f"AI generation failed for best practice {best_practice_id}")
-        else:
-            applied_file_path = None  # nothing was modified 
-            logging.warning(f"SLIM best practice {best_practice_id} not supported.")
-    else:
-        logging.warning(f"SLIM best practice {best_practice_id} not supported.")
+    # Create a best practices manager to handle the practice
+    manager = BestPracticeManager(practices)
     
-    if applied_file_path:
-        logging.info(f"Applied best practice {best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
-        return git_repo  # return the modified git repo object
-    else:
-        logging.error(f"Failed to apply best practice {best_practice_id}")
+    # Get the best practice
+    practice = manager.get_best_practice(best_practice_id)
+    if not practice:
+        logging.warning(f"Best practice with ID {best_practice_id} is not supported or not found.")
         return None
+
+    # Determine the repository path
+    repo_path = existing_repo_dir
+    if repo_url:
+        parsed_url = urllib.parse.urlparse(repo_url)
+        repo_name = os.path.basename(parsed_url.path)
+        repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
+        
+        if target_dir_to_clone_to:
+            # If target_dir_to_clone_to is specified, append repo name
+            repo_path = os.path.join(target_dir_to_clone_to, repo_name)
+            logging.debug(f"Set clone directory to {repo_path}")
+        else:
+            # Create a temporary directory
+            repo_path = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+            logging.debug(f"Generating temporary clone directory at {repo_path}")
+    
+    # Apply the best practice
+    return practice.apply(
+        repo_path=repo_path,
+        use_ai=use_ai_flag,
+        model=model,
+        repo_url=repo_url,
+        target_dir_to_clone_to=target_dir_to_clone_to,
+        branch=branch
+    )

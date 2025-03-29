@@ -7,7 +7,7 @@ This module contains the BestPracticeManager class for retrieving and managing b
 import logging
 from typing import Dict, List, Optional, Any, Union
 
-from jpl.slim.best_practices import GovernancePractice
+from jpl.slim.best_practices import GovernancePractice, StandardPractice
 from jpl.slim.utils.io_utils import create_slim_registry_dictionary
 
 
@@ -33,7 +33,7 @@ class BestPracticeManager:
         if isinstance(registry, list):
             self.registry_dict = create_slim_registry_dictionary(registry)
     
-    def get_best_practice(self, bp_id: str) -> Optional[GovernancePractice]:
+    def get_best_practice(self, bp_id: str) -> Optional[Union[GovernancePractice, StandardPractice]]:
         """
         Get a best practice by ID.
         
@@ -41,7 +41,7 @@ class BestPracticeManager:
             bp_id: ID of the best practice to retrieve (e.g., "SLIM-1.1")
             
         Returns:
-            GovernancePractice: The best practice object if found, None otherwise
+            Union[GovernancePractice, StandardPractice]: The best practice object if found, None otherwise
         """
         logging.debug(f"Retrieving best practice with ID: {bp_id}")
         
@@ -55,18 +55,25 @@ class BestPracticeManager:
         
         # Determine which asset URI to use based on the best practice ID
         uri = practice_info.get('asset_uri', '')
+        title = practice_info.get('title', '')
+        description = practice_info.get('description', '')
         
-        # For SLIM-1.x practices, create a GovernancePractice
+        # Determine the appropriate practice type based on the best practice ID
         if bp_id.startswith('SLIM-1.'):
             return GovernancePractice(
                 best_practice_id=bp_id,
                 uri=uri,
-                title=practice_info.get('title', ''),
-                description=practice_info.get('description', '')
+                title=title,
+                description=description
             )
-        
-        # For other practice types, we would create the appropriate subclass here
-        # For now, we only support GovernancePractice
+        elif bp_id in ['SLIM-3.1', 'SLIM-4.1', 'SLIM-4.2', 'SLIM-4.3', 'SLIM-4.4', 
+                      'SLIM-5.1', 'SLIM-7.1', 'SLIM-8.1', 'SLIM-9.1', 'SLIM-13.1']:
+            return StandardPractice(
+                best_practice_id=bp_id,
+                uri=uri,
+                title=title,
+                description=description
+            )
         
         logging.warning(f"Unsupported best practice type for ID: {bp_id}")
         return None

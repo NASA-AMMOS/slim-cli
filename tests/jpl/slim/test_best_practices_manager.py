@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-# This import will fail until BestPracticeManager is implemented
-# from jpl.slim.best_practices import BestPracticeManager
-from jpl.slim.best_practices import GovernancePractice
+# Import the BestPracticeManager directly from the module
+from jpl.slim.manager.best_practices_manager import BestPracticeManager
+from jpl.slim.best_practices import GovernancePractice, StandardPractice
 
 
 def create_slim_registry_dictionary():
@@ -71,7 +71,6 @@ class TestBestPracticeManager:
     def test_get_best_practice_returns_governance_practice(self):
         """Test that get_best_practice returns a GovernancePractice for SLIM-1.1."""
         # Arrange
-        from jpl.slim.best_practices import BestPracticeManager  # This will fail until implemented
         registry_dict = create_slim_registry_dictionary()
         manager = BestPracticeManager(registry_dict)
         
@@ -89,7 +88,6 @@ class TestBestPracticeManager:
     def test_get_best_practice_returns_none_for_invalid_id(self):
         """Test that get_best_practice returns None for an invalid best practice ID."""
         # Arrange
-        from jpl.slim.best_practices import BestPracticeManager  # This will fail until implemented
         registry_dict = create_slim_registry_dictionary()
         manager = BestPracticeManager(registry_dict)
         
@@ -102,7 +100,6 @@ class TestBestPracticeManager:
     def test_get_best_practice_handles_multiple_assets(self):
         """Test that get_best_practice can handle practices with multiple assets."""
         # Arrange
-        from jpl.slim.best_practices import BestPracticeManager  # This will fail until implemented
         registry_dict = create_slim_registry_dictionary()
         manager = BestPracticeManager(registry_dict)
         
@@ -116,3 +113,22 @@ class TestBestPracticeManager:
         assert practice.title == "GOVERNANCE.md"
         assert practice.uri == "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-MEDIUM-TEAMS.md"
         assert practice.description == "A governance model template seeking to generalize how most government-sponsored open source projects can expect to operate in the open source arena."
+        
+    def test_get_best_practice_returns_standard_practice(self):
+        """Test that get_best_practice returns a StandardPractice for supported IDs."""
+        # Arrange
+        registry_dict = create_slim_registry_dictionary()
+        manager = BestPracticeManager(registry_dict)
+        
+        # Act - Add a standard practice ID to the registry for testing
+        manager.registry_dict["SLIM-3.1"] = {
+            "title": "README.md",
+            "description": "A README template", 
+            "asset_uri": "https://example.com/readme.md"
+        }
+        practice = manager.get_best_practice("SLIM-3.1")
+        
+        # Assert
+        assert practice is not None
+        assert isinstance(practice, StandardPractice)
+        assert practice.best_practice_id == "SLIM-3.1"
