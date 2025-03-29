@@ -25,6 +25,8 @@ class TestAIUtils:
     @patch('jpl.slim.utils.ai_utils.read_file_content')
     @patch('jpl.slim.utils.ai_utils.fetch_readme')
     @patch('jpl.slim.utils.ai_utils.generate_content')
+    @patch('jpl.slim.cli.SLIM_REGISTRY_URI', 'https://raw.githubusercontent.com/NASA-AMMOS/slim/refs/heads/main/static/data/slim-registry.json')
+    @patch.dict('os.environ', {'SLIM_TEST_MODE': 'False'})
     def test_use_ai_governance(self, mock_generate, mock_fetch_readme, mock_read_file, mock_create_dict, mock_fetch_practices):
         """Test using AI for governance best practice."""
         # Arrange
@@ -52,6 +54,8 @@ class TestAIUtils:
 
     @patch('jpl.slim.utils.ai_utils.fetch_best_practices')
     @patch('jpl.slim.utils.ai_utils.create_slim_registry_dictionary')
+    @patch('jpl.slim.cli.SLIM_REGISTRY_URI', 'https://example.com/registry')
+    @patch.dict('os.environ', {'SLIM_TEST_MODE': 'False'})
     def test_use_ai_best_practice_not_found(self, mock_create_dict, mock_fetch_practices):
         """Test using AI when the best practice is not found."""
         # Arrange
@@ -176,12 +180,30 @@ class TestAIUtils:
         assert result == ['AI-generated content']
 
     @patch('openai.AzureOpenAI')
-    def test_generate_with_azure(self, mock_azure_openai_class):
+    @patch('azure.identity.ClientSecretCredential')
+    @patch('azure.identity.get_bearer_token_provider')
+    @patch.dict('os.environ', {
+        'AZURE_TENANT_ID': 'test-tenant-id',
+        'AZURE_CLIENT_ID': 'test-client-id',
+        'AZURE_CLIENT_SECRET': 'test-client-secret',
+        'API_VERSION': 'test-api-version',
+        'API_ENDPOINT': 'test-api-endpoint'
+    })
+    def test_generate_with_azure(self, mock_token_provider, mock_credential, mock_azure_openai_class):
         """Test generating content with Azure."""
         # Arrange
         prompt = 'Test prompt'
         model_name = 'gpt-4o'
         
+        # Set up the credential mock
+        mock_credential_instance = MagicMock()
+        mock_credential.return_value = mock_credential_instance
+        
+        # Set up the token provider mock
+        mock_token_provider_instance = MagicMock()
+        mock_token_provider.return_value = mock_token_provider_instance
+        
+        # Set up the Azure OpenAI client mock
         mock_client = MagicMock()
         mock_azure_openai_class.return_value = mock_client
         
