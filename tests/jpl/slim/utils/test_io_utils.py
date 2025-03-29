@@ -24,48 +24,70 @@ class TestIOUtils:
     @patch('jpl.slim.utils.io_utils.requests.get')
     def test_download_and_place_file(self, mock_get):
         """Test downloading and placing a file."""
-        # Arrange
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.content = b'file content'
-        mock_get.return_value = mock_response
+        # Temporarily disable test mode for this test
+        original_test_mode = os.environ.get('SLIM_TEST_MODE')
+        os.environ['SLIM_TEST_MODE'] = 'False'
         
-        mock_repo = MagicMock()
-        mock_repo.working_tree_dir = tempfile.mkdtemp()
-        
-        url = 'https://example.com/file.md'
-        filename = 'file.md'
-        
-        # Act
-        with patch('builtins.open', mock_open()) as mock_file:
-            result = download_and_place_file(mock_repo, url, filename)
-        
-        # Assert
-        mock_get.assert_called_once_with(url)
-        mock_file.assert_called_once()
-        assert result is not None
-        assert os.path.basename(result) == filename
+        try:
+            # Arrange
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.content = b'file content'
+            mock_get.return_value = mock_response
+            
+            mock_repo = MagicMock()
+            mock_repo.working_tree_dir = tempfile.mkdtemp()
+            
+            url = 'https://example.com/file.md'
+            filename = 'file.md'
+            
+            # Act
+            with patch('builtins.open', mock_open()) as mock_file:
+                result = download_and_place_file(mock_repo, url, filename)
+            
+            # Assert
+            mock_get.assert_called_once_with(url)
+            mock_file.assert_called_once()
+            assert result is not None
+            assert os.path.basename(result) == filename
+        finally:
+            # Restore original test mode
+            if original_test_mode is not None:
+                os.environ['SLIM_TEST_MODE'] = original_test_mode
+            else:
+                del os.environ['SLIM_TEST_MODE']
 
     @patch('jpl.slim.utils.io_utils.requests.get')
     def test_download_and_place_file_failure(self, mock_get):
         """Test downloading and placing a file when the request fails."""
-        # Arrange
-        mock_response = MagicMock()
-        mock_response.status_code = 404
-        mock_get.return_value = mock_response
+        # Temporarily disable test mode for this test
+        original_test_mode = os.environ.get('SLIM_TEST_MODE')
+        os.environ['SLIM_TEST_MODE'] = 'False'
         
-        mock_repo = MagicMock()
-        mock_repo.working_tree_dir = tempfile.mkdtemp()
-        
-        url = 'https://example.com/file.md'
-        filename = 'file.md'
-        
-        # Act
-        result = download_and_place_file(mock_repo, url, filename)
-        
-        # Assert
-        mock_get.assert_called_once_with(url)
-        assert result is None
+        try:
+            # Arrange
+            mock_response = MagicMock()
+            mock_response.status_code = 404
+            mock_get.return_value = mock_response
+            
+            mock_repo = MagicMock()
+            mock_repo.working_tree_dir = tempfile.mkdtemp()
+            
+            url = 'https://example.com/file.md'
+            filename = 'file.md'
+            
+            # Act
+            result = download_and_place_file(mock_repo, url, filename)
+            
+            # Assert
+            mock_get.assert_called_once_with(url)
+            assert result is None
+        finally:
+            # Restore original test mode
+            if original_test_mode is not None:
+                os.environ['SLIM_TEST_MODE'] = original_test_mode
+            else:
+                del os.environ['SLIM_TEST_MODE']
 
     def test_read_file_content(self):
         """Test reading file content."""

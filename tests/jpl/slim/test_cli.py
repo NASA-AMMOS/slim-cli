@@ -96,9 +96,9 @@ def test_fetch_relative_file_paths():
 class TestListCommand:
     """Tests for the 'list' subcommand."""
     
-    @patch('jpl.slim.cli.fetch_best_practices')
-    @patch('jpl.slim.cli.create_slim_registry_dictionary')
-    @patch('jpl.slim.cli.Console')
+    @patch('jpl.slim.commands.list_command.fetch_best_practices')
+    @patch('jpl.slim.commands.list_command.create_slim_registry_dictionary')
+    @patch('jpl.slim.commands.list_command.Console')
     def test_list_practices_success(self, mock_console, mock_create_dict, mock_fetch):
         """Test that list_practices successfully fetches and displays practices."""
         # Setup mocks
@@ -121,15 +121,16 @@ class TestListCommand:
         args = argparse.Namespace()
         
         # Call the function
-        list_practices(args)
+        from jpl.slim.commands.list_command import handle_command
+        handle_command(args)
         
         # Assertions
         mock_fetch.assert_called_once()
         mock_create_dict.assert_called_once_with(mock_practices)
         mock_console_instance.print.assert_called_once()
     
-    @patch('jpl.slim.cli.fetch_best_practices')
-    @patch('jpl.slim.cli.print')
+    @patch('jpl.slim.commands.list_command.fetch_best_practices')
+    @patch('jpl.slim.commands.list_command.print')
     def test_list_practices_no_practices(self, mock_print, mock_fetch):
         """Test that list_practices handles the case when no practices are found."""
         # Setup mocks
@@ -139,7 +140,8 @@ class TestListCommand:
         args = argparse.Namespace()
         
         # Call the function
-        list_practices(args)
+        from jpl.slim.commands.list_command import handle_command
+        handle_command(args)
         
         # Assertions
         mock_fetch.assert_called_once()
@@ -189,21 +191,32 @@ class TestErrorHandling:
     @patch('jpl.slim.utils.git_utils.requests.get')
     def test_is_open_source_with_mocked_api(self, mock_get):
         """Test is_open_source function with mocked GitHub API."""
-        # Setup mock response
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            'license': {'spdx_id': 'MIT'}
-        }
-        mock_get.return_value = mock_response
+        # Temporarily disable test mode for this test
+        original_test_mode = os.environ.get('SLIM_TEST_MODE')
+        os.environ['SLIM_TEST_MODE'] = 'False'
         
-        # Call function
-        from jpl.slim.utils.git_utils import is_open_source
-        result = is_open_source("https://github.com/user/repo.git")
-        
-        # Assertions
-        assert result is True
-        mock_get.assert_called_once()
+        try:
+            # Setup mock response
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.json.return_value = {
+                'license': {'spdx_id': 'MIT'}
+            }
+            mock_get.return_value = mock_response
+            
+            # Call function
+            from jpl.slim.utils.git_utils import is_open_source
+            result = is_open_source("https://github.com/user/repo.git")
+            
+            # Assertions
+            assert result is True
+            mock_get.assert_called_once()
+        finally:
+            # Restore original test mode
+            if original_test_mode is not None:
+                os.environ['SLIM_TEST_MODE'] = original_test_mode
+            else:
+                del os.environ['SLIM_TEST_MODE']
         # Verify the URL contains the expected path
         args, kwargs = mock_get.call_args
         assert "api.github.com/repos/" in args[0]

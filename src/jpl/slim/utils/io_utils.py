@@ -23,21 +23,6 @@ def download_and_place_file(repo, url, filename, target_relative_path_in_repo=''
     Returns:
         str: Path to the downloaded file, or None if download failed
     """
-    # In test mode, simulate successful download without making actual HTTP requests
-    if os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't'):
-        logging.info(f"TEST MODE: Simulating download of {url} to {filename}")
-        # Create the full path where the file would be saved
-        target_directory = os.path.join(repo.working_tree_dir, target_relative_path_in_repo)
-        file_path = os.path.join(target_directory, filename)
-        
-        # Ensure that the target directory exists, create if not
-        os.makedirs(target_directory, exist_ok=True)
-        
-        # Create an empty file to simulate the download
-        with open(file_path, 'w') as f:
-            f.write(f"Mock content for {filename} downloaded from {url}")
-        return file_path
-    
     # Create the full path where the file will be saved. By default write to root.
     target_directory = os.path.join(repo.working_tree_dir, target_relative_path_in_repo)
     file_path = os.path.join(target_directory, filename)
@@ -45,6 +30,15 @@ def download_and_place_file(repo, url, filename, target_relative_path_in_repo=''
     # Ensure that the target directory exists, create if not
     os.makedirs(target_directory, exist_ok=True)
 
+    # In test mode, simulate successful download without making actual HTTP requests
+    if os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't'):
+        logging.info(f"TEST MODE: Simulating download of {url} to {filename}")
+        
+        # Create an empty file to simulate the download
+        with open(file_path, 'w') as f:
+            f.write(f"Mock content for {filename} downloaded from {url}")
+        return file_path
+    
     # Fetch the file from the URL
     response = requests.get(url)
     if response.status_code == 200:
@@ -90,6 +84,24 @@ def fetch_best_practices(url):
     Returns:
         list: List of best practices
     """
+    # In test mode, return mock data
+    if os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't'):
+        logging.info(f"TEST MODE: Returning mock best practices data")
+        # Return a simple mock structure that matches what the tests expect
+        return [
+            {
+                "title": "Test Practice",
+                "description": "Test Description",
+                "assets": [
+                    {
+                        "name": "Test Asset",
+                        "uri": "https://example.com/test.md"
+                    }
+                ]
+            }
+        ]
+    
+    # Normal implementation for non-test mode
     response = requests.get(url)
     response.raise_for_status()
 
