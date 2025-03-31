@@ -133,7 +133,13 @@ class StandardPractice(BestPractice):
             return None
 
         # Process best practice by ID
-        if self.best_practice_id == 'SLIM-3.1':
+        if self.best_practice_id == 'SLIM-1.1':
+            applied_file_path = download_and_place_file(git_repo, self.uri, 'GOVERNANCE.md')
+        elif self.best_practice_id == 'SLIM-1.2':
+            applied_file_path = download_and_place_file(git_repo, self.uri, 'GOVERNANCE.md')
+        elif self.best_practice_id == 'SLIM-1.3':
+            applied_file_path = download_and_place_file(git_repo, self.uri, 'GOVERNANCE.md')
+        elif self.best_practice_id == 'SLIM-3.1':
             applied_file_path = download_and_place_file(git_repo, self.uri, 'README.md')
         elif self.best_practice_id == 'SLIM-4.1':
             applied_file_path = download_and_place_file(git_repo, self.uri, '.github/ISSUE_TEMPLATE/bug_report.md')

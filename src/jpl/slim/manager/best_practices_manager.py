@@ -60,14 +60,7 @@ class BestPracticeManager:
         description = practice_info.get('description', '')
         
         # Determine the appropriate practice type based on the best practice ID
-        if bp_id.startswith('SLIM-1.'):
-            return GovernancePractice(
-                best_practice_id=bp_id,
-                uri=uri,
-                title=title,
-                description=description
-            )
-        elif bp_id in ['SLIM-3.1', 'SLIM-4.1', 'SLIM-4.2', 'SLIM-4.3', 'SLIM-4.4', 
+        if bp_id in ['SLIM-1.1', 'SLIM-1.2', 'SLIM-1.3', 'SLIM-3.1', 'SLIM-4.1', 'SLIM-4.2', 'SLIM-4.3', 'SLIM-4.4', 
                       'SLIM-5.1', 'SLIM-7.1', 'SLIM-8.1', 'SLIM-9.1', 'SLIM-13.1']:
             return StandardPractice(
                 best_practice_id=bp_id,

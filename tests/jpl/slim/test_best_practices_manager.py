@@ -79,7 +79,7 @@ class TestBestPracticeManager:
         
         # Assert
         assert practice is not None
-        assert isinstance(practice, GovernancePractice)
+        assert isinstance(practice, StandardPractice)
         assert practice.best_practice_id == "SLIM-1.1"
         assert practice.title == "GOVERNANCE.md"
         assert practice.uri == "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-SMALL-TEAMS.md"
@@ -108,7 +108,7 @@ class TestBestPracticeManager:
         
         # Assert
         assert practice is not None
-        assert isinstance(practice, GovernancePractice)
+        assert isinstance(practice, StandardPractice)
         assert practice.best_practice_id == "SLIM-1.2"
         assert practice.title == "GOVERNANCE.md"
         assert practice.uri == "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-MEDIUM-TEAMS.md"
