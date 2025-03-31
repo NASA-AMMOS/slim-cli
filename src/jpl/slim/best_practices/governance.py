@@ -100,7 +100,6 @@ class GovernancePractice(BestPractice):
         if not applied_file_path:
             logging.error(f"Failed to download governance file for best practice {self.best_practice_id}")
             return None
-            return None
         
         # Apply AI customization if requested
         if use_ai and model:

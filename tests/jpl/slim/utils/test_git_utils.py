@@ -10,7 +10,6 @@ from unittest.mock import patch, MagicMock
 # Import the module that will contain the functions (this will fail until implemented)
 from jpl.slim.utils.git_utils import (
     generate_git_branch_name,
-    deploy_best_practice,
     is_open_source
 )
 
@@ -50,56 +49,6 @@ class TestGitUtils:
         
         # Assert
         assert result is None
-
-    @patch('jpl.slim.utils.git_utils.git.Repo')
-    def test_deploy_best_practice_success(self, mock_repo_class):
-        """Test deploying a best practice successfully."""
-        # Arrange
-        mock_repo = MagicMock()
-        mock_repo_class.return_value = mock_repo
-        
-        best_practice_id = 'SLIM-1.1'
-        repo_dir = '/path/to/repo'
-        remote = 'origin'
-        commit_message = 'Add governance documentation'
-        
-        # Act
-        result = deploy_best_practice(
-            best_practice_id=best_practice_id,
-            repo_dir=repo_dir,
-            remote=remote,
-            commit_message=commit_message
-        )
-        
-        # Assert
-        mock_repo_class.assert_called_once_with(repo_dir)
-        mock_repo.git.checkout.assert_called_once_with(best_practice_id)
-        mock_repo.git.add.assert_called_once_with(A=True)
-        mock_repo.git.commit.assert_called_once_with('-m', commit_message)
-        mock_repo.git.push.assert_called_once()
-        assert result is True
-
-    @patch('jpl.slim.utils.git_utils.git.Repo')
-    def test_deploy_best_practice_git_error(self, mock_repo_class):
-        """Test deploying a best practice when a Git error occurs."""
-        # Arrange
-        mock_repo = MagicMock()
-        mock_repo.git.add.side_effect = Exception('Git error')
-        mock_repo_class.return_value = mock_repo
-        
-        best_practice_id = 'SLIM-1.1'
-        repo_dir = '/path/to/repo'
-        
-        # Act
-        result = deploy_best_practice(
-            best_practice_id=best_practice_id,
-            repo_dir=repo_dir
-        )
-        
-        # Assert
-        mock_repo_class.assert_called_once_with(repo_dir)
-        mock_repo.git.checkout.assert_called_once_with(best_practice_id)
-        assert result is False
 
     @patch('jpl.slim.utils.git_utils.requests.get')
     def test_is_open_source_true(self, mock_get):

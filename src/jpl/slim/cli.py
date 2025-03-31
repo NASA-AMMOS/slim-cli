@@ -52,7 +52,6 @@ from jpl.slim.utils.io_utils import (
 )
 from jpl.slim.utils.git_utils import (
     generate_git_branch_name,
-    deploy_best_practice,
     is_open_source
 )
 from jpl.slim.utils.ai_utils import (
