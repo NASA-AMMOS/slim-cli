@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 
 # Import the BestPracticeManager directly from the module
 from jpl.slim.manager.best_practices_manager import BestPracticeManager
-from jpl.slim.best_practices import GovernancePractice, StandardPractice
+from jpl.slim.best_practices import StandardPractice
 
 
 def create_slim_registry_dictionary():

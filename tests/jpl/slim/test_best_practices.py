@@ -2,6 +2,7 @@ import pytest
 import os
 from unittest.mock import patch, MagicMock
 from jpl.slim.best_practices.base import BestPractice
+import tempfile
 
 
 class TestBestPracticeBase:
@@ -73,18 +74,19 @@ class TestBestPracticeBase:
 class TestGovernancePractice:
     """Tests for the GovernancePractice class."""
 
-    @patch('jpl.slim.best_practices.governance.git.Repo')
-    @patch('jpl.slim.best_practices.governance.download_and_place_file')
+    @patch('jpl.slim.best_practices.standard.git.Repo')
+    @patch('jpl.slim.best_practices.standard.download_and_place_file')
     def test_apply_downloads_governance_file(self, mock_download, mock_git_repo):
         """Test that apply() downloads the governance file."""
         # Arrange
         # Import inside the test to avoid circular imports
-        from jpl.slim.best_practices.governance import GovernancePractice
-        mock_download.return_value = "/path/to/downloaded/GOVERNANCE.md"
+        from jpl.slim.best_practices.standard import StandardPractice
+        mock_download.return_value = "GOVERNANCE.md" # Assuming download_and_place_file returns filename for now
         mock_repo_obj = MagicMock()
-        mock_git_repo.return_value = mock_repo_obj
-        repo_path = "/path/to/repo"
-        practice = GovernancePractice(
+        repo_path = tempfile.gettempdir()
+        mock_repo_obj.working_tree_dir = repo_path # Set the mock's path attribute to match
+        mock_git_repo.return_value = mock_repo_obj # Ensure git.Repo(repo_path) returns this mock
+        practice = StandardPractice(
             best_practice_id="SLIM-1.1",
             uri="https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-SMALL-TEAMS.md",
             title="Governance Practice",
@@ -100,22 +102,22 @@ class TestGovernancePractice:
         # The apply method now returns a git.Repo object instead of a string
         assert result == mock_repo_obj
 
-    @patch('jpl.slim.best_practices.governance.git.Repo')
-    @patch('jpl.slim.best_practices.governance.download_and_place_file')
-    @patch('jpl.slim.best_practices.governance.generate_with_ai')
+    @patch('jpl.slim.best_practices.standard.git.Repo')
+    @patch('jpl.slim.best_practices.standard.download_and_place_file')
+    @patch('jpl.slim.best_practices.standard.generate_with_ai')
     @patch('builtins.open', new_callable=MagicMock)
     def test_apply_uses_ai_when_enabled(self, mock_open, mock_use_ai, mock_download, mock_git_repo):
         """Test that apply() uses AI when enabled."""
         # Arrange
         # Import inside the test to avoid circular imports
-        from jpl.slim.best_practices.governance import GovernancePractice
-        mock_download.return_value = "/path/to/downloaded/GOVERNANCE.md"
+        from jpl.slim.best_practices.standard import StandardPractice
+        mock_download.return_value = "GOVERNANCE.md"
         mock_use_ai.return_value = "AI-generated content"
         mock_repo_obj = MagicMock()
-        mock_repo_obj.working_tree_dir = "/path/to/repo"
+        repo_path = tempfile.gettempdir()
+        mock_repo_obj.working_tree_dir = repo_path
         mock_git_repo.return_value = mock_repo_obj
-        repo_path = "/path/to/repo"
-        practice = GovernancePractice(
+        practice = StandardPractice(
             best_practice_id="SLIM-1.1",
             uri="https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-SMALL-TEAMS.md",
             title="Governance Practice",
@@ -133,23 +135,23 @@ class TestGovernancePractice:
         mock_download.assert_called_once()
         mock_use_ai.assert_called_once_with(
             "SLIM-1.1",
-            "/path/to/repo",
-            "/path/to/downloaded/GOVERNANCE.md",
+            repo_path,
+            "GOVERNANCE.md",
             "openai/gpt-4o"
         )
         assert result is not None
         # The apply method now returns a git.Repo object instead of a string
         assert result == mock_repo_obj
 
-    @patch('jpl.slim.best_practices.governance.git')
+    @patch('jpl.slim.best_practices.standard.git')
     def test_deploy_commits_and_pushes_changes(self, mock_git):
         """Test that deploy() commits and pushes changes."""
         # Arrange
         # Import inside the test to avoid circular imports
-        from jpl.slim.best_practices.governance import GovernancePractice
+        from jpl.slim.best_practices.standard import StandardPractice
         mock_repo = MagicMock()
         mock_git.Repo.return_value = mock_repo
-        practice = GovernancePractice(
+        practice = StandardPractice(
             best_practice_id="SLIM-1.1",
             uri="https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-SMALL-TEAMS.md",
             title="Governance Practice",

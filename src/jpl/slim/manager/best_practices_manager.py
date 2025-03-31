@@ -7,7 +7,6 @@ This module contains the BestPracticeManager class for retrieving and managing b
 import logging
 from typing import Dict, List, Optional, Any, Union
 
-from jpl.slim.best_practices.governance import GovernancePractice
 from jpl.slim.best_practices.standard import StandardPractice
 from jpl.slim.utils.io_utils import create_slim_registry_dictionary
 
@@ -34,7 +33,7 @@ class BestPracticeManager:
         if isinstance(registry, list):
             self.registry_dict = create_slim_registry_dictionary(registry)
     
-    def get_best_practice(self, bp_id: str) -> Optional[Union[GovernancePractice, StandardPractice]]:
+    def get_best_practice(self, bp_id: str) -> Optional[Union[StandardPractice]]: # Add future best practice classes to Union
         """
         Get a best practice by ID.
         
