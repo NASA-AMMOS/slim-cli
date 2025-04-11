@@ -49,7 +49,7 @@ def generate_with_ai(best_practice_id, repo_path, template_path, model="openai/g
     logging.debug(f"Using AI to apply best practice ID: {best_practice_id} in repository {repo_path}")
     
     # Fetch best practice information
-    from jpl.slim.cli import SLIM_REGISTRY_URI  # Temporary import until constants are moved
+    from jpl.slim.commands.common import SLIM_REGISTRY_URI
     practices = fetch_best_practices(SLIM_REGISTRY_URI)
     asset_mapping = create_slim_registry_dictionary(practices)
     best_practice = asset_mapping.get(best_practice_id)

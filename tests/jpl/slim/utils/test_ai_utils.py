@@ -25,7 +25,7 @@ class TestAIUtils:
     @patch('jpl.slim.utils.ai_utils.read_file_content')
     @patch('jpl.slim.utils.ai_utils.fetch_readme')
     @patch('jpl.slim.utils.ai_utils.generate_content')
-    @patch('jpl.slim.cli.SLIM_REGISTRY_URI', 'https://raw.githubusercontent.com/NASA-AMMOS/slim/refs/heads/main/static/data/slim-registry.json')
+    @patch('jpl.slim.commands.common.SLIM_REGISTRY_URI', 'https://raw.githubusercontent.com/NASA-AMMOS/slim/refs/heads/main/static/data/slim-registry.json')
     @patch.dict('os.environ', {'SLIM_TEST_MODE': 'False'})
     def test_use_ai_governance(self, mock_generate, mock_fetch_readme, mock_read_file, mock_create_dict, mock_fetch_practices):
         """Test using AI for governance best practice."""
@@ -54,7 +54,7 @@ class TestAIUtils:
 
     @patch('jpl.slim.utils.ai_utils.fetch_best_practices')
     @patch('jpl.slim.utils.ai_utils.create_slim_registry_dictionary')
-    @patch('jpl.slim.cli.SLIM_REGISTRY_URI', 'https://example.com/registry')
+    @patch('jpl.slim.commands.common.SLIM_REGISTRY_URI', 'https://example.com/registry')
     @patch.dict('os.environ', {'SLIM_TEST_MODE': 'False'})
     def test_use_ai_best_practice_not_found(self, mock_create_dict, mock_fetch_practices):
         """Test using AI when the best practice is not found."""

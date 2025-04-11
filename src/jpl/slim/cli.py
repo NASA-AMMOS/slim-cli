@@ -71,13 +71,6 @@ from jpl.slim.commands.apply_deploy_command import apply_and_deploy_best_practic
 from jpl.slim.commands.generate_docs_command import handle_generate_docs
 from jpl.slim.commands.generate_tests_command import handle_generate_tests
 
-# Constants
-SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/nasa-jpl/slim/main/registry/slim_registry.yaml"
-GIT_DEFAULT_COMMIT_MESSAGE = "Applied SLIM best practice"
-GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = "slim-best-practices"
-GIT_DEFAULT_REMOTE_NAME = "origin"
-GIT_CUSTOM_REMOTE_NAME = "slim-remote"
-
 # Global parser that hands off parsing to respective, supported sub-commands
 def create_parser() -> argparse.ArgumentParser:
     """
