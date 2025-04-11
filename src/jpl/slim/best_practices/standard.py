@@ -25,16 +25,16 @@ SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '
 class StandardPractice(BestPractice):
     """
     Best practice for standard best practices (README, CONTRIBUTING, etc).
-    
+
     This class handles downloading and customizing documentation
     based on the SLIM best practices.
     """
-    
-    def apply(self, repo_path, use_ai=False, model=None, repo_url=None, 
-              target_dir_to_clone_to=None, branch=None):
+
+    def apply(self, repo_path, use_ai=False, model=None, repo_url=None,
+              target_dir_to_clone_to=None, branch=None, no_prompt=False):
         """
         Apply the standard best practice to a repository.
-        
+
         Args:
             repo_path (str): Path to the repository
             use_ai (bool, optional): Whether to use AI assistance. Defaults to False.
@@ -42,12 +42,13 @@ class StandardPractice(BestPractice):
             repo_url (str, optional): Repository URL. Defaults to None.
             target_dir_to_clone_to (str, optional): Directory to clone to. Defaults to None.
             branch (str, optional): Git branch to use. Defaults to None.
-            
+            no_prompt (bool, optional): Skip user confirmation prompts for dependencies installation. Defaults to False.
+
         Returns:
             git.Repo: Git repository object if successful, None otherwise
         """
         logging.debug(f"Applying best practice {self.best_practice_id} to repository: {repo_path}")
-        
+
         # In test mode, simulate success without making actual API calls
         if SLIM_TEST_MODE:
             logging.info(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
@@ -60,11 +61,11 @@ class StandardPractice(BestPractice):
             mock_repo.head.reference = getattr(mock_repo.heads, branch_name)
             logging.info(f"TEST MODE: Successfully applied best practice {self.best_practice_id} to mock repository")
             return mock_repo
-        
+
         applied_file_path = None  # default return value is invalid applied best practice
         git_repo = None
         git_branch = None
-        
+
         try:
             # Handle repository setup
             if repo_url:
@@ -160,9 +161,9 @@ class StandardPractice(BestPractice):
         elif self.best_practice_id == 'SLIM-13.1':
             applied_file_path = download_and_place_file(git_repo, self.uri, 'TESTING.md')
         else:
-            applied_file_path = None  # nothing was modified 
+            applied_file_path = None  # nothing was modified
             logging.warning(f"SLIM best practice {self.best_practice_id} not supported.")
-        
+
         # Apply AI customization if requested
         if applied_file_path and use_ai and model:
             ai_content = generate_with_ai(self.best_practice_id, git_repo.working_tree_dir, applied_file_path, model)
@@ -172,51 +173,51 @@ class StandardPractice(BestPractice):
                 logging.info(f"Applied AI-generated content to {applied_file_path}")
             else:
                 logging.warning(f"AI generation failed for best practice {self.best_practice_id}")
-        
+
         if applied_file_path:
             logging.info(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
             return git_repo  # return the modified git repo object
         else:
             logging.error(f"Failed to apply best practice {self.best_practice_id}")
             return None
-    
+
     def deploy(self, repo_path, remote=None, commit_message=None):
         """
         Deploy changes made by applying the best practice.
-        
+
         Args:
             repo_path (str): Path to the repository
             remote (str, optional): Remote repository to push changes to. Defaults to None.
             commit_message (str, optional): Commit message for the changes. Defaults to None.
-            
+
         Returns:
             bool: True if deployment was successful, False otherwise
         """
         logging.debug(f"Deploying best practice {self.best_practice_id} to repository: {repo_path}")
-        
+
         if not commit_message:
             commit_message = f"Add documentation for {self.best_practice_id}"
-        
+
         try:
             # Get the git repository object
             repo = git.Repo(repo_path)
-            
+
             # Add all changes
             repo.git.add(A=True)
             logging.debug("Added all changes to git index.")
-            
+
             # Commit changes
             repo.git.commit('-m', commit_message)
             logging.debug("Committed changes.")
-            
+
             # Push changes if remote is specified
             if remote:
                 repo.git.push(remote, repo.active_branch.name)
                 logging.debug(f"Pushed changes to remote {remote} on branch {repo.active_branch.name}")
-            
+
             logging.info(f"Successfully deployed best practice {self.best_practice_id}")
             return True
-            
+
         except git.exc.GitCommandError as e:
             logging.error(f"Git command failed: {str(e)}")
             return False
