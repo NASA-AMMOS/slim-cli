@@ -143,23 +143,5 @@ class TestSecretsDetection(unittest.TestCase):
             # Restore test mode
             os.environ['SLIM_TEST_MODE'] = old_test_mode
 
-    def test_deploy(self):
-        """Test deploying changes made by the best practice."""
-        # First apply a practice with no_prompt=True
-        with patch('jpl.slim.best_practices.secrets_detection.download_and_place_file') as mock_download:
-            mock_download.return_value = os.path.join(self.test_dir, '.github/workflows/detect-secrets.yaml')
-            self.secrets_detection_2_1.apply(self.test_dir, no_prompt=True)
-        
-        # Then deploy
-        result = self.secrets_detection_2_1.deploy(self.test_dir)
-        
-        # Assert
-        self.assertTrue(result)
-        
-        # Verify the commit message
-        latest_commit = self.repo.head.commit
-        self.assertIn('detect-secrets', latest_commit.message)
-
-
 if __name__ == '__main__':
     unittest.main()

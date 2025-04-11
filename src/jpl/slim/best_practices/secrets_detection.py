@@ -148,6 +148,7 @@ class SecretsDetection(BestPractice):
                     if no_prompt:
                         # Skip confirmation if --no-prompt flag is used
                         self._install_detect_secrets()
+                        self._run_detect_secrets_scan()
                     else:
                         # Prompt for confirmation before installing
                         confirmation = input("The detect-secrets tool (https://github.com/Yelp/detect-secrets) is needed to support this best practice. Do you want me to install/re-install detect-secrets? (y/n): ")
@@ -162,11 +163,6 @@ class SecretsDetection(BestPractice):
                             self._run_detect_secrets_scan()
                         else:
                             logging.warning("Not running detect-secrets scan. Assuming you have a `.secrets-baseline` file present in your repo already.")
-                
-
-                # Inform user about running baseline scan
-                logging.warning("Make sure to run a baseline scan with: detect-secrets scan --all-files "
-                            "--exclude-files '\\.secrets.*' --exclude-files '\\.git.*' > .secrets.baseline")
                 
                 return git_repo
             else:
@@ -300,7 +296,7 @@ class SecretsDetection(BestPractice):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-            logging.debug("Successfully installed pre-commit hooks")
+            logging.info("Successfully installed pre-commit hooks")
             return True
         except subprocess.CalledProcessError as e:
             logging.error(f"Failed to install pre-commit hooks: {e}")
@@ -318,7 +314,8 @@ class SecretsDetection(BestPractice):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-            logging.debug("Successfully created .secrets.baseline file")
+            logging.info("Successfully ran detect-secrets and created .secrets.baseline file")
+            logging.warning("Make sure to double-check if you have flagged secrets in .secrets.baseline file")
             return True
         except subprocess.CalledProcessError as e:
             logging.error(f"Failed to run detect-secrets scan: {e}")
