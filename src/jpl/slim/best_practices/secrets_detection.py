@@ -13,6 +13,7 @@ import tempfile
 import uuid
 import git
 import sys
+import json
 from pathlib import Path
 from jpl.slim.best_practices.base import BestPractice
 from jpl.slim.utils.io_utils import download_and_place_file
@@ -136,19 +137,22 @@ class SecretsDetection(BestPractice):
             # Create .github/workflows directory if it doesn't exist
             workflows_dir = os.path.join(git_repo.working_dir, '.github', 'workflows')
             os.makedirs(workflows_dir, exist_ok=True)
-            
+
             # Download and place the detect-secrets.yaml file
             applied_file_path = download_and_place_file(git_repo, self.uri, '.github/workflows/detect-secrets.yaml')
-            
+
             if applied_file_path:
                 logging.info(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
-                
+
                 # Install detect-secrets if not in test mode
                 if not SLIM_TEST_MODE:
                     if no_prompt:
                         # Skip confirmation if --no-prompt flag is used
                         self._install_detect_secrets()
-                        self._run_detect_secrets_scan()
+                        # Run scan and check for unverified secrets
+                        if not self._run_detect_secrets_scan():
+                            logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
+                            return None
                     else:
                         # Prompt for confirmation before installing
                         confirmation = input("The detect-secrets tool (https://github.com/Yelp/detect-secrets) is needed to support this best practice. Do you want me to install/re-install detect-secrets? (y/n): ")
@@ -156,19 +160,22 @@ class SecretsDetection(BestPractice):
                             self._install_detect_secrets()
                         else:
                             logging.warning("Not installing detect-secrets. Assuming it is already installed.")
-                
+
                         # Prompt for confirmation before installing
                         confirmation = input("Do you want me to run an initial scan with detect-secrets (will overwrite an existing `.secrets-baseline` file)? (y/n): ")
                         if confirmation.lower() in ['y', 'yes']:
-                            self._run_detect_secrets_scan()
+                            scan_result = self._run_detect_secrets_scan()
+                            if not scan_result:
+                                logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
+                                return None
                         else:
                             logging.warning("Not running detect-secrets scan. Assuming you have a `.secrets-baseline` file present in your repo already.")
-                
+
                 return git_repo
             else:
                 logging.error(f"Failed to apply best practice {self.best_practice_id}")
                 return None
-                
+
         elif self.best_practice_id == 'SLIM-2.2':
             # Install pre-commit if not in test mode
             if not SLIM_TEST_MODE:
@@ -182,13 +189,13 @@ class SecretsDetection(BestPractice):
                         self._install_pre_commit()
                     else:
                         logging.warning("Not installing pre-commit tool. Assuming it is already installed.")
-            
+
             # Download and place the pre-commit config file
             applied_file_path = download_and_place_file(git_repo, self.uri, '.pre-commit-config.yaml')
-            
+
             if applied_file_path:
                 logging.info(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
-                
+
                 # Initialize pre-commit hooks if not in test mode
                 if not SLIM_TEST_MODE:
                     if no_prompt:
@@ -199,7 +206,7 @@ class SecretsDetection(BestPractice):
                         confirmation = input("Installation of the new pre-commit hook is needed via `pre-commit install`. Do you want to install the pre-commit hook for you? (y/n): ")
                         if confirmation.lower() in ['y', 'yes']:
                             self._install_pre_commit_hooks()
-                
+
                 return git_repo
             else:
                 logging.error(f"Failed to apply best practice {self.best_practice_id}")
@@ -238,17 +245,29 @@ class SecretsDetection(BestPractice):
             repo.git.add(A=True)
             logging.debug("Added all changes to git index.")
 
-            # Commit changes
-            repo.git.commit('-m', commit_message)
-            logging.debug("Committed changes.")
-
-            # Push changes if remote is specified
-            if remote:
-                repo.git.push(remote, repo.active_branch.name)
-                logging.debug(f"Pushed changes to remote {remote} on branch {repo.active_branch.name}")
-
-            logging.info(f"Successfully deployed best practice {self.best_practice_id}")
-            return True
+            # Try to commit changes - this might fail if pre-commit hooks fail
+            try:
+                repo.git.commit('-m', commit_message)
+                logging.debug("Committed changes.")
+                
+                # Only push if commit was successful
+                if remote:
+                    repo.git.push(remote, repo.active_branch.name)
+                    logging.debug(f"Pushed changes to remote {remote} on branch {repo.active_branch.name}")
+                
+                logging.info(f"Successfully deployed best practice {self.best_practice_id}")
+                return True
+                
+            except git.exc.GitCommandError as commit_error:
+                # Check if the error is related to pre-commit hooks
+                if "hook" in str(commit_error) or "pre-commit" in str(commit_error):
+                    logging.warning(f"Git commit failed due to pre-commit hooks: {commit_error}")
+                    logging.warning("Please fix the issues identified by pre-commit hooks before deploying.")
+                    logging.warning("You may need to run 'git add' after fixing the issues and try the commit again.")
+                    return False
+                else:
+                    # Re-raise if it's a different kind of Git error
+                    raise
 
         except git.exc.GitCommandError as e:
             logging.error(f"Git command failed: {str(e)}")
@@ -301,9 +320,15 @@ class SecretsDetection(BestPractice):
         except subprocess.CalledProcessError as e:
             logging.error(f"Failed to install pre-commit hooks: {e}")
             return False
-            
+
     def _run_detect_secrets_scan(self):
-        """Run detect-secrets scan to generate a baseline file."""
+        """
+        Run detect-secrets scan to generate a baseline file and check for unverified secrets.
+        
+        Returns:
+            bool: True if scan was successful and no unverified secrets were found, 
+                 False if scan failed or unverified secrets were found
+        """
         try:
             logging.debug("Running detect-secrets scan...")
             cmd = "detect-secrets scan --all-files --exclude-files '\\.secrets.*' --exclude-files '\\.git.*' > .secrets.baseline"
@@ -314,9 +339,59 @@ class SecretsDetection(BestPractice):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-            logging.info("Successfully ran detect-secrets and created .secrets.baseline file")
-            logging.warning("Make sure to double-check if you have flagged secrets in .secrets.baseline file")
-            return True
+            logging.debug("Successfully created .secrets.baseline file")
+            
+            # Check the baseline file for unverified secrets
+            return self._check_baseline_for_unverified_secrets()
+            
         except subprocess.CalledProcessError as e:
             logging.error(f"Failed to run detect-secrets scan: {e}")
+            return False
+    
+    def _check_baseline_for_unverified_secrets(self):
+        """
+        Check the .secrets.baseline file for unverified secrets.
+        
+        Returns:
+            bool: True if no unverified secrets were found, False otherwise
+        """
+        try:
+            # Read the baseline file
+            with open('.secrets.baseline', 'r') as f:
+                baseline = json.load(f)
+            
+            # Check the results for unverified secrets
+            if 'results' in baseline:
+                results = baseline['results']
+                unverified_secrets = []
+                
+                # Iterate through files in results
+                for filename, secrets in results.items():
+                    for secret in secrets:
+                        # Check if the secret is unverified
+                        if secret.get('is_verified') is False:
+                            unverified_secrets.append({
+                                'filename': secret.get('filename', filename),
+                                'type': secret.get('type', 'Unknown'),
+                                'line_number': secret.get('line_number', 'Unknown')
+                            })
+                
+                # If unverified secrets were found, report them and return False
+                if unverified_secrets:
+                    logging.error("Unverified secrets found in the repository:")
+                    for secret in unverified_secrets:
+                        logging.error(f"  - {secret['type']} in {secret['filename']} at line {secret['line_number']}")
+                    logging.error("Secrets must be verified or removed before deployment.")
+                    logging.error("To verify secrets, run 'detect-secrets audit .secrets.baseline'")
+                    logging.error("To remove secrets, edit the files and remove the sensitive information.")
+                    return False
+                
+                return True
+            else:
+                # No results found, which is strange but not necessarily an error
+                logging.warning("No results found in .secrets.baseline file. This is unusual.")
+                return True
+                
+        except Exception as e:
+            logging.error(f"Error checking .secrets.baseline file: {e}")
             return False

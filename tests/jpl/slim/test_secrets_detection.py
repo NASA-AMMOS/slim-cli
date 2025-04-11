@@ -99,9 +99,10 @@ class TestSecretsDetection(unittest.TestCase):
             '.pre-commit-config.yaml'
         )
 
+    @patch('jpl.slim.best_practices.secrets_detection.SecretsDetection._run_detect_secrets_scan', return_value=True)
     @patch('jpl.slim.best_practices.secrets_detection.subprocess.check_call')
     @patch('jpl.slim.best_practices.secrets_detection.download_and_place_file')
-    def test_apply_slim_2_1_with_no_prompt(self, mock_download, mock_subprocess):
+    def test_apply_slim_2_1_with_no_prompt(self, mock_download, mock_subprocess, mock_run_scan):
         """Test SLIM-2.1 with no_prompt flag."""
         # Setup
         mock_download.return_value = os.path.join(self.test_dir, '.github/workflows/detect-secrets.yaml')
@@ -116,7 +117,8 @@ class TestSecretsDetection(unittest.TestCase):
             
             # Assert
             self.assertIsNotNone(result)
-            mock_subprocess.assert_called_once()
+            mock_subprocess.assert_called_once()  # Assert detect-secrets was installed
+            mock_run_scan.assert_called_once()    # Assert scan was run
         finally:
             # Restore test mode
             os.environ['SLIM_TEST_MODE'] = old_test_mode
@@ -142,6 +144,48 @@ class TestSecretsDetection(unittest.TestCase):
         finally:
             # Restore test mode
             os.environ['SLIM_TEST_MODE'] = old_test_mode
+
+    @patch('jpl.slim.best_practices.secrets_detection.SecretsDetection._run_detect_secrets_scan', return_value=False)
+    @patch('jpl.slim.best_practices.secrets_detection.subprocess.check_call')
+    @patch('jpl.slim.best_practices.secrets_detection.download_and_place_file')
+    def test_apply_slim_2_1_with_unverified_secrets(self, mock_download, mock_subprocess, mock_run_scan):
+        """Test SLIM-2.1 fails when unverified secrets are detected."""
+        # Setup
+        mock_download.return_value = os.path.join(self.test_dir, '.github/workflows/detect-secrets.yaml')
+        
+        # Make sure test mode is disabled
+        old_test_mode = os.environ.get('SLIM_TEST_MODE')
+        os.environ['SLIM_TEST_MODE'] = 'False'
+        
+        try:
+            # Execute - should return None because of unverified secrets
+            result = self.secrets_detection_2_1.apply(self.test_dir, no_prompt=True)
+            
+            # Assert
+            self.assertIsNone(result)  # Application should fail
+            mock_subprocess.assert_called_once()  # detect-secrets was installed
+            mock_run_scan.assert_called_once()    # Scan was run but returned False
+        finally:
+            # Restore test mode
+            os.environ['SLIM_TEST_MODE'] = old_test_mode
+
+    def test_deploy(self):
+        """Test deploying changes made by the best practice."""
+        # First apply a practice with no_prompt=True
+        with patch('jpl.slim.best_practices.secrets_detection.download_and_place_file') as mock_download:
+            mock_download.return_value = os.path.join(self.test_dir, '.github/workflows/detect-secrets.yaml')
+            self.secrets_detection_2_1.apply(self.test_dir, no_prompt=True)
+        
+        # Then deploy
+        result = self.secrets_detection_2_1.deploy(self.test_dir)
+        
+        # Assert
+        self.assertTrue(result)
+        
+        # Verify the commit message
+        latest_commit = self.repo.head.commit
+        self.assertIn('detect-secrets', latest_commit.message)
+
 
 if __name__ == '__main__':
     unittest.main()
