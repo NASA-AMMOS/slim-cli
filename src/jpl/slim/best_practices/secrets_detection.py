@@ -8,21 +8,18 @@ secrets detection best practices to repositories.
 import os
 import logging
 import subprocess
-import urllib.parse
-import tempfile
-import uuid
-import git
 import sys
 import json
+import git
 from pathlib import Path
-from jpl.slim.best_practices.base import BestPractice
+from jpl.slim.best_practices.standard import StandardPractice
 from jpl.slim.utils.io_utils import download_and_place_file
 
 # Check if we're in test mode
 SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')
 
 
-class SecretsDetection(BestPractice):
+class SecretsDetection(StandardPractice):
     """
     Best practice for secrets detection implementation (SLIM-2.1 and SLIM-2.2).
 
@@ -49,87 +46,14 @@ class SecretsDetection(BestPractice):
         """
         logging.debug(f"Applying best practice {self.best_practice_id} to repository: {repo_path}")
 
-        # In test mode, simulate success without making actual API calls
-        if SLIM_TEST_MODE:
+        # In test mode, we can use the parent's fast path for tests with local repos
+        if SLIM_TEST_MODE and not repo_url:
             logging.info(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
-            # Create a mock repo object for testing
-            mock_repo = git.Repo.init(target_dir_to_clone_to or tempfile.mkdtemp())
-            # Create a mock branch
-            branch_name = branch or self.best_practice_id
-            if not hasattr(mock_repo.heads, branch_name):
-                mock_repo.create_head(branch_name)
-            mock_repo.head.reference = getattr(mock_repo.heads, branch_name)
-            logging.info(f"TEST MODE: Successfully applied best practice {self.best_practice_id} to mock repository")
-            return mock_repo
+            return super().apply(repo_path, use_ai, model, repo_url, target_dir_to_clone_to, branch, no_prompt)
 
-        git_repo = None
-        git_branch = None
-
-        try:
-            # Handle repository setup
-            if repo_url:
-                logging.debug(f"Using repository URL {repo_url}. URI: {self.uri}")
-
-                parsed_url = urllib.parse.urlparse(repo_url)
-                repo_name = os.path.basename(parsed_url.path)
-                repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
-                if target_dir_to_clone_to:  # If target_dir_to_clone_to is specified, append repo name to target_dir_to_clone_to
-                    target_dir_to_clone_to = os.path.join(target_dir_to_clone_to, repo_name)
-                    logging.debug(f"Set clone directory to {target_dir_to_clone_to}")
-                else:  # else make a temporary directory
-                    target_dir_to_clone_to = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
-                    logging.debug(f"Generating temporary clone directory at {target_dir_to_clone_to}")
-            else:
-                target_dir_to_clone_to = repo_path
-                logging.debug(f"Using existing repository directory {repo_path}")
-
-            try:
-                git_repo = git.Repo(target_dir_to_clone_to)
-                logging.debug(f"Repository folder ({target_dir_to_clone_to}) exists already. Using existing directory.")
-            except Exception as e:
-                logging.debug(f"Repository folder ({target_dir_to_clone_to}) not a git repository yet already. Cloning repo {repo_url} contents into folder.")
-                if SLIM_TEST_MODE:
-                    # In test mode, just initialize a new repo instead of cloning
-                    git_repo = git.Repo.init(target_dir_to_clone_to)
-                    logging.debug(f"TEST MODE: Initialized new git repository at {target_dir_to_clone_to}")
-                else:
-                    git_repo = git.Repo.clone_from(repo_url, target_dir_to_clone_to)
-
-            # Change directory to the cloned repository
-            os.chdir(target_dir_to_clone_to)
-
-            if git_repo.head.is_valid():
-                if self.best_practice_id in git_repo.heads:
-                    # Check out the existing branch
-                    git_branch = git_repo.heads[self.best_practice_id] if not branch else git_repo.create_head(branch)
-                    git_branch.checkout()
-                    logging.warning(f"Git branch '{git_branch.name}' already exists in clone_to_dir '{target_dir_to_clone_to}'. Checking out existing branch.")
-                else:
-                    # Create and check out the new branch
-                    git_branch = git_repo.create_head(self.best_practice_id) if not branch else git_repo.create_head(branch)
-                    git_branch.checkout()
-                    logging.debug(f"Branch '{git_branch.name}' created and checked out successfully.")
-            else:
-                # Create an initial commit
-                with open(os.path.join(git_repo.working_dir, 'README.md'), 'w') as file:
-                    file.write("Initial commit")
-                git_repo.index.add(['README.md'])  # Add files to the index
-                git_repo.index.commit('Initial commit')  # Commit the changes
-                logging.debug("Initial commit created in the empty repository.")
-
-                # Empty repo, so only now create and check out the fresh branch
-                git_branch = git_repo.create_head(self.best_practice_id) if not branch else git_repo.create_head(branch)
-                git_branch.checkout()
-                logging.debug(f"Empty repository. Creating new branch '{git_branch.name}' and checked it out successfully.")
-
-        except git.exc.InvalidGitRepositoryError:
-            logging.error(f"Error: {target_dir_to_clone_to} is not a valid Git repository.")
-            return None
-        except git.exc.GitCommandError as e:
-            logging.error(f"Git command error: {e}")
-            return None
-        except Exception as e:
-            logging.error(f"An unexpected error occurred: {e}")
+        # Setup repository using the parent class method
+        git_repo, git_branch, target_dir = self.setup_repository(repo_path, repo_url, target_dir_to_clone_to, branch)
+        if not git_repo:
             return None
 
         # Process best practice by ID
@@ -229,6 +153,7 @@ class SecretsDetection(BestPractice):
         """
         logging.debug(f"Deploying best practice {self.best_practice_id} to repository: {repo_path}")
 
+        # Set custom commit message for secrets detection best practices
         if not commit_message:
             if self.best_practice_id == 'SLIM-2.1':
                 commit_message = "Add detect-secrets workflow"
@@ -241,37 +166,28 @@ class SecretsDetection(BestPractice):
             # Get the git repository object
             repo = git.Repo(repo_path)
 
-            # Add all changes
-            repo.git.add(A=True)
-            logging.debug("Added all changes to git index.")
-
-            # Try to commit changes - this might fail if pre-commit hooks fail
+            # Use parent class method to handle commit and push with special error handling for pre-commit hooks
             try:
-                repo.git.commit('-m', commit_message)
-                logging.debug("Committed changes.")
+                success, error_message = self._handle_commit_and_push(repo, remote, commit_message)
                 
-                # Only push if commit was successful
-                if remote:
-                    repo.git.push(remote, repo.active_branch.name)
-                    logging.debug(f"Pushed changes to remote {remote} on branch {repo.active_branch.name}")
-                
-                logging.info(f"Successfully deployed best practice {self.best_practice_id}")
-                return True
-                
-            except git.exc.GitCommandError as commit_error:
-                # Check if the error is related to pre-commit hooks
-                if "hook" in str(commit_error) or "pre-commit" in str(commit_error):
-                    logging.warning(f"Git commit failed due to pre-commit hooks: {commit_error}")
-                    logging.warning("Please fix the issues identified by pre-commit hooks before deploying.")
-                    logging.warning("You may need to run 'git add' after fixing the issues and try the commit again.")
-                    return False
+                if success:
+                    logging.info(f"Successfully deployed best practice {self.best_practice_id}")
+                    return True
                 else:
-                    # Re-raise if it's a different kind of Git error
-                    raise
+                    # Check if the error is related to pre-commit hooks
+                    if "hook" in error_message or "pre-commit" in error_message:
+                        logging.warning(f"Git commit failed due to pre-commit hooks: {error_message}")
+                        logging.warning("Please fix the issues identified by pre-commit hooks before deploying.")
+                        logging.warning("You may need to run 'git add' after fixing the issues and try the commit again.")
+                        return False
+                    else:
+                        logging.error(error_message)
+                        return False
 
-        except git.exc.GitCommandError as e:
-            logging.error(f"Git command failed: {str(e)}")
-            return False
+            except Exception as commit_error:
+                logging.error(f"Error during commit and push: {commit_error}")
+                return False
+
         except Exception as e:
             logging.error(f"An error occurred during deployment: {str(e)}")
             return False
@@ -324,9 +240,9 @@ class SecretsDetection(BestPractice):
     def _run_detect_secrets_scan(self):
         """
         Run detect-secrets scan to generate a baseline file and check for unverified secrets.
-        
+
         Returns:
-            bool: True if scan was successful and no unverified secrets were found, 
+            bool: True if scan was successful and no unverified secrets were found,
                  False if scan failed or unverified secrets were found
         """
         try:
@@ -340,18 +256,18 @@ class SecretsDetection(BestPractice):
                 stderr=subprocess.PIPE
             )
             logging.debug("Successfully created .secrets.baseline file")
-            
+
             # Check the baseline file for unverified secrets
             return self._check_baseline_for_unverified_secrets()
-            
+
         except subprocess.CalledProcessError as e:
             logging.error(f"Failed to run detect-secrets scan: {e}")
             return False
-    
+
     def _check_baseline_for_unverified_secrets(self):
         """
         Check the .secrets.baseline file for unverified secrets.
-        
+
         Returns:
             bool: True if no unverified secrets were found, False otherwise
         """
@@ -359,12 +275,12 @@ class SecretsDetection(BestPractice):
             # Read the baseline file
             with open('.secrets.baseline', 'r') as f:
                 baseline = json.load(f)
-            
+
             # Check the results for unverified secrets
             if 'results' in baseline:
                 results = baseline['results']
                 unverified_secrets = []
-                
+
                 # Iterate through files in results
                 for filename, secrets in results.items():
                     for secret in secrets:
@@ -375,7 +291,7 @@ class SecretsDetection(BestPractice):
                                 'type': secret.get('type', 'Unknown'),
                                 'line_number': secret.get('line_number', 'Unknown')
                             })
-                
+
                 # If unverified secrets were found, report them and return False
                 if unverified_secrets:
                     logging.error("Unverified secrets found in the repository:")
@@ -385,13 +301,13 @@ class SecretsDetection(BestPractice):
                     logging.error("To verify secrets, run 'detect-secrets audit .secrets.baseline'")
                     logging.error("To remove secrets, edit the files and remove the sensitive information.")
                     return False
-                
+
                 return True
             else:
                 # No results found, which is strange but not necessarily an error
                 logging.warning("No results found in .secrets.baseline file. This is unusual.")
                 return True
-                
+
         except Exception as e:
             logging.error(f"Error checking .secrets.baseline file: {e}")
             return False
