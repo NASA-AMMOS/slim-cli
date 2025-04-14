@@ -21,6 +21,15 @@ from jpl.slim.commands.common import (
     GIT_DEFAULT_COMMIT_MESSAGE
 )
 
+# Log message constants
+LOG_APPLY_FAILED = "Failed to apply best practice '{}'"
+LOG_DEPLOY_FAILED_MULTIPLE = "Unable to deploy best practices because one or more apply steps failed."
+LOG_DEPLOY_FAILED_SINGLE = "Unable to deploy best practice '{}' because apply failed."
+LOG_NO_BEST_PRACTICE_IDS = "No best practice IDs specified."
+LOG_SUCCESS_APPLY_DEPLOY = "Successfully applied and deployed best practice ID: {}"
+LOG_UNABLE_TO_APPLY_DEPLOY = "Unable to apply and deploy best practice ID: {}"
+LOG_UNABLE_TO_DEPLOY = "Unable to deploy best practice ID: {}"
+
 def setup_parser(subparsers):
     """
     Set up the parser for the 'apply-deploy' command.
@@ -65,7 +74,7 @@ def handle_command(args):
         no_prompt=args.no_prompt
     )
 
-def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remote=None, commit_message=GIT_DEFAULT_COMMIT_MESSAGE, 
+def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remote=None, commit_message=GIT_DEFAULT_COMMIT_MESSAGE,
                                     repo_urls=None, existing_repo_dir=None, target_dir_to_clone_to=None, no_prompt=False):
     """
     Apply and deploy best practices to repositories.
@@ -87,11 +96,11 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
         # Apply to existing repo directory
         if len(best_practice_ids) > 1:
             branch = branch_name
-            
+
             # Track whether all applies succeeded
             all_applies_successful = True
             repos_results = []
-            
+
             for best_practice_id in best_practice_ids:
                 git_repo = apply_best_practice(
                     best_practice_id=best_practice_id,
@@ -101,15 +110,15 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                     branch=branch,
                     no_prompt=no_prompt
                 )
-                
+
                 # Keep track of the result and repo
                 if git_repo:
                     repos_results.append(git_repo)
                 else:
                     all_applies_successful = False
-                    logging.error(f"Failed to apply best practice '{best_practice_id}'")
+                    logging.error(LOG_APPLY_FAILED.format(best_practice_id))
                     break  # Stop processing best practices if one fails
-            
+
             # Deploy only if all best practices were successfully applied
             if all_applies_successful and repos_results:
                 last_repo = repos_results[-1]  # Use the last repo for deployment
@@ -121,8 +130,8 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                     branch=branch_name
                 )
             else:
-                logging.error(f"Unable to deploy best practices because one or more apply steps failed.")
-        
+                logging.error(LOG_DEPLOY_FAILED_MULTIPLE)
+
         elif len(best_practice_ids) == 1:
             # For a single best practice
             git_repo = apply_best_practice(
@@ -132,7 +141,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                 existing_repo_dir=existing_repo_dir,
                 no_prompt=no_prompt
             )
-            
+
             if git_repo:
                 deploy_best_practice(
                     best_practice_id=best_practice_ids[0],
@@ -142,26 +151,26 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                     branch=branch_name
                 )
             else:
-                logging.error(f"Unable to deploy best practice '{best_practice_ids[0]}' because apply failed.")
+                logging.error(LOG_DEPLOY_FAILED_SINGLE.format(best_practice_ids[0]))
         else:
-            logging.error(f"No best practice IDs specified.")
-    
+            logging.error(LOG_NO_BEST_PRACTICE_IDS)
+
     # Apply to repo URLs
     elif repo_urls:
         for repo_url in repo_urls:
             if len(best_practice_ids) > 1:
                 if repo_url:
                     logging.debug(f"Using repository URL {repo_url} for group of best_practice_ids {best_practice_ids}")
-                    
+
                     parsed_url = urllib.parse.urlparse(repo_url)
                     repo_name = os.path.basename(parsed_url.path)
                     repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
-                    
+
                     if target_dir_to_clone_to:
                         # Track whether all applies succeeded
                         all_applies_successful = True
                         repos_results = []
-                        
+
                         for best_practice_id in best_practice_ids:
                             git_repo = apply_best_practice(
                                 best_practice_id=best_practice_id,
@@ -172,15 +181,15 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                                 branch=branch_name,
                                 no_prompt=no_prompt
                             )
-                            
+
                             # Keep track of the result and repo
                             if git_repo:
                                 repos_results.append(git_repo)
                             else:
                                 all_applies_successful = False
-                                logging.error(f"Failed to apply best practice '{best_practice_id}'")
+                                logging.error(LOG_APPLY_FAILED.format(best_practice_id))
                                 break  # Stop processing best practices if one fails
-                        
+
                         # Deploy only if all best practices were successfully applied
                         if all_applies_successful and repos_results:
                             last_repo = repos_results[-1]  # Use the last repo for deployment
@@ -192,16 +201,16 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                                 branch=branch_name
                             )
                         else:
-                            logging.error(f"Unable to deploy best practices because one or more apply steps failed.")
-                    
+                            logging.error(LOG_DEPLOY_FAILED_MULTIPLE)
+
                     else:  # Make a temporary directory
                         repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
                         logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
-                        
+
                         # Track whether all applies succeeded
                         all_applies_successful = True
                         repos_results = []
-                        
+
                         for best_practice_id in best_practice_ids:
                             git_repo = apply_best_practice(
                                 best_practice_id=best_practice_id,
@@ -212,15 +221,15 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                                 branch=branch_name,
                                 no_prompt=no_prompt
                             )
-                            
+
                             # Keep track of the result and repo
                             if git_repo:
                                 repos_results.append(git_repo)
                             else:
                                 all_applies_successful = False
-                                logging.error(f"Failed to apply best practice '{best_practice_id}'")
+                                logging.error(LOG_APPLY_FAILED.format(best_practice_id))
                                 break  # Stop processing best practices if one fails
-                        
+
                         # Deploy only if all best practices were successfully applied
                         if all_applies_successful and repos_results:
                             last_repo = repos_results[-1]  # Use the last repo for deployment
@@ -232,8 +241,8 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                                 branch=branch_name
                             )
                         else:
-                            logging.error(f"Unable to deploy best practices because one or more apply steps failed.")
-                            
+                            logging.error(LOG_DEPLOY_FAILED_MULTIPLE)
+
             elif len(best_practice_ids) == 1:
                 # For a single best practice
                 git_repo = apply_best_practice(
@@ -245,7 +254,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                     target_dir_to_clone_to=target_dir_to_clone_to,
                     no_prompt=no_prompt
                 )
-                
+
                 if git_repo:
                     deploy_best_practice(
                         best_practice_id=best_practice_ids[0],
@@ -255,9 +264,9 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                         branch=branch_name
                     )
                 else:
-                    logging.error(f"Unable to deploy best practice '{best_practice_ids[0]}' because apply failed.")
+                    logging.error(LOG_DEPLOY_FAILED_SINGLE.format(best_practice_ids[0]))
             else:
-                logging.error(f"No best practice IDs specified.")
+                logging.error(LOG_NO_BEST_PRACTICE_IDS)
 
 def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote=None, commit_message=GIT_DEFAULT_COMMIT_MESSAGE,
                                    repo_url=None, existing_repo_dir=None, target_dir_to_clone_to=None, branch=None, no_prompt=False):
@@ -304,11 +313,11 @@ def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote=
             branch=branch
         )
         if result:
-            logging.info(f"Successfully applied and deployed best practice ID: {best_practice_id}")
+            logging.info(LOG_SUCCESS_APPLY_DEPLOY.format(best_practice_id))
             return True
         else:
-            logging.error(f"Unable to deploy best practice ID: {best_practice_id}")
+            logging.error(LOG_UNABLE_TO_DEPLOY.format(best_practice_id))
             return False
     else:
-        logging.error(f"Unable to apply and deploy best practice ID: {best_practice_id}")
+        logging.error(LOG_UNABLE_TO_APPLY_DEPLOY.format(best_practice_id))
         return False
