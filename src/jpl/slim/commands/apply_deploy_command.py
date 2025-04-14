@@ -81,9 +81,6 @@ def _apply_multiple_best_practices(best_practice_ids, use_ai_flag, model, remote
     """
     Apply multiple best practices to a repository and deploy them.
     
-    This is a helper function to avoid code duplication when applying multiple best practices
-    in different contexts (existing repo, cloned repo, etc.).
-    
     Args:
         best_practice_ids (list): List of best practice IDs to apply
         use_ai_flag (bool): Whether to use AI to customize the best practices
