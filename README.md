@@ -407,14 +407,31 @@ pytest -v -s
 
 ### Publishing a New Version
 
-To publish a new version of SLIM CLI to the Python Package Index, typically you'll update the `VERSION.txt` file; then do:
-```bash
-pip install build wheel twine
-python3 -m build .
-twine upload dist/*
-```
+To publish a new version of SLIM CLI to the Python Package Index, follow these steps:
 
-(Note: this can and should eventually be automated with GitHub Actions.)
+1. Create a Git tag for the new version:
+   ```bash
+   # Create the tag (use the appropriate version number)
+   git tag v0.1.0
+   
+   # Push the tag to the repository
+   git push origin v0.1.0
+   ```
+
+2. The GitHub Actions workflow will automatically:
+   - Extract the version from the tag
+   - Update the version file
+   - Build the package
+   - Publish it to PyPI
+
+If you need to remove a tag (e.g., if there was an issue):
+```bash
+# Remove the tag locally
+git tag -d v0.1.0
+
+# Remove the tag from the remote repository
+git push --delete origin v0.1.0
+```
 
 ## License
 
