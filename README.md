@@ -32,6 +32,7 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
 - [Contents](#contents)
 - [Quick Start](#quick-start)
   - [Requirements](#requirements)
+  - [Setup Instructions via pip (Recommended for most users)](#setup-instructions-via-pip-recommended-for-most-users)
   - [Setup Instructions](#setup-instructions)
   - [Run Instructions](#run-instructions)
   - [Generate Docusaurus documentation](#generate-docusaurus-documentation)
@@ -94,7 +95,7 @@ This guide provides a quick way to get started with our project. Please see our 
      ollama run llama3.3
      ```
   
-### Setup Instructions
+### Setup Instructions via pip (Recommended for most users)
 
 As the SLIM CLI is written in Python, you'll need Python 3.7 or later. Usually, you'll want to create a virtual environment in order to isolate the dependencies of SLIM from other Python-using applications. Install into that environment using `pip`:
 
@@ -112,6 +113,8 @@ To upgrade:
 Or select a specific version, such as `X.Y.Z`:
 
     pip install slim-cli==X.Y.Z
+
+### Setup Instructions
 
 ### Run Instructions
 
