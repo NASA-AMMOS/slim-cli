@@ -33,7 +33,7 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
 - [Quick Start](#quick-start)
   - [Requirements](#requirements)
   - [Setup Instructions via pip (Recommended for most users)](#setup-instructions-via-pip-recommended-for-most-users)
-  - [Setup Instructions](#setup-instructions)
+  - [Setup Instructions for Local Development (For Contributors)](#setup-instructions-for-local-development-for-contributors)
   - [Run Instructions](#run-instructions)
   - [Generate Docusaurus documentation](#generate-docusaurus-documentation)
     - [Basic Usage](#basic-usage)
@@ -114,7 +114,31 @@ Or select a specific version, such as `X.Y.Z`:
 
     pip install slim-cli==X.Y.Z
 
-### Setup Instructions
+### Setup Instructions for Local Development (For Contributors) 
+
+If you're working on `slim-cli` itself, you’ll want to run it in editable mode so your changes are immediately reflected.
+
+```bash
+# Clone the repo
+git clone https://github.com/NASA-AMMOS/slim-cli.git
+cd slim-cli
+
+# Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install in editable mode
+pip install --editable .
+
+# Run the CLI locally
+slim --help
+slim --version
+```
+
+Use this method if:
+- You're adding new features or fixing bugs in the CLI
+- You're contributing to the SLIM project
+- You want to test changes before publishing
 
 ### Run Instructions
 
