@@ -1,0 +1,40 @@
+name: Publish Python 🐍 Package to PyPI
+
+on:
+  push:
+    tags:
+      - 'v0.0.8'  # e.g., v1.2.3
+
+jobs:
+  publish:
+    name: Build and Publish to PyPI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Extract version from tag and update VERSION.txt
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "$TAG_VERSION" > src/jplslim/VERSION.txt
+          echo "Updated src/jplslim/VERSION.txt to $TAG_VERSION"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build wheel twine
+
+      - name: Build package
+        run: python -m build .
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: twine upload dist/*
