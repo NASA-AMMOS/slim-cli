@@ -22,8 +22,8 @@ jobs:
       - name: Extract version from tag and update VERSION.txt
         run: |
           TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "$TAG_VERSION" > src/jplslim/VERSION.txt
-          echo "Updated src/jplslim/VERSION.txt to $TAG_VERSION"
+          echo "$TAG_VERSION" > src/jpl/slim/VERSION.txt
+          echo "Updated src/jpl/slim/VERSION.txt to $TAG_VERSION"
 
       - name: Install build tools
         run: |
