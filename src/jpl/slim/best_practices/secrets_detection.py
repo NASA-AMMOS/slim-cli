@@ -125,11 +125,34 @@ class SecretsDetection(StandardPractice):
                     if no_prompt:
                         # Skip confirmation if --no-prompt flag is used
                         self._install_pre_commit_hooks()
+                        
+                        # Check if .secrets.baseline file exists and run detect-secrets scan if it doesn't
+                        baseline_file = os.path.join(git_repo.working_dir, '.secrets.baseline')
+                        if not os.path.exists(baseline_file):
+                            logging.info("No existing .secrets.baseline file found. Running detect-secrets scan...")
+                            if not self._run_detect_secrets_scan():
+                                logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
+                                return None
                     else:
                         # Prompt for confirmation before installing hooks
                         confirmation = input("Installation of the new pre-commit hook is needed via `pre-commit install`. Do you want to install the pre-commit hook for you? (y/n): ")
                         if confirmation.lower() in ['y', 'yes']:
                             self._install_pre_commit_hooks()
+                        
+                        # Check if .secrets.baseline file exists and prompt user
+                        baseline_file = os.path.join(git_repo.working_dir, '.secrets.baseline')
+                        if os.path.exists(baseline_file):
+                            confirmation = input("A .secrets.baseline file already exists. Do you want to run detect-secrets scan again (this will overwrite the existing file)? (y/n): ")
+                        else:
+                            confirmation = input("Do you want to run an initial scan with detect-secrets to create a .secrets.baseline file? (y/n): ")
+                        
+                        if confirmation.lower() in ['y', 'yes']:
+                            scan_result = self._run_detect_secrets_scan()
+                            if not scan_result:
+                                logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
+                                return None
+                        elif not os.path.exists(baseline_file):
+                            logging.warning("Not running detect-secrets scan. No .secrets.baseline file is present in your repo.")
 
                 return git_repo
             else:
