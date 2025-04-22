@@ -32,7 +32,8 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
 - [Contents](#contents)
 - [Quick Start](#quick-start)
   - [Requirements](#requirements)
-  - [Setup Instructions](#setup-instructions)
+  - [Setup Instructions via pip (Recommended for most users)](#setup-instructions-via-pip-recommended-for-most-users)
+  - [Setup Instructions for Local Development (For Contributors)](#setup-instructions-for-local-development-for-contributors)
   - [Run Instructions](#run-instructions)
   - [Generate Docusaurus documentation](#generate-docusaurus-documentation)
     - [Basic Usage](#basic-usage)
@@ -45,13 +46,9 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
     - [Options](#options)
     - [Naming Conventions](#naming-conventions)
     - [Generated Test Structure](#generated-test-structure)
-  - [Running the CLI Locally](#running-the-cli-locally)
-    - [Basic Usage](#basic-usage-1)
-    - [Examples](#examples)
 - [Changelog](#changelog)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 - [Contributing](#contributing)
-  - [Local Development](#local-development)
   - [Running Tests](#running-tests)
   - [Publishing a New Version](#publishing-a-new-version)
 - [License](#license)
@@ -94,7 +91,7 @@ This guide provides a quick way to get started with our project. Please see our 
      ollama run llama3.3
      ```
   
-### Setup Instructions
+### Setup Instructions via pip (Recommended for most users)
 
 As the SLIM CLI is written in Python, you'll need Python 3.7 or later. Usually, you'll want to create a virtual environment in order to isolate the dependencies of SLIM from other Python-using applications. Install into that environment using `pip`:
 
@@ -112,6 +109,32 @@ To upgrade:
 Or select a specific version, such as `X.Y.Z`:
 
     pip install slim-cli==X.Y.Z
+
+### Setup Instructions for Local Development (For Contributors) 
+
+If you're working on `slim-cli` itself, you’ll want to run it in editable mode so your changes are immediately reflected.
+
+```bash
+# Clone the repo
+git clone https://github.com/NASA-AMMOS/slim-cli.git
+cd slim-cli
+
+# Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# Install in editable mode
+pip install --editable .
+
+# Run the CLI locally
+slim --help
+slim --version
+```
+
+Use this method if:
+- You're adding new features or fixing bugs in the CLI
+- You're contributing to the SLIM project
+- You want to test changes before publishing
 
 ### Run Instructions
 
@@ -212,7 +235,7 @@ The SLIM CLI includes a website generator that can automatically create [Docusau
 Generate documentation for your repository using:
 
 ```bash
-python -m jpl.slim.cli generate-docs \
+python -m slim generate-docs \
   --repo-dir /path/to/your/repo \
   --output-dir /path/to/output
 ```
@@ -222,7 +245,7 @@ python -m jpl.slim.cli generate-docs \
 You can enable AI enhancement of the documentation using supported language models:
 
 ```bash
-python -m jpl.slim.cli generate-docs \
+python -m slim generate-docs \
   --repo-dir /path/to/your/repo \
   --output-dir /path/to/output \
   --use-ai ollama/llama3.3
@@ -230,7 +253,7 @@ python -m jpl.slim.cli generate-docs \
 
 Example usage:
 ```bash
-python -m jpl.slim.cli generate-docs --repo-dir ./hysds --output-dir ./hysds/outputs --use-ai ollama/llama3.3
+python -m slim generate-docs --repo-dir ./hysds --output-dir ./hysds/outputs --use-ai ollama/llama3.3
 ```
 
 #### Generated Content
@@ -333,27 +356,6 @@ Tests are generated with:
 
 
 
-
-### Running the CLI Locally
-
-The CLI can be run using Python's module syntax.
-
-#### Basic Usage
-```bash
-python -m jpl.slim.cli  [options]
-```
-
-#### Examples
-
-1. Apply deployment best practices:
-```bash
-python -m jpl.slim.cli apply-deploy \
-    --best-practice-ids SLIM-3.1 \
-    --repo-urls https://github.com/yunks128/maap-py \
-    --use-ai azure/gpt-4o
-```
-
-
 ## Changelog
 
 See our [CHANGELOG.md](CHANGELOG.md) for a history of our changes.
@@ -372,18 +374,6 @@ For guidance on how to interact with our team, please see our code of conduct lo
 
 For guidance on our governance approach, including decision-making process and our various roles, please see our governance model at: [GOVERNANCE.md](GOVERNANCE.md)
 
-### Local Development
-
-For local development of SLIM CLI, clone the GitHub repository, create a virtual environment, and then install the package in editable mode into it:
-```bash
-git clone --quiet https://github.com/NASA-AMMOS/slim-cli.git
-cd slim-cli
-python3 -m venv .venv
-source .venv/bin/activate
-pip install --editable .
-```
-
-The `slim` console-script is now ready in editable mode; changes you make to the source files under `src` are immediately reflected when run.
 
 ### Running Tests
 
