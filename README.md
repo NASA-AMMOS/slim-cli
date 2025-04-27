@@ -54,6 +54,9 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
   - [Local Development](#local-development)
   - [Running Tests](#running-tests)
   - [Publishing a New Version](#publishing-a-new-version)
+    - [How It Works](#how-it-works)
+    - [Commit Message Format](#commit-message-format)
+    - [Examples](#examples-1)
 - [License](#license)
 - [Support](#support)
 
@@ -407,30 +410,60 @@ pytest -v -s
 
 ### Publishing a New Version
 
-To publish a new version of SLIM CLI to the Python Package Index, follow these steps:
+This project uses semantic versioning with automated release management. New versions are automatically published based on conventional commit messages.
 
-1. Create a Git tag for the new version:
-   ```bash
-   # Create the tag (use the appropriate version number)
-   git tag v0.1.0
-   
-   # Push the tag to the repository
-   git push origin v0.1.0
-   ```
+#### How It Works
 
-2. The GitHub Actions workflow will automatically:
-   - Extract the version from the tag
-   - Update the version file
-   - Build the package
-   - Publish it to PyPI
+1. The project uses `python-semantic-release` to analyze commit messages and determine the appropriate version bump
+2. When changes are pushed to the `main` branch, a GitHub Actions workflow automatically:
+   - Determines the next version number based on commit messages
+   - Updates the version in `src/jpl/slim/VERSION.txt`
+   - Creates a GitHub release
+   - Builds and publishes the package to PyPI using trusted publishing
 
-If you need to remove a tag (e.g., if there was an issue):
-```bash
-# Remove the tag locally
-git tag -d v0.1.0
+#### Commit Message Format
 
-# Remove the tag from the remote repository
-git push --delete origin v0.1.0
+To properly trigger version updates, follow the [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+Where `type` is one of:
+
+- `feat`: A new feature (triggers a minor version bump)
+- `fix`: A bug fix (triggers a patch version bump)
+- `docs`: Documentation changes (no version bump)
+- `style`: Code style changes (no version bump)
+- `refactor`: Code refactoring (no version bump)
+- `perf`: Performance improvements (no version bump)
+- `test`: Adding or fixing tests (no version bump)
+- `build`: Changes to build system (no version bump)
+- `ci`: Changes to CI configuration (no version bump)
+- `chore`: Other changes (no version bump)
+
+Include `BREAKING CHANGE:` in the commit footer to trigger a major version bump.
+
+#### Examples
+
+Patch release (bumps 1.2.3 to 1.2.4):
+```
+fix: resolve issue with command line argument parsing
+```
+
+Minor release (bumps 1.2.3 to 1.3.0):
+```
+feat: add support for custom configuration files
+```
+
+Major release (bumps 1.2.3 to 2.0.0):
+```
+feat: migrate to new API architecture
+
 ```
 
 ## License

@@ -1,31 +1,58 @@
-name: Publish Python 🐍 Package to PyPI
+name: Semantic Release and PyPI Publish
 
 on:
   push:
-    tags:
-      - 'v0.0.8'  # e.g., v1.2.3
+    branches:
+      - main
 
 jobs:
-  publish:
-    name: Build and Publish to PyPI
+  semantic-release:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.10'
 
-      - name: Extract version from tag and update VERSION.txt
+      - name: Install dependencies
         run: |
-          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "$TAG_VERSION" > src/jpl/slim/VERSION.txt
-          echo "Updated src/jpl/slim/VERSION.txt to $TAG_VERSION"
+          python -m pip install --upgrade pip
+          pip install python-semantic-release build wheel
 
-      - name: Install build tools
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "action@github.com"
+
+      - name: Semantic Release
+        run: |
+          semantic-release version
+          semantic-release publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build:
+    needs: semantic-release
+    if: needs.semantic-release.outputs.new_release_published == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main  # Ensure we get the latest commit with version update
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Upgrade tooling
         run: |
           python -m pip install --upgrade pip
           pip install build wheel twine
@@ -33,8 +60,34 @@ jobs:
       - name: Build package
         run: python -m build .
 
+      - name: Verify package
+        run: twine check dist/*
+
+      - name: Store package
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distribution
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
+          if-no-files-found: error
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: release
+    permissions:
+      id-token: write  # mandatory for trusted publishing
+    steps:
+      - name: Retrieve package
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distribution
+          path: dist/
+
       - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload dist/*
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          print-hash: true
+          repository-url: https://upload.pypi.org/legacy/
