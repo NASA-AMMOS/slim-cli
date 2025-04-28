@@ -53,7 +53,7 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
   - [Publishing a New Version](#publishing-a-new-version)
     - [How It Works](#how-it-works)
     - [Commit Message Format](#commit-message-format)
-    - [Examples](#examples-1)
+    - [Examples](#examples)
 - [License](#license)
 - [Support](#support)
 
