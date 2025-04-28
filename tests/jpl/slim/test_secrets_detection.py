@@ -141,7 +141,7 @@ class TestSecretsDetection(unittest.TestCase):
 
             # Assert
             self.assertIsNotNone(result)
-            self.assertEqual(mock_subprocess.call_count, 2)  # Should call for both pip install and pre-commit install
+            self.assertEqual(mock_subprocess.call_count, 3)  # Should call for install detect secrets, pip install and pre-commit install
             mock_run_scan.assert_called_once()    # Assert scan was run
         finally:
             # Restore test mode

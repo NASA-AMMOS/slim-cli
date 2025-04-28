@@ -105,8 +105,16 @@ class SecretsDetection(StandardPractice):
             if not SLIM_TEST_MODE:
                 if no_prompt:
                     # Skip confirmation if --no-prompt flag is used
+                    self._install_detect_secrets()
                     self._install_pre_commit()
                 else:
+                    # Prompt for confirmation before installing
+                    confirmation = input("The detect-secrets tool (https://github.com/Yelp/detect-secrets) is needed to support this best practice. Do you want me to install/re-install detect-secrets? (y/n): ")
+                    if confirmation.lower() in ['y', 'yes']:
+                        self._install_detect_secrets()
+                    else:
+                        logging.warning("Not installing detect-secrets. Assuming it is already installed.")
+
                     # Prompt for confirmation before installing
                     confirmation = input("The pre-commit tool (https://pre-commit.com) is needed to support this best practice. Do you want to install/re-install pre-commit? (y/n): ")
                     if confirmation.lower() in ['y', 'yes']:
