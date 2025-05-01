@@ -6,4 +6,4 @@ import importlib.resources
 
 
 PACKAGE_NAME = __name__
-__version__ = "0.0.7"
+__version__ = "0.0.10"
