@@ -51,7 +51,7 @@ slim = 'jpl.slim.cli:main'
 
 
 [tool.hatch.version]
-path = 'src/jpl/slim/__init__.py'
+path = 'src/jpl/slim/VERSION.txt'
 pattern = '(?P<version>.+)'
 
 
