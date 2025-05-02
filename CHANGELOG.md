@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.0.11 (2025-05-02)
+
+### Bug Fixes
+
+- Test semantic-release
+  ([`e9c423a`](https://github.com/yunks128/slim-cli/commit/e9c423a9ecaa6432d8e5e0885ad355de4dc8e99b))
+
+
 ## v0.0.10 (2025-04-27)
 
 
