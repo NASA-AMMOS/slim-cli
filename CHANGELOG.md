@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.0.12 (2025-05-02)
+
+### Bug Fixes
+
+- Version file manage
+  ([`aa26e7a`](https://github.com/yunks128/slim-cli/commit/aa26e7aadf66e584c3fb4ec0f1fb8012b4988ae7))
+
+
 ## v0.0.11 (2025-05-02)
 
 ### Bug Fixes
