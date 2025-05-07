@@ -1,7 +1,7 @@
 [project]
 name = 'slim-cli'
 dynamic = ['version']
-requires-python = '>=3.7'
+requires-python = '>=3.9'
 dependencies = [
     # Note: these dependencies were taking from original `requirements.txt`
     # file (now retired in favor of this file, `pyproject.toml`). However,
@@ -62,3 +62,12 @@ packages = ['src/jpl']
 [build-system]
 requires = ['hatchling']
 build-backend = 'hatchling.build'
+
+
+[tool.semantic_release]
+version_source = "commit"
+branch = "main"
+upload_to_pypi = true
+upload_to_release = true
+build_command = "python -m build"
+version_variable = ["src/jpl/slim/VERSION.txt:"]
