@@ -1,14 +1,34 @@
-# Changelog
+# CHANGELOG
 
-All notable changes to this project will be documented in this file. 
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## v0.0.12 (2025-05-02)
 
-## [X.Y.Z] - 2022-MM-DD
+### Bug Fixes
 
-### Added 
+- Version file manage
+  ([`aa26e7a`](https://github.com/yunks128/slim-cli/commit/aa26e7aadf66e584c3fb4ec0f1fb8012b4988ae7))
 
-- 
--
--
+
+## v0.0.11 (2025-05-02)
+
+### Bug Fixes
+
+- Test semantic-release
+  ([`e9c423a`](https://github.com/yunks128/slim-cli/commit/e9c423a9ecaa6432d8e5e0885ad355de4dc8e99b))
+
+
+## v0.0.10 (2025-04-27)
+
+
+## v0.0.9 (2025-04-27)
+
+### Bug Fixes
+
+- Semantic release workflow
+  ([`61a0d28`](https://github.com/yunks128/slim-cli/commit/61a0d28ff648ac73d0c37ce4f59f873d596d6e45))
+
+- Semantic release workflow merged into pypi workflow
+  ([`bb5e986`](https://github.com/yunks128/slim-cli/commit/bb5e986dfa6da1a12f997fabd0cecb99cf04f5bc))
+
+
+## v0.0.8 (2025-04-15)
