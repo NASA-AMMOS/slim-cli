@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Any, Union
 
 from jpl.slim.best_practices.standard import StandardPractice
 from jpl.slim.best_practices.secrets_detection import SecretsDetection
+from jpl.slim.best_practices.docgen import DocGenPractice
 from jpl.slim.utils.io_utils import create_slim_registry_dictionary
 
 
@@ -28,13 +29,24 @@ class BestPracticeManager:
             registry: Either a list of practice dictionaries from the SLIM registry JSON,
                      or a pre-processed dictionary from create_slim_registry_dictionary.
         """
-        self.registry_dict = registry
+        # Add doc-gen practice to the local copy of the registry
+        self.registry_dict = {
+            'doc-gen': {
+                'title': 'Documentation Generator',
+                'description': 'Generates comprehensive documentation sites for software projects using the SLIM docsite template and AI enhancement',
+                'asset_name': 'SLIM Docsite Template',
+                'asset_uri': 'https://github.com/NASA-AMMOS/slim-docsite-template.git'
+            }
+        }
 
         # If registry is a list, convert it to a dictionary using create_slim_registry_dictionary
         if isinstance(registry, list):
-            self.registry_dict = create_slim_registry_dictionary(registry)
+            self.registry_dict.update(create_slim_registry_dictionary(registry))
+        else:
+            # If it's already a dictionary, update our registry with it
+            self.registry_dict.update(registry)
 
-    def get_best_practice(self, bp_id: str) -> Optional[Union[StandardPractice, SecretsDetection]]:
+    def get_best_practice(self, bp_id: str) -> Optional[Union[StandardPractice, SecretsDetection, DocGenPractice]]:
         """
         Get a best practice by ID.
 
@@ -42,9 +54,13 @@ class BestPracticeManager:
             bp_id: ID of the best practice to retrieve (e.g., "SLIM-1.1")
 
         Returns:
-            Union[StandardPractice, SecretsDetection]: The best practice object if found, None otherwise
+            Union[StandardPractice, SecretsDetection, DocGenPractice]: The best practice object if found, None otherwise
         """
         logging.debug(f"Retrieving best practice with ID: {bp_id}")
+
+        # Special case for doc-gen
+        if bp_id == 'doc-gen':
+            return DocGenPractice()
 
         # Check if the best practice ID exists in the registry
         if bp_id not in self.registry_dict:

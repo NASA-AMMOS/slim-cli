@@ -76,7 +76,7 @@ This guide provides a quick way to get started with our project. Please see our 
   # .env for OpenAI
   OPENAI_API_KEY=<Your-OpenAI-API-Key>
   ```
-* **Steps to use `ollama/llama3.3` as the local AI model:**
+* **Steps to use `ollama/gemma3` as the local AI model:**
   1. **Download and Install `ollama`:**  
      Visit the [official Ollama website](https://ollama.com/) to download and install `ollama` for your operating system. Follow the installation instructions provided.
 
@@ -86,9 +86,9 @@ This guide provides a quick way to get started with our project. Please see our 
      ollama serve
      ```
   3. **Run and Test the Model:**  
-     Verify the `ollama/llama3.3` model is working correctly by running the following command. Note that the first run may take some time to download the model:
+     Verify the `ollama/gemma3` model is working correctly by running the following command. Note that the first run may take some time to download the model:
      ```bash
-     ollama run llama3.3
+     ollama run gemma3
      ```
   
 ### Setup Instructions via pip (Recommended for most users)
@@ -172,7 +172,7 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
    ```
    ```bash
    # Apply and deploy a best practice using Ollama's LLaMA 3.1 model
-   slim apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai ollama/llama3.3
+   slim apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai ollama/gemma3
    ```
    
 3. **Deploy a best practice**
@@ -203,16 +203,58 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
    Pushed changes to remote origin on branch slim-123
    ```
 
-Each command can be modified with additional flags as needed for more specific tasks or environments.
-
 5. **Generate documentation**
    - Generates Docusaurus documentation for a repository.
    - `--repo-dir`: Path to the repository directory.
    - `--output-dir`: Directory where the generated documentation will be saved.
-   - `--use-ai`: Optional. Enables AI enhancement of documentation. Specify the model provider and model name (e.g., `ollama/llama3.3`).
+   - `--use-ai`: Optional. Enables AI enhancement of documentation. Specify the model provider and model name (e.g., `ollama/gemma3`).
+   - Template-Only Mode - Generate just the template structure without analyzing a repository:
    ```bash
-   slim generate-docs --repo-dir /path/to/repo --output-dir /path/to/output --use-ai ollama/llama3.3
+   slim apply --best-practice-ids doc-gen --template-only --output-dir ../docs-site
    ```
+   - AI-Enhanced Documentation
+   ```bash
+   slim apply --best-practice-ids doc-gen --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai "ollama/gemma3"
+   ```
+   Example usage:
+   ```bash
+   slim apply --best-practice-ids doc-gen --repo-dir ./hysds --output-dir ./hysds-docs-site --use-ai "openai/gpt-4o-mini"
+   ```
+   - Revising an Existing Site
+   ```bash
+   slim apply --best-practice-ids doc-gen --revise-site --output-dir ./docs-site --use-ai "openai/gpt-4o-mini"
+   ```
+   You can also use a local model:
+   ```bash
+   slim apply --best-practice-ids doc-gen --revise-site --output-dir ./docs-site --use-ai "ollama/gemma3:27b"
+   ```
+   - Generated Content
+   The documentation generator creates the following sections:
+
+     - **Overview**: Project description, features, and key concepts (from README)
+     - **Installation**: Setup instructions and prerequisites
+     - **API Reference**: Auto-generated API documentation from source code
+     - **Development**: Development workflow, project structure, and coding standards
+     - **Contributing**: Contributing guidelines
+     - **And more**: The documentation is structured to be comprehensive and user-friendly
+   - Integration with Docusaurus
+   After generating the documentation, you can view it by:
+
+      1. Installing dependencies in the output directory:
+      ```bash
+      cd /path/to/output
+      npm install
+      ```
+
+      2. Starting the development server:
+      ```bash
+      npm start
+      ```
+
+      3. Building for production:
+      ```bash
+      npm run build
+      ```
 
 6. **Generate tests**
    - Generates unit tests for a repository using AI.
