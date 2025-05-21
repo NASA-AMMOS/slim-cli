@@ -12,9 +12,9 @@ from typing import Dict, List, Any
 # Constants
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/data/slim-registry.json"
 SUPPORTED_MODELS = {
-    "openai": ["gpt-3.5-turbo", "gpt-4o"],
-    "ollama": ["llama3.3", "mistral", "codellama"],
-    "azure": ["gpt-3.5-turbo", "gpt-4o"],
+    "openai": ["gpt-4o-mini", "gpt-4o"],
+    "ollama": ["llama3.3", "gemma3"],
+    "azure": ["gpt-4o-mini", "gpt-4o"],
     # Add more models as needed
 }
 GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = 'slim-best-practices'

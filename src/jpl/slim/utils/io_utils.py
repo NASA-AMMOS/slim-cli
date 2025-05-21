@@ -134,6 +134,15 @@ def create_slim_registry_dictionary(practices):
         dict: Dictionary of best practices
     """
     asset_mapping = {}
+
+    # Add the doc-gen best practice to the mapping
+    asset_mapping['doc-gen'] = {
+        'title': 'Documentation Generator',
+        'description': 'Generates comprehensive documentation sites for software projects using the SLIM docsite template and AI enhancement',
+        'asset_name': 'SLIM Docsite Template',
+        'asset_uri': 'https://github.com/NASA-AMMOS/slim-docsite-template.git'
+    }
+    
     for i, practice in enumerate(practices, start=1):
         title = practice.get('title', 'N/A')
         description = practice.get('description', 'N/A')

@@ -24,7 +24,8 @@ except ImportError:
     print("Please install it using: pip install requests")
     sys.exit(1)
 from typing import Optional, Dict, Any
-from . import VERSION
+import os
+VERSION = open(os.path.join(os.path.dirname(__file__), 'VERSION.txt')).read().strip()
 
 # Set up test mode detection
 SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')
