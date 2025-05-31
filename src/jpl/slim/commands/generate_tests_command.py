@@ -35,8 +35,11 @@ def handle_command(args):
     """
     Handle the 'generate-tests' command.
     
+    Note: This function now receives only command-specific arguments.
+    CLI-level arguments are handled at the CLI level.
+    
     Args:
-        args: Arguments from argparse
+        args: Command-specific arguments from argparse
         
     Returns:
         bool: True if test generation was successful, False otherwise
@@ -48,7 +51,7 @@ def handle_generate_tests(args):
     Handle the generate-tests command.
     
     Args:
-        args: Arguments from argparse
+        args: Command-specific arguments from argparse
         
     Returns:
         bool: True if test generation was successful, False otherwise

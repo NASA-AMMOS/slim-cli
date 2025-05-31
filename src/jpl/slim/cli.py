@@ -5,6 +5,7 @@ import sys
 import tempfile
 import urllib.parse
 import uuid
+from typing import Any, Dict
 from jpl.slim.commands.models_command import setup_parser as setup_models_parser
 
 try:
@@ -34,12 +35,15 @@ except ImportError:
     LITELLM_AVAILABLE = False
     logging.warning("LiteLLM not available. Install with: pip install litellm")
 
-from typing import Optional, Dict, Any
-import os
 VERSION = open(os.path.join(os.path.dirname(__file__), 'VERSION.txt')).read().strip()
 
 # Set up test mode detection
 SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')
+
+# CLI-level arguments that should never be passed to commands
+CLI_ONLY_ARGS = {
+    'version', 'dry_run', 'logging', 'command', 'func'
+}
 
 # Import command modules
 from jpl.slim.commands.list_command import setup_parser as setup_list_parser
@@ -84,6 +88,70 @@ from jpl.slim.commands.apply_command import apply_best_practices, apply_best_pra
 from jpl.slim.commands.deploy_command import deploy_best_practices, deploy_best_practice
 from jpl.slim.commands.apply_deploy_command import apply_and_deploy_best_practices, apply_and_deploy_best_practice
 from jpl.slim.commands.generate_tests_command import handle_generate_tests
+
+
+def extract_command_args(args: argparse.Namespace) -> Dict[str, Any]:
+    """
+    Extract only command-specific arguments, filtering out CLI-level arguments.
+    
+    Args:
+        args: Parsed arguments from argparse
+        
+    Returns:
+        Dictionary containing only command-specific arguments
+    """
+    command_args = {}
+    
+    for key, value in vars(args).items():
+        if key not in CLI_ONLY_ARGS:
+            command_args[key] = value
+    
+    return command_args
+
+
+def handle_dry_run(args: argparse.Namespace) -> bool:
+    """
+    Handle dry-run mode at the CLI level.
+    
+    Args:
+        args: Parsed arguments
+        
+    Returns:
+        True if this is a dry-run and execution should stop
+    """
+    if args.dry_run:
+        logging.info("🔍 DRY RUN MODE: Showing what would be executed")
+        logging.info(f"Command: {args.command}")
+        
+        # Show command-specific arguments
+        command_args = extract_command_args(args)
+        for key, value in command_args.items():
+            if value is not None:
+                if isinstance(value, list):
+                    logging.info(f"  --{key.replace('_', '-')}: {', '.join(str(v) for v in value)}")
+                elif isinstance(value, bool):
+                    if value:  # Only show True flags
+                        logging.info(f"  --{key.replace('_', '-')}")
+                else:
+                    logging.info(f"  --{key.replace('_', '-')}: {value}")
+        
+        logging.info("✅ Dry run complete. No actions were taken.")
+        return True
+    
+    return False
+
+
+def validate_global_arguments(args: argparse.Namespace) -> None:
+    """
+    Validate CLI-level arguments before command execution.
+    
+    Args:
+        args: Parsed arguments
+    """
+    # Validate logging level
+    if args.logging is None:
+        print("❌ Invalid logging level provided. Choose from DEBUG, INFO, WARNING, ERROR, CRITICAL.")
+        sys.exit(1)
 
 
 def check_litellm_availability():
@@ -169,64 +237,6 @@ def print_startup_banner():
     print()
 
 
-# Global parser that hands off parsing to respective, supported sub-commands
-def create_parser() -> argparse.ArgumentParser:
-    """
-    Creates a global argument parser for the SLIM tool.
-
-    This function sets up the basic command-line interface and defines the available sub-commands.
-    It also configures the logging system based on user input.
-
-    Returns:
-        The global argument parser instance.
-    """
-
-    # Create a basic argument parser
-    parser = argparse.ArgumentParser(
-        description='This tool automates the application of best practices to git repositories.',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # List available best practices
-  slim list
-
-  # Apply documentation generation with AI
-  slim apply --best-practice-ids doc-gen --repo-dir ./my-project --output-dir ./docs --use-ai openai/gpt-4o-mini
-
-  # See available AI models
-  slim models list
-
-  # Get model recommendations
-  slim models recommend --task documentation --tier balanced
-
-For more information: https://github.com/NASA-AMMOS/slim
-        """
-    )
-
-    # Add version option
-    parser.add_argument('--version', action='version', version=f'SLIM CLI v{VERSION}')
-    parser.add_argument('-d', '--dry-run', action='store_true', help='Generate a dry-run plan of activities to be performed')
-    parser.add_argument(
-        '-l', '--logging',
-        required=False,
-        default='INFO',  # default is a string; we'll convert it to logging.INFO below
-        type=lambda s: getattr(logging, s.upper(), None),
-        help='Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL'
-    )
-
-    subparsers = parser.add_subparsers(dest='command', required=True)
-
-    # Set up parsers for each command
-    setup_list_parser(subparsers)
-    setup_apply_parser(subparsers)
-    setup_deploy_parser(subparsers)
-    setup_apply_deploy_parser(subparsers)
-    setup_generate_tests_parser(subparsers)
-    setup_models_parser(subparsers)
-    
-    return parser
-
-
 def validate_ai_arguments(args):
     """
     Validate AI-related arguments across all commands.
@@ -280,6 +290,64 @@ def handle_special_cases(args):
         sys.exit(1)
 
 
+# Global parser that hands off parsing to respective, supported sub-commands
+def create_parser() -> argparse.ArgumentParser:
+    """
+    Creates a global argument parser for the SLIM tool.
+
+    This function sets up the basic command-line interface and defines the available sub-commands.
+    It also configures the logging system based on user input.
+
+    Returns:
+        The global argument parser instance.
+    """
+
+    # Create a basic argument parser
+    parser = argparse.ArgumentParser(
+        description='This tool automates the application of best practices to git repositories.',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # List available best practices
+  slim list
+
+  # Apply documentation generation with AI
+  slim apply --best-practice-ids doc-gen --repo-dir ./my-project --output-dir ./docs --use-ai openai/gpt-4o-mini
+
+  # See available AI models
+  slim models list
+
+  # Get model recommendations
+  slim models recommend --task documentation --tier balanced
+
+For more information: https://github.com/NASA-AMMOS/slim
+        """
+    )
+
+    # CLI-level arguments (handled at CLI level only)
+    parser.add_argument('--version', action='version', version=f'SLIM CLI v{VERSION}')
+    parser.add_argument('-d', '--dry-run', action='store_true', help='Generate a dry-run plan of activities to be performed')
+    parser.add_argument(
+        '-l', '--logging',
+        required=False,
+        default='INFO',  # default is a string; we'll convert it to logging.INFO below
+        type=lambda s: getattr(logging, s.upper(), None),
+        help='Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL'
+    )
+
+    subparsers = parser.add_subparsers(dest='command', required=True)
+
+    # Set up parsers for each command
+    setup_list_parser(subparsers)
+    setup_apply_parser(subparsers)
+    setup_deploy_parser(subparsers)
+    setup_apply_deploy_parser(subparsers)
+    setup_generate_tests_parser(subparsers)
+    setup_models_parser(subparsers)
+    
+    return parser
+
+
 def main():
     """
     Main entry point for the SLIM CLI tool. Parses command-line arguments,
@@ -292,13 +360,10 @@ def main():
     parser = create_parser()
     args = parser.parse_args()
 
-    # Validate logging level
-    if args.logging is None:
-        print("❌ Invalid logging level provided. Choose from DEBUG, INFO, WARNING, ERROR, CRITICAL.")
-        sys.exit(1)
-    else:
-        setup_logging(args.logging)
-
+    # Handle CLI-level concerns first
+    validate_global_arguments(args)
+    setup_logging(args.logging)
+    
     # Check LiteLLM availability if not in test mode
     if not SLIM_TEST_MODE:
         check_litellm_availability()
@@ -309,13 +374,16 @@ def main():
     # Handle special cases
     handle_special_cases(args)
 
-    if args.dry_run:
-        logging.debug("Dry run activated")
+    # Handle dry-run mode at CLI level
+    if handle_dry_run(args):
+        return
 
-    # Execute command
+    # Execute command with filtered arguments
     if hasattr(args, 'func'):
         try:
-            args.func(args)
+            # Create a new namespace with only command-specific arguments
+            command_args = argparse.Namespace(**extract_command_args(args))
+            args.func(command_args)
         except KeyboardInterrupt:
             print("\n⚠️  Operation cancelled by user")
             sys.exit(1)

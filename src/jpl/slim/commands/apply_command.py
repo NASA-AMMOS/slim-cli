@@ -7,7 +7,6 @@ which applies best practices to repositories.
 
 import logging
 import os
-import os
 import tempfile
 import urllib.parse
 import uuid
@@ -59,44 +58,26 @@ def setup_parser(subparsers):
 def handle_command(args):
     """
     Handle the 'apply' command.
+    
+    Note: This function now receives only command-specific arguments.
+    CLI-level arguments (--logging, --dry-run, etc.) are handled at the CLI level.
 
     Args:
-        args: Arguments from argparse
+        args: Command-specific arguments from argparse
     """
-    # Create a dictionary from the args - handles missing attributes safely
-    kwargs = vars(args).copy()
-    
-    # Extract the arguments we need
-    best_practice_ids = kwargs.pop('best_practice_ids', [])
-    
-    # Handle use_ai safely
-    use_ai = kwargs.pop('use_ai', None)
-    use_ai_flag = bool(use_ai)
-    model = use_ai  # The model name is the value of use_ai
-    
-    # Extract other arguments
-    repo_urls_file = kwargs.pop('repo_urls_file', None)
-    repo_urls = repo_file_to_list(repo_urls_file) if repo_urls_file else kwargs.pop('repo_urls', None)
-    existing_repo_dir = kwargs.pop('repo_dir', None)
-    target_dir_to_clone_to = kwargs.pop('clone_to_dir', None)
-    no_prompt = kwargs.pop('no_prompt', False)
-    
-    # Remove command-specific arguments that shouldn't be passed to apply_best_practices
-    kwargs.pop('func', None)
-    kwargs.pop('command', None)
-    kwargs.pop('logging', None)
-    kwargs.pop('dry_run', None)
-    
-    # Call apply_best_practices with the extracted parameters
+    # Clean argument extraction - no more brittle popping!
     apply_best_practices(
-        best_practice_ids=best_practice_ids,
-        use_ai_flag=use_ai_flag,
-        model=model,
-        repo_urls=repo_urls,
-        existing_repo_dir=existing_repo_dir,
-        target_dir_to_clone_to=target_dir_to_clone_to,
-        no_prompt=no_prompt,
-        **kwargs  # Pass remaining kwargs to the function
+        best_practice_ids=args.best_practice_ids,
+        use_ai_flag=bool(args.use_ai),
+        model=args.use_ai,
+        repo_urls=repo_file_to_list(args.repo_urls_file) if args.repo_urls_file else args.repo_urls,
+        existing_repo_dir=args.repo_dir,
+        target_dir_to_clone_to=args.clone_to_dir,
+        no_prompt=args.no_prompt,
+        # Doc-gen specific arguments
+        output_dir=getattr(args, 'output_dir', None),
+        template_only=getattr(args, 'template_only', False),
+        revise_site=getattr(args, 'revise_site', False)
     )
 
 def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, existing_repo_dir=None, 
@@ -112,7 +93,7 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
         existing_repo_dir: Existing repository directory to apply to
         target_dir_to_clone_to: Directory to clone repositories to
         no_prompt: Skip user confirmation prompts for dependencies installation
-        **kwargs: Additional arguments to pass to the apply method
+        **kwargs: Additional arguments (output_dir, template_only, revise_site, etc.)
     """
     # Handle special case for doc-gen best practice
     if len(best_practice_ids) == 1 and best_practice_ids[0] == "doc-gen":

@@ -37,10 +37,14 @@ def setup_parser(subparsers):
 def handle_command(args):
     """
     Handle the 'deploy' command.
+    
+    Note: This function now receives only command-specific arguments.
+    CLI-level arguments are handled at the CLI level.
 
     Args:
-        args: Arguments from argparse
+        args: Command-specific arguments from argparse
     """
+    # Clean argument extraction - no more brittle popping!
     deploy_best_practices(
         best_practice_ids=args.best_practice_ids,
         repo_dir=args.repo_dir,
