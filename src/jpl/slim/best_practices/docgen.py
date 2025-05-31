@@ -17,6 +17,7 @@ from typing import Optional, Dict, Any, List
 import uuid
 
 from jpl.slim.best_practices.base import BestPractice
+from jpl.slim.docgen.generator import SlimDocGenerator
 
 # Check if we're in test mode
 SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')
@@ -27,7 +28,7 @@ class DocGenPractice(BestPractice):
     Best practice for documentation generation.
 
     This class handles generating comprehensive documentation sites for
-    software projects using the SLIM docsite template and optional AI enhancement.
+    software projects using the integrated SLIM docsite template and optional AI enhancement.
     """
 
     def __init__(self):
@@ -72,59 +73,33 @@ class DocGenPractice(BestPractice):
             logging.info(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
             return repo_path
         
-        # Use the slim-doc-generator to generate documentation
+        # Use the integrated documentation generator
         try:
-            # Check if we need to install the document generator first
-            self._ensure_doc_generator_installed()
-            
-            # Prepare command arguments
-            cmd_args = ['slim-doc-generator']
-            
-            if template_only:
-                cmd_args.append('--template-only')
-            elif revise_site:
-                cmd_args.append('--revise-site')
-            elif repo_path:
-                # Use repo_path as the repository path argument
-                cmd_args.append(repo_path)
-            else:
-                logging.error("Repository path is required unless --template-only or --revise-site is specified")
-                return None
-                
-            # Add output directory
-            cmd_args.extend(['--output-dir', output_dir])
-            
-            # Add AI model if specified
-            if use_ai and model:
-                cmd_args.extend(['--use-ai', model])
-                
-            # Add verbose logging
-            cmd_args.append('--verbose')
-            
-            # Create output directory if it doesn't exist
-            os.makedirs(output_dir, exist_ok=True)
-            
-            # Run the command
-            logging.info(f"Running documentation generator: {' '.join(cmd_args)}")
-            result = subprocess.run(
-                cmd_args,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True
+            # Create the SlimDocGenerator instance
+            generator = SlimDocGenerator(
+                target_repo_path=repo_path,
+                output_dir=output_dir,
+                template_repo=self.uri,
+                use_ai=model if use_ai else None,
+                config_file=None,
+                verbose=logging.getLogger().getEffectiveLevel() <= logging.DEBUG,
+                template_only=template_only,
+                revise_site=revise_site
             )
             
-            # Print the output for debugging
-            if result.stdout:
-                logging.info(f"Documentation generator output:\n{result.stdout}")
+            # Generate documentation
+            success = generator.generate()
             
-            if result.returncode != 0:
-                logging.error(f"Documentation generation failed: {result.stderr}")
+            if success:
+                if template_only:
+                    logging.info(f"Template structure successfully generated at {output_dir}")
+                else:
+                    logging.info(f"Documentation successfully generated at {output_dir}")
+                return repo_path
+            else:
+                logging.error("Documentation generation failed")
                 return None
                 
-            logging.info(f"Documentation generation completed successfully at {output_dir}")
-            
-            return repo_path  # Return the original repo path to indicate success
-            
         except Exception as e:
             logging.error(f"Error generating documentation: {str(e)}")
             logging.debug(traceback.format_exc())
@@ -147,44 +122,3 @@ class DocGenPractice(BestPractice):
         """
         logging.info(f"No deployment needed for {self.best_practice_id}. Documentation was generated in the specified output directory.")
         return True
-    
-    def _ensure_doc_generator_installed(self):
-        """
-        Ensure that the slim-doc-generator package is installed.
-        
-        Raises:
-            RuntimeError: If installation fails
-        """
-        try:
-            # Check if slim-doc-generator is already installed
-            result = subprocess.run(
-                [sys.executable, '-m', 'pip', 'show', 'slim-doc-generator'],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                check=False
-            )
-            
-            if result.returncode == 0:
-                logging.info("slim-doc-generator already installed")
-                return
-                
-            # Not installed, proceed with installation
-            logging.info("Installing slim-doc-generator package from GitHub...")
-            
-            # Install from GitHub repository
-            install_result = subprocess.run(
-                [sys.executable, '-m', 'pip', 'install', 'git+https://github.com/yunks128/slim-doc-generator.git'],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                check=False
-            )
-            
-            if install_result.returncode != 0:
-                logging.error(f"Failed to install slim-doc-generator: {install_result.stderr}")
-                raise RuntimeError(f"Failed to install slim-doc-generator: {install_result.stderr}")
-                
-            logging.info("Successfully installed slim-doc-generator from GitHub")
-            
-        except Exception as e:
-            logging.error(f"Error checking/installing slim-doc-generator: {str(e)}")
-            raise RuntimeError(f"Error checking/installing slim-doc-generator: {str(e)}")

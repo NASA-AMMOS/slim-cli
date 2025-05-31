@@ -217,11 +217,11 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
    ```
    - Revising an Existing Site
    ```bash
-   slim apply --best-practice-ids doc-gen --revise-site --output-dir ./docs-site --use-ai "openai/gpt-4o-mini"
+   slim apply --best-practice-ids doc-gen --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai "openai/gpt-4o-mini"
    ```
    You can also use a local model:
    ```bash
-   slim apply --best-practice-ids doc-gen --revise-site --output-dir ./docs-site --use-ai "ollama/gemma3:27b"
+   slim apply --best-practice-ids doc-gen --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai "ollama/gemma3:27b"
    ```
    - Generated Content
    The documentation generator creates the following sections:
