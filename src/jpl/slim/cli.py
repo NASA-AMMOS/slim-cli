@@ -35,7 +35,6 @@ from jpl.slim.commands.list_command import setup_parser as setup_list_parser
 from jpl.slim.commands.apply_command import setup_parser as setup_apply_parser
 from jpl.slim.commands.deploy_command import setup_parser as setup_deploy_parser
 from jpl.slim.commands.apply_deploy_command import setup_parser as setup_apply_deploy_parser
-from jpl.slim.commands.generate_docs_command import setup_parser as setup_generate_docs_parser
 from jpl.slim.commands.generate_tests_command import setup_parser as setup_generate_tests_parser
 from jpl.slim.commands.common import setup_logging
 
@@ -69,7 +68,6 @@ from jpl.slim.commands.list_command import handle_command as list_practices
 from jpl.slim.commands.apply_command import apply_best_practices, apply_best_practice
 from jpl.slim.commands.deploy_command import deploy_best_practices, deploy_best_practice
 from jpl.slim.commands.apply_deploy_command import apply_and_deploy_best_practices, apply_and_deploy_best_practice
-from jpl.slim.commands.generate_docs_command import handle_generate_docs
 from jpl.slim.commands.generate_tests_command import handle_generate_tests
 
 # Global parser that hands off parsing to respective, supported sub-commands
@@ -105,7 +103,6 @@ def create_parser() -> argparse.ArgumentParser:
     setup_apply_parser(subparsers)
     setup_deploy_parser(subparsers)
     setup_apply_deploy_parser(subparsers)
-    setup_generate_docs_parser(subparsers)
     setup_generate_tests_parser(subparsers)
 
     return parser
