@@ -25,6 +25,39 @@ class ConfigUpdater:
         self.output_dir = output_dir
         self.logger = logger
     
+    def _sanitize_package_name(self, name: str) -> str:
+        """
+        Sanitize package name to follow npm naming conventions.
+        
+        Args:
+            name: Original package name
+            
+        Returns:
+            Sanitized package name following npm rules
+        """
+        # Convert to lowercase
+        sanitized = name.lower()
+        
+        # Replace spaces, colons, and other invalid characters with hyphens
+        sanitized = re.sub(r'[^a-z0-9\-._~]', '-', sanitized)
+        
+        # Remove multiple consecutive hyphens
+        sanitized = re.sub(r'-+', '-', sanitized)
+        
+        # Remove leading/trailing hyphens
+        sanitized = sanitized.strip('-')
+        
+        # Ensure it doesn't start with a dot or underscore
+        sanitized = re.sub(r'^[._]+', '', sanitized)
+        
+        # Ensure minimum length and doesn't exceed npm limits
+        if len(sanitized) < 1:
+            sanitized = 'documentation-site'
+        elif len(sanitized) > 214:
+            sanitized = sanitized[:214].rstrip('-')
+        
+        return sanitized
+    
     def update_config(self, repo_info: Dict) -> bool:
         """
         Update Docusaurus configuration files with repository information.
@@ -267,8 +300,10 @@ class ConfigUpdater:
             with open(package_path, 'r') as f:
                 package_data = json.load(f)
             
-            # Update name
-            package_data['name'] = repo_info['project_name'].lower().replace(' ', '-')
+            # Update name with proper sanitization
+            sanitized_name = self._sanitize_package_name(repo_info['project_name'])
+            package_data['name'] = sanitized_name
+            self.logger.info(f"Sanitized package name from '{repo_info['project_name']}' to '{sanitized_name}'")
             
             # Update description
             if repo_info.get("description"):

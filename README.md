@@ -35,12 +35,6 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
   - [Setup Instructions via pip (Recommended for most users)](#setup-instructions-via-pip-recommended-for-most-users)
   - [Setup Instructions for Local Development (For Contributors)](#setup-instructions-for-local-development-for-contributors)
   - [Run Instructions](#run-instructions)
-  - [Unit Test Generation](#unit-test-generation)
-    - [Features](#features-1)
-    - [Usage](#usage)
-    - [Options](#options)
-    - [Naming Conventions](#naming-conventions)
-    - [Generated Test Structure](#generated-test-structure)
 - [Changelog](#changelog)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 - [Contributing](#contributing)
@@ -202,28 +196,44 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
    - Generates Docusaurus documentation for a repository.
    - `--repo-dir`: Path to the repository directory.
    - `--output-dir`: Directory where the generated documentation will be saved.
-   - `--use-ai`: Optional. Enables AI enhancement of documentation. Specify the model provider and model name (e.g., `ollama/gemma3`).
-   - Template-Only Mode - Generate just the template structure without analyzing a repository:
+   - `--use-ai`: Optional. Enables AI enhancement of documentation. Specify the model provider and model name (e.g., `azure/gpt-4o`).
+   
+   **AI Model Recommendations:**
+   - **Recommended**: Use cloud-based models like `openai/gpt-4o-mini`, `azure/gpt-4o`, or `openai/gpt-4o` for best documentation quality
+   - **Local models**: While supported (e.g., `ollama/gemma3`), local models typically produce lower quality documentation and may not follow formatting requirements consistently
+   
+   **Template-Only Mode** - Generate just the template structure without analyzing a repository:
    ```bash
    slim apply --best-practice-ids doc-gen --template-only --output-dir ../docs-site
    ```
-   - AI-Enhanced Documentation
+   
+   **AI-Enhanced Documentation** (Recommended approach):
    ```bash
+   # Using OpenAI (recommended for quality)
+   slim apply --best-practice-ids doc-gen --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai "openai/gpt-4o"
+   
+   # Using Azure OpenAI (recommended for enterprise)
+   slim apply --best-practice-ids doc-gen --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai "azure/gpt-4o"
+   
+   # Using local models (basic quality, not recommended for production)
    slim apply --best-practice-ids doc-gen --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai "ollama/gemma3"
    ```
+   
    Example usage:
    ```bash
-   slim apply --best-practice-ids doc-gen --repo-dir ./hysds --output-dir ./hysds-docs-site --use-ai "openai/gpt-4o-mini"
+   slim apply --best-practice-ids doc-gen --repo-dir ./hysds --output-dir ./hysds-docs-site --use-ai "openai/gpt-4o"
    ```
-   - Revising an Existing Site
+   
+   **Revising an Existing Site**:
    ```bash
-   slim apply --best-practice-ids doc-gen --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai "openai/gpt-4o-mini"
+   # With cloud models (recommended)
+   slim apply --best-practice-ids doc-gen --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai "openai/gpt-4o"
+   
+   # With local models (basic quality)
+   slim apply --best-practice-ids doc-gen --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai "ollama/gemma3"
    ```
-   You can also use a local model:
-   ```bash
-   slim apply --best-practice-ids doc-gen --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai "ollama/gemma3:27b"
-   ```
-   - Generated Content
+   
+   **Generated Content**
    The documentation generator creates the following sections:
 
      - **Overview**: Project description, features, and key concepts (from README)
@@ -232,24 +242,36 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
      - **Development**: Development workflow, project structure, and coding standards
      - **Contributing**: Contributing guidelines
      - **And more**: The documentation is structured to be comprehensive and user-friendly
-   - Integration with Docusaurus
+   
+   **Integration with Docusaurus**
    After generating the documentation, you can view it by:
 
       1. Installing dependencies in the output directory:
       ```bash
       cd /path/to/output
       npm install
+      # or
+      yarn
       ```
 
       2. Starting the development server:
       ```bash
       npm start
+      # or
+      yarn start
       ```
 
       3. Building for production:
       ```bash
       npm run build
+      # or
+      yarn build
       ```
+
+   **Quality Notes:**
+   - Cloud-based AI models (OpenAI, Azure) produce significantly better documentation with proper formatting, comprehensive content, and better adherence to documentation standards
+   - Local models may produce inconsistent formatting, incomplete sections, or lower-quality content
+   - For production documentation sites, we strongly recommend using cloud-based AI models
 
 6. **Generate tests**
    - Generates unit tests for a repository using AI.
@@ -260,69 +282,6 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
    ```bash
    slim generate-tests --repo-dir /path/to/repo --output-dir /path/to/tests --model ollama/llama3.3
    ```
-
-
-
-### Unit Test Generation
-
-The slim CLI includes an AI-powered test generation feature that can automatically create unit tests for your codebase. This tool analyzes your source code and generates appropriate test files using testing frameworks for each supported language.
-
-#### Features
-
-- **Multi-Language Support**: Generates tests for Python, JavaScript, TypeScript, Java, C++, and C#
-- **Framework-Specific**: Uses appropriate testing frameworks for each language:
-  - Python: pytest
-  - JavaScript/TypeScript: Jest
-  - Java: JUnit
-  - C++: Google Test
-  - C#: NUnit
-- **Comprehensive Testing**: Generates tests for normal operations, edge cases, and error scenarios
-- **Dependency Mocking**: Includes appropriate mocking setup for external dependencies
-
-#### Usage
-Generate tests for an entire repository:
-
-```bash
-python -m jpl.slim.cli generate-tests --repo-dir ./my-project --output-dir ./my-project/tests
-```
-
-#### Options
-
-- `--repo-dir` (Required): Path to your repository directory
-- `--output-dir` (Optional): Custom output directory for generated tests
-- `--model` (Optional): AI model to use (default: "azure/gpt-4o")
-- `--verbose`, `-v` (Optional): Enable detailed logging
-
-
-
-#### Naming Conventions
-
-Generated test files follow language-specific conventions:
-
-| Language | Test File Format | Example |
-|----------|-----------------|----------|
-| Python | `test_*.py` | `test_utils.py` |
-| JavaScript | `*.test.js` | `utils.test.js` |
-| TypeScript | `*.spec.ts` | `utils.spec.ts` |
-| Java | `Test*.java` | `TestUtils.java` |
-| C++ | `*_test.cpp` | `utils_test.cpp` |
-| C# | `*Tests.cs` | `UtilsTests.cs` |
-
-#### Generated Test Structure
-
-Tests are generated with:
-- Appropriate imports and framework setup
-- Test class/suite organization
-- Setup and teardown methods when needed
-- Comprehensive test cases covering:
-  - Normal operation
-  - Edge cases
-  - Error handling
-  - External dependency mocking
-
-
-
-
 
 ## Changelog
 
