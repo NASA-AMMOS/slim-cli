@@ -32,8 +32,8 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
 - [Contents](#contents)
 - [Quick Start](#quick-start)
   - [Requirements](#requirements)
-  - [Setup Instructions via pip (Recommended for most users)](#setup-instructions-via-pip-recommended-for-most-users)
   - [Setup Instructions for Local Development (For Contributors)](#setup-instructions-for-local-development-for-contributors)
+  - [Setup Instructions via pip (Recommended for most users)](#setup-instructions-via-pip-recommended-for-most-users)
   - [Run Instructions](#run-instructions)
 - [Changelog](#changelog)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
@@ -79,25 +79,6 @@ This guide provides a quick way to get started with our project. Please see our 
      ```bash
      ollama run gemma3
      ```
-  
-### Setup Instructions via pip (Recommended for most users)
-
-As the SLIM CLI is written in Python, you'll need Python 3.7 or later. Usually, you'll want to create a virtual environment in order to isolate the dependencies of SLIM from other Python-using applications. Install into that environment using `pip`:
-
-    pip install slim-cli
-
-This installs the latest SLIM CLI and its dependencies from the [Python Package Index](https://pypi.org/). The new console script `slim` is now ready for use. Confirm by running either:
-
-    slim --version
-    slim --help
-
-To upgrade:
-
-    pip install --upgrade slim-cli
-
-Or select a specific version, such as `X.Y.Z`:
-
-    pip install slim-cli==X.Y.Z
 
 ### Setup Instructions for Local Development (For Contributors) 
 
@@ -124,6 +105,26 @@ Use this method if:
 - You're adding new features or fixing bugs in the CLI
 - You're contributing to the SLIM project
 - You want to test changes before publishing
+
+  
+### Setup Instructions via pip (Recommended for most users)
+
+As the SLIM CLI is written in Python, you'll need Python 3.7 or later. Usually, you'll want to create a virtual environment in order to isolate the dependencies of SLIM from other Python-using applications. Install into that environment using `pip`:
+
+    pip install slim-cli
+
+This installs the latest SLIM CLI and its dependencies from the [Python Package Index](https://pypi.org/). The new console script `slim` is now ready for use. Confirm by running either:
+
+    slim --version
+    slim --help
+
+To upgrade:
+
+    pip install --upgrade slim-cli
+
+Or select a specific version, such as `X.Y.Z`:
+
+    pip install slim-cli==X.Y.Z
 
 ### Run Instructions
 
@@ -210,27 +211,32 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
    **AI-Enhanced Documentation** (Recommended approach):
    ```bash
    # Using OpenAI (recommended for quality)
-   slim apply --best-practice-ids doc-gen --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai "openai/gpt-4o"
+   slim apply --best-practice-ids doc-gen --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai openai/gpt-4o
    
    # Using Azure OpenAI (recommended for enterprise)
-   slim apply --best-practice-ids doc-gen --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai "azure/gpt-4o"
+   slim apply --best-practice-ids doc-gen --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai azure/gpt-4o
    
    # Using local models (basic quality, not recommended for production)
-   slim apply --best-practice-ids doc-gen --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai "ollama/gemma3"
+   slim apply --best-practice-ids doc-gen --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai ollama/gemma3
+
+   # Explore available AI models
+   slim models list
+   slim models recommend --task documentation --tier balanced
+   slim models setup anthropic
    ```
    
    Example usage:
    ```bash
-   slim apply --best-practice-ids doc-gen --repo-dir ./hysds --output-dir ./hysds-docs-site --use-ai "openai/gpt-4o"
+   slim apply --best-practice-ids doc-gen --repo-dir ./hysds --output-dir ./hysds-docs-site --use-ai openai/gpt-4o
    ```
    
    **Revising an Existing Site**:
    ```bash
    # With cloud models (recommended)
-   slim apply --best-practice-ids doc-gen --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai "openai/gpt-4o"
+   slim apply --best-practice-ids doc-gen --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai openai/gpt-4o
    
    # With local models (basic quality)
-   slim apply --best-practice-ids doc-gen --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai "ollama/gemma3"
+   slim apply --best-practice-ids doc-gen --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai ollama/gemma3
    ```
    
    **Generated Content**
@@ -273,7 +279,7 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
    - Local models may produce inconsistent formatting, incomplete sections, or lower-quality content
    - For production documentation sites, we strongly recommend using cloud-based AI models
 
-6. **Generate tests**
+6. **Generate Tests**
    - Generates unit tests for a repository using AI.
    - `--repo-dir`: Path to the repository directory.
    - `--output-dir`: Optional. Directory where the generated tests will be saved.
@@ -281,6 +287,39 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
    - `--verbose`, `-v`: Optional. Enable detailed logging.
    ```bash
    slim generate-tests --repo-dir /path/to/repo --output-dir /path/to/tests --model ollama/llama3.3
+   ```
+
+7. **Discover and Manage AI Models**
+   ```bash
+   # List all available models
+   slim models list
+
+   # Get recommendations by task and tier
+   slim models recommend --task documentation --tier premium
+
+   # Get setup instructions for providers
+   slim models setup anthropic
+   slim models setup groq
+
+   # Validate model configuration
+   slim models validate anthropic/claude-3-5-sonnet-20241022
+   ```
+
+   - Environment Variables:
+   ```bash
+   # OpenAI
+   export OPENAI_API_KEY="sk-..."
+
+   # Anthropic  
+   export ANTHROPIC_API_KEY="sk-ant-..."
+
+   # Google AI Studio
+   export GOOGLE_API_KEY="AIza..."
+
+   # Azure OpenAI
+   export AZURE_API_KEY="..."
+   export AZURE_API_BASE="https://your-resource.openai.azure.com/"
+   export AZURE_API_VERSION="2024-02-01"
    ```
 
 ## Changelog
