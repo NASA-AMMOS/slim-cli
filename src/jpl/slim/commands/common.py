@@ -13,6 +13,9 @@ from typing import Dict, List, Any, Tuple
 # Constants
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/data/slim-registry.json"
 
+# Documentation practice aliases - both should work
+DOCUMENTATION_PRACTICE_IDS = {'doc-gen', 'SLIM-17.1'}
+
 # LiteLLM supported models organized by provider and use case
 SUPPORTED_MODELS = {
     # Premium cloud providers (recommended for production)
@@ -213,6 +216,19 @@ GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = 'slim-best-practices'
 GIT_DEFAULT_REMOTE_NAME = 'origin'
 GIT_CUSTOM_REMOTE_NAME = 'slim-custom'
 GIT_DEFAULT_COMMIT_MESSAGE = 'SLIM-CLI Best Practices Bot Commit'
+
+
+def is_documentation_practice(practice_id: str) -> bool:
+    """
+    Check if a practice ID is for documentation generation.
+    
+    Args:
+        practice_id: The practice ID to check
+        
+    Returns:
+        True if it's a documentation practice, False otherwise
+    """
+    return practice_id in DOCUMENTATION_PRACTICE_IDS
 
 
 def get_ai_model_pairs(supported_models: Dict[str, Any] = None) -> List[str]:
