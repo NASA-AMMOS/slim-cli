@@ -239,6 +239,34 @@ def _is_common_html_tag(tag_name: str) -> bool:
     return tag_name.lower() in common_tags or (tag_name[0].isupper() if tag_name else False)
 
 
+def escape_yaml_value(value: str) -> str:
+    """
+    Escape a value for safe inclusion in YAML front matter.
+    
+    This function ensures that string values containing special characters
+    (like colons, quotes, etc.) are properly quoted in YAML.
+    
+    Args:
+        value: String value to escape for YAML
+        
+    Returns:
+        Properly escaped/quoted value for YAML
+    """
+    if not value:
+        return '""'
+    
+    # Check if the value needs quoting
+    # Values with colons, quotes, or other YAML special characters need to be quoted
+    needs_quoting = any(char in value for char in [':', '"', "'", '[', ']', '{', '}', '|', '>', '@', '`'])
+    
+    if needs_quoting:
+        # Use double quotes and escape any internal double quotes
+        escaped_value = value.replace('"', '\\"')
+        return f'"{escaped_value}"'
+    
+    return value
+
+
 def clean_api_doc(api_doc_path: str) -> None:
     """
     Clean up the API documentation file to fix common MDX parsing issues.

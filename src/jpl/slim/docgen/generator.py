@@ -17,7 +17,7 @@ from jpl.slim.docgen.enhancer.ai_enhancer import AIEnhancer
 from jpl.slim.docgen.template.template_manager import TemplateManager
 from jpl.slim.docgen.template.config_updater import ConfigUpdater
 from jpl.slim.docgen.site_reviser import SiteReviser
-from jpl.slim.docgen.utils.helpers import load_config, escape_mdx_special_characters, clean_api_doc
+from jpl.slim.docgen.utils.helpers import load_config, escape_mdx_special_characters, clean_api_doc, escape_yaml_value
 
 
 class SlimDocGenerator:
@@ -170,7 +170,7 @@ class SlimDocGenerator:
                         # Add frontmatter
                         f.write("---\n")
                         f.write(f"id: {section_id}\n")
-                        f.write(f"title: {section_title}\n")
+                        f.write(f"title: {escape_yaml_value(section_title)}\n")
                         f.write("---\n\n")
                         f.write(content)
                     self.logger.info(f"Generated {section_id} content")
@@ -284,7 +284,7 @@ class SlimDocGenerator:
                 if frontmatter:
                     output_content = "---\n"
                     for key, value in frontmatter.items():
-                        output_content += f"{key}: {value}\n"
+                        output_content += f"{key}: {escape_yaml_value(str(value))}\n"
                     output_content += "---\n\n" + enhanced_content
                 else:
                     output_content = enhanced_content
@@ -348,7 +348,7 @@ class SlimDocGenerator:
             f.write("---\n")
             f.write("slug: /\n")
             f.write("id: index\n")
-            f.write(f"title: {project_name} Documentation\n")
+            f.write(f"title: {escape_yaml_value(f'{project_name} Documentation')}\n")
             f.write("---\n\n")
             f.write(index_content)
         

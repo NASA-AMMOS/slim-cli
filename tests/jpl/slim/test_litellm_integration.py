@@ -12,11 +12,12 @@ from jpl.slim.commands.common import check_model_availability, get_recommended_m
 class TestLiteLLMIntegration:
     """Test LiteLLM integration functionality."""
     
-    @patch('jpl.slim.utils.ai_utils.completion')
+    @patch('litellm.completion')
     def test_generate_with_litellm_success(self, mock_completion):
         """Test successful generation with LiteLLM."""
         # Mock response
         mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
         mock_response.choices[0].message.content = "Generated content"
         mock_completion.return_value = mock_response
         
@@ -25,11 +26,16 @@ class TestLiteLLMIntegration:
         assert result == "Generated content"
         mock_completion.assert_called_once()
     
+    @patch.dict(os.environ, {"OPENAI_API_KEY": "test-key", "ANTHROPIC_API_KEY": "test-key"})
     def test_model_validation(self):
         """Test model format validation."""
-        # Valid formats
+        # Valid formats (with mocked env vars)
         assert validate_model_config("openai/gpt-4o")[0] == True
         assert validate_model_config("anthropic/claude-3-5-sonnet-20241022")[0] == True
+        
+        # Valid formats that don't need API keys
+        assert validate_model_config("ollama/llama3.1")[0] == True
+        assert validate_model_config("vllm/meta-llama/Llama-3-8b-chat-hf")[0] == True
         
         # Invalid formats
         assert validate_model_config("invalid-format")[0] == False
