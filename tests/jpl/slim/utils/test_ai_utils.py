@@ -91,13 +91,16 @@ class TestAIUtils:
         assert 'Reference content' in result
         assert 'Additional comment' in result
 
+    @patch('jpl.slim.utils.ai_utils.generate_with_litellm')
     @patch('jpl.slim.utils.ai_utils.generate_with_openai')
-    def test_generate_content_openai(self, mock_generate_openai):
+    def test_generate_content_openai(self, mock_generate_openai, mock_generate_litellm):
         """Test generating content with OpenAI."""
         # Arrange
         prompt = 'Test prompt'
         model = 'openai/gpt-4o'
         
+        # Make litellm fail so it falls back to legacy implementation
+        mock_generate_litellm.side_effect = Exception("LiteLLM not available")
         mock_generate_openai.return_value = iter(['AI', '-', 'generated', ' ', 'content'])
         
         # Act
@@ -107,13 +110,16 @@ class TestAIUtils:
         mock_generate_openai.assert_called_once_with(prompt, 'gpt-4o')
         assert result == 'AI-generated content'
 
+    @patch('jpl.slim.utils.ai_utils.generate_with_litellm')
     @patch('jpl.slim.utils.ai_utils.generate_with_azure')
-    def test_generate_content_azure(self, mock_generate_azure):
+    def test_generate_content_azure(self, mock_generate_azure, mock_generate_litellm):
         """Test generating content with Azure."""
         # Arrange
         prompt = 'Test prompt'
         model = 'azure/gpt-4o'
         
+        # Make litellm fail so it falls back to legacy implementation
+        mock_generate_litellm.side_effect = Exception("LiteLLM not available")
         mock_generate_azure.return_value = 'AI-generated content'
         
         # Act
@@ -123,13 +129,16 @@ class TestAIUtils:
         mock_generate_azure.assert_called_once_with(prompt, 'gpt-4o')
         assert result == 'AI-generated content'
 
+    @patch('jpl.slim.utils.ai_utils.generate_with_litellm')
     @patch('jpl.slim.utils.ai_utils.generate_with_ollama')
-    def test_generate_content_ollama(self, mock_generate_ollama):
+    def test_generate_content_ollama(self, mock_generate_ollama, mock_generate_litellm):
         """Test generating content with Ollama."""
         # Arrange
         prompt = 'Test prompt'
         model = 'ollama/llama3.3'
         
+        # Make litellm fail so it falls back to legacy implementation
+        mock_generate_litellm.side_effect = Exception("LiteLLM not available")
         mock_generate_ollama.return_value = 'AI-generated content'
         
         # Act
