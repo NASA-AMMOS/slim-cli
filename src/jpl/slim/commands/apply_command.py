@@ -39,7 +39,7 @@ def setup_parser(subparsers):
     from jpl.slim.commands.common import SUPPORTED_MODELS, get_ai_model_pairs
 
     parser = subparsers.add_parser('apply', help='Applies a best practice, i.e. places a best practice in a git repo in the right spot with appropriate content')
-    parser.add_argument('--best-practice-ids', nargs='+', required=True, help='Best practice IDs to apply')
+    parser.add_argument('--best-practices', nargs='+', required=True, help='Best practice aliases to apply (e.g., readme, governance-small, secrets-github)')
     parser.add_argument('--repo-urls', nargs='+', required=False, help='Repository URLs to apply to. Do not use if --repo-dir specified')
     parser.add_argument('--repo-urls-file', required=False, help='Path to a file containing repository URLs')
     parser.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
@@ -48,9 +48,9 @@ def setup_parser(subparsers):
     parser.add_argument('--no-prompt', action='store_true', help='Skip user confirmation prompts when installing dependencies')
     
     # Document generator specific arguments
-    parser.add_argument('--output-dir', required=False, help='Output directory for generated documentation (required for doc-gen)')
-    parser.add_argument('--template-only', action='store_true', help='Generate only the documentation template without analyzing a repository (for doc-gen)')
-    parser.add_argument('--revise-site', action='store_true', help='Revise an existing documentation site (for doc-gen)')
+    parser.add_argument('--output-dir', required=False, help='Output directory for generated documentation (required for docs-website)')
+    parser.add_argument('--template-only', action='store_true', help='Generate only the documentation template without analyzing a repository (for docs-website)')
+    parser.add_argument('--revise-site', action='store_true', help='Revise an existing documentation site (for docs-website)')
     
     parser.set_defaults(func=handle_command)
     return parser
@@ -67,7 +67,7 @@ def handle_command(args):
     """
     # Clean argument extraction - no more brittle popping!
     apply_best_practices(
-        best_practice_ids=args.best_practice_ids,
+        best_practice_ids=args.best_practices,
         use_ai_flag=bool(args.use_ai),
         model=args.use_ai,
         repo_urls=repo_file_to_list(args.repo_urls_file) if args.repo_urls_file else args.repo_urls,
@@ -95,8 +95,8 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
         no_prompt: Skip user confirmation prompts for dependencies installation
         **kwargs: Additional arguments (output_dir, template_only, revise_site, etc.)
     """
-    # Handle special case for doc-gen best practice
-    if len(best_practice_ids) == 1 and best_practice_ids[0] == "doc-gen":
+    # Handle special case for docs-website best practice
+    if len(best_practice_ids) == 1 and best_practice_ids[0] == "docs-website":
         apply_best_practice(
             best_practice_id=best_practice_ids[0],
             use_ai_flag=use_ai_flag,

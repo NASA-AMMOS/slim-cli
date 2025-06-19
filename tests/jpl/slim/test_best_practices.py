@@ -87,7 +87,7 @@ class TestGovernancePractice:
         mock_repo_obj.working_tree_dir = repo_path # Set the mock's path attribute to match
         mock_git_repo.return_value = mock_repo_obj # Ensure git.Repo(repo_path) returns this mock
         practice = StandardPractice(
-            best_practice_id="SLIM-1.1",
+            best_practice_id="governance-small",
             uri="https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-SMALL-TEAMS.md",
             title="Governance Practice",
             description="Adds governance documentation"
@@ -118,7 +118,7 @@ class TestGovernancePractice:
         mock_repo_obj.working_tree_dir = repo_path
         mock_git_repo.return_value = mock_repo_obj
         practice = StandardPractice(
-            best_practice_id="SLIM-1.1",
+            best_practice_id="governance-small",
             uri="https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-SMALL-TEAMS.md",
             title="Governance Practice",
             description="Adds governance documentation"
@@ -134,7 +134,7 @@ class TestGovernancePractice:
         # Assert
         mock_download.assert_called_once()
         mock_use_ai.assert_called_once_with(
-            "SLIM-1.1",
+            "governance-small",
             repo_path,
             "GOVERNANCE.md",
             "openai/gpt-4o"
@@ -152,7 +152,7 @@ class TestGovernancePractice:
         mock_repo = MagicMock()
         mock_git.Repo.return_value = mock_repo
         practice = StandardPractice(
-            best_practice_id="SLIM-1.1",
+            best_practice_id="governance-small",
             uri="https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-SMALL-TEAMS.md",
             title="Governance Practice",
             description="Adds governance documentation"

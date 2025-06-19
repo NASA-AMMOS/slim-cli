@@ -69,14 +69,19 @@ def generate_with_ai(best_practice_id, repo_path, template_path, model="openai/g
     if not template_content:
         return None
     
-    # Fetch appropriate reference content based on best practice ID
-    if best_practice_id == 'SLIM-1.1': #governance 
+    # Import the AI context mapping
+    from jpl.slim.best_practices.practice_mapping import get_ai_context_type
+    
+    # Fetch appropriate reference content based on best practice alias
+    context_type = get_ai_context_type(best_practice_id)
+    
+    if context_type == 'governance':
         reference = fetch_readme(repo_path)
         additional_instruction = ""
-    elif best_practice_id == 'SLIM-3.1': #readme
+    elif context_type == 'readme':
         reference = fetch_code_base(repo_path)
         additional_instruction = ""
-    elif best_practice_id == 'SLIM-13.1': #testing
+    elif context_type == 'testing':
         reference1 = fetch_readme(repo_path)
         reference2 = "\n".join(fetch_relative_file_paths(repo_path))
         reference = "EXISTING README:\n" + reference1 + "\n\n" + "EXISTING DIRECTORY LISTING: " + reference2

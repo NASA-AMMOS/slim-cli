@@ -13,8 +13,8 @@ from typing import Dict, List, Any, Tuple
 # Constants
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/data/slim-registry.json"
 
-# Documentation practice aliases - both should work
-DOCUMENTATION_PRACTICE_IDS = {'doc-gen', 'SLIM-18.1'}
+# Documentation practice aliases
+DOCUMENTATION_PRACTICE_IDS = {'docs-website'}
 
 # LiteLLM supported models organized by provider and use case
 SUPPORTED_MODELS = {
@@ -492,11 +492,11 @@ def print_model_recommendations():
     
     print("\n💡 Usage Examples:")
     print("  # Premium quality documentation")
-    print("  slim apply --best-practice-ids doc-gen --use-ai anthropic/claude-3-5-sonnet-20241022 ...")
+    print("  slim apply --best-practices docs-website --use-ai anthropic/claude-3-5-sonnet-20241022 ...")
     print("\n  # Fast generation")
-    print("  slim apply --best-practice-ids doc-gen --use-ai groq/llama-3.1-70b-versatile ...")
+    print("  slim apply --best-practices docs-website --use-ai groq/llama-3.1-70b-versatile ...")
     print("\n  # Local/offline")
-    print("  slim apply --best-practice-ids doc-gen --use-ai ollama/llama3.1 ...")
+    print("  slim apply --best-practices docs-website --use-ai ollama/llama3.1 ...")
     
     print(f"\n📋 Total supported providers: {len(SUPPORTED_MODELS)}")
     print(f"📋 Total model combinations: {len(get_ai_model_pairs())}+")

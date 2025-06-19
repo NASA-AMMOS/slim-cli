@@ -198,23 +198,23 @@ def show_model_help():
     print()
     
     print("Premium Quality (Recommended for Production):")
-    print("  slim apply --best-practice-ids doc-gen --use-ai anthropic/claude-3-5-sonnet-20241022 [...]")
-    print("  slim apply --best-practice-ids doc-gen --use-ai openai/gpt-4o [...]")
+    print("  slim apply --best-practice-ids docs-website --use-ai anthropic/claude-3-5-sonnet-20241022 [...]")
+    print("  slim apply --best-practice-ids docs-website --use-ai openai/gpt-4o [...]")
     print()
     
     print("Balanced Quality/Cost:")
-    print("  slim apply --best-practice-ids doc-gen --use-ai openai/gpt-4o-mini [...]")
-    print("  slim apply --best-practice-ids doc-gen --use-ai cohere/command-r [...]")
+    print("  slim apply --best-practice-ids docs-website --use-ai openai/gpt-4o-mini [...]")
+    print("  slim apply --best-practice-ids docs-website --use-ai cohere/command-r [...]")
     print()
     
     print("Fast & Affordable:")
-    print("  slim apply --best-practice-ids doc-gen --use-ai groq/llama-3.1-70b-versatile [...]")
-    print("  slim apply --best-practice-ids doc-gen --use-ai together/meta-llama/Llama-3-8b-chat-hf [...]")
+    print("  slim apply --best-practice-ids docs-website --use-ai groq/llama-3.1-70b-versatile [...]")
+    print("  slim apply --best-practice-ids docs-website --use-ai together/meta-llama/Llama-3-8b-chat-hf [...]")
     print()
     
     print("Local/Offline:")
-    print("  slim apply --best-practice-ids doc-gen --use-ai ollama/llama3.1 [...]")
-    print("  slim apply --best-practice-ids doc-gen --use-ai vllm/meta-llama/Llama-3-8b-chat-hf [...]")
+    print("  slim apply --best-practice-ids docs-website --use-ai ollama/llama3.1 [...]")
+    print("  slim apply --best-practice-ids docs-website --use-ai vllm/meta-llama/Llama-3-8b-chat-hf [...]")
     print()
     
     print("For more models and setup instructions:")
@@ -277,16 +277,16 @@ def handle_special_cases(args):
         show_model_help()
         sys.exit(1)
     
-    # If user is applying doc-gen without output-dir
+    # If user is applying docs-website without output-dir
     if (hasattr(args, 'best_practice_ids') and 
         args.best_practice_ids and 
-        'doc-gen' in args.best_practice_ids and 
+        'docs-website' in args.best_practice_ids and 
         not getattr(args, 'output_dir', None) and
         not getattr(args, 'template_only', False)):
         print("❌ Error: --output-dir is required for documentation generation")
         print()
         print("Example:")
-        print("  slim apply --best-practice-ids doc-gen --repo-dir ./my-project --output-dir ./docs")
+        print("  slim apply --best-practice-ids docs-website --repo-dir ./my-project --output-dir ./docs")
         sys.exit(1)
 
 
@@ -312,7 +312,7 @@ Examples:
   slim list
 
   # Apply documentation generation with AI
-  slim apply --best-practice-ids doc-gen --repo-dir ./my-project --output-dir ./docs --use-ai openai/gpt-4o-mini
+  slim apply --best-practice-ids docs-website --repo-dir ./my-project --output-dir ./docs --use-ai openai/gpt-4o-mini
 
   # See available AI models
   slim models list

@@ -32,7 +32,7 @@ class BestPractice(ABC):
         self.description = description
 
     @abstractmethod
-    def apply(self, repo_path, use_ai=False, model=None, repo_url=None, target_dir_to_clone_to=None, branch=None, no_prompt=False):
+    def apply(self, repo_path, use_ai=False, model=None, repo_url=None, target_dir_to_clone_to=None, branch=None, no_prompt=False, **kwargs):
         """
         Apply the best practice to a repository.
 
@@ -44,6 +44,7 @@ class BestPractice(ABC):
             target_dir_to_clone_to (str, optional): Directory to clone repository to. Defaults to None.
             branch (str, optional): Git branch to use. Defaults to None.
             no_prompt (bool, optional): Skip user confirmation prompts for dependencies installation. Defaults to False.
+            **kwargs: Additional keyword arguments for specific practice implementations.
 
         Raises:
             NotImplementedError: If the method is not implemented by a subclass

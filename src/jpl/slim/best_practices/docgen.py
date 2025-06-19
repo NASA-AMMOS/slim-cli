@@ -34,7 +34,7 @@ class DocGenPractice(BestPractice):
     def __init__(self):
         """Initialize the documentation generation best practice."""
         super().__init__(
-            best_practice_id="doc-gen",
+            best_practice_id="docs-website",
             uri="https://github.com/NASA-AMMOS/slim-docsite-template.git",
             title="Documentation Generator",
             description="Generates comprehensive documentation sites for software projects using the SLIM docsite template and AI enhancement"
@@ -93,16 +93,21 @@ class DocGenPractice(BestPractice):
             if success:
                 if template_only:
                     logging.info(f"Template structure successfully generated at {output_dir}")
+                    print(f"✅ Successfully generated documentation template at {output_dir}")
                 else:
                     logging.info(f"Documentation successfully generated at {output_dir}")
+                    print(f"✅ Successfully generated documentation at {output_dir}")
+                print(f"   📁 Source repository: {repo_path}")
                 return repo_path
             else:
                 logging.error("Documentation generation failed")
+                print(f"❌ Failed to generate documentation for best practice '{self.best_practice_id}'")
                 return None
                 
         except Exception as e:
             logging.error(f"Error generating documentation: {str(e)}")
             logging.debug(traceback.format_exc())
+            print(f"❌ Error generating documentation: {str(e)}")
             return None
     
     def deploy(self, repo_path, remote=None, commit_message=None):

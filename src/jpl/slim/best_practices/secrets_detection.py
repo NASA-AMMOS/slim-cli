@@ -21,14 +21,14 @@ SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '
 
 class SecretsDetection(StandardPractice):
     """
-    Best practice for secrets detection implementation (SLIM-2.1 and SLIM-2.2).
+    Best practice for secrets detection implementation (secrets-github and secrets-precommit).
 
     This class handles setting up secrets detection tools like detect-secrets
     and pre-commit hooks in repositories.
     """
 
     def apply(self, repo_path, use_ai=False, model=None, repo_url=None,
-              target_dir_to_clone_to=None, branch=None, no_prompt=False):
+              target_dir_to_clone_to=None, branch=None, no_prompt=False, **kwargs):
         """
         Apply the secrets detection best practice to a repository.
 
@@ -56,8 +56,8 @@ class SecretsDetection(StandardPractice):
         if not git_repo:
             return None
 
-        # Process best practice by ID
-        if self.best_practice_id == 'SLIM-2.1':
+        # Process best practice by alias
+        if self.best_practice_id == 'secrets-github':
             # Create .github/workflows directory if it doesn't exist
             workflows_dir = os.path.join(git_repo.working_dir, '.github', 'workflows')
             os.makedirs(workflows_dir, exist_ok=True)
@@ -95,12 +95,16 @@ class SecretsDetection(StandardPractice):
                         else:
                             logging.warning("Not running detect-secrets scan. Assuming you have a `.secrets-baseline` file present in your repo already.")
 
+                print(f"✅ Successfully applied best practice '{self.best_practice_id}' to repository")
+                print(f"   📁 Repository: {git_repo.working_dir}")
+                print(f"   🌿 Branch: {git_branch.name}")
                 return git_repo
             else:
                 logging.error(f"Failed to apply best practice {self.best_practice_id}")
+                print(f"❌ Failed to apply best practice '{self.best_practice_id}'")
                 return None
 
-        elif self.best_practice_id == 'SLIM-2.2':
+        elif self.best_practice_id == 'secrets-precommit':
             # Install pre-commit if not in test mode
             if not SLIM_TEST_MODE:
                 if no_prompt:
@@ -162,12 +166,17 @@ class SecretsDetection(StandardPractice):
                         elif not os.path.exists(baseline_file):
                             logging.warning("Not running detect-secrets scan. No .secrets.baseline file is present in your repo.")
 
+                print(f"✅ Successfully applied best practice '{self.best_practice_id}' to repository")
+                print(f"   📁 Repository: {git_repo.working_dir}")
+                print(f"   🌿 Branch: {git_branch.name}")
                 return git_repo
             else:
                 logging.error(f"Failed to apply best practice {self.best_practice_id}")
+                print(f"❌ Failed to apply best practice '{self.best_practice_id}'")
                 return None
         else:
             logging.warning(f"SLIM best practice {self.best_practice_id} not supported.")
+            print(f"❌ Best practice '{self.best_practice_id}' is not supported by SecretsDetection")
             return None
 
     def deploy(self, repo_path, remote=None, commit_message=None):
@@ -186,9 +195,9 @@ class SecretsDetection(StandardPractice):
 
         # Set custom commit message for secrets detection best practices
         if not commit_message:
-            if self.best_practice_id == 'SLIM-2.1':
+            if self.best_practice_id == 'secrets-github':
                 commit_message = "Add detect-secrets workflow"
-            elif self.best_practice_id == 'SLIM-2.2':
+            elif self.best_practice_id == 'secrets-precommit':
                 commit_message = "Add pre-commit configuration"
             else:
                 commit_message = f"Add secrets detection for {self.best_practice_id}"

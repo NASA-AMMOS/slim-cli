@@ -142,55 +142,55 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
 
 2. **Apply best practices to repositories**
    - This command applies specified best practices to one or more repositories. It supports applying multiple practices simultaneously across multiple repositories, with AI customization options available.
-   - `--best-practice-ids`: List of best practice IDs to apply.
+   - `--best-practices`: List of best practice aliases to apply (e.g., `readme`, `governance-small`, `secrets-github`).
    - `--repo-urls`: List of repository URLs to apply the best practices to; not used if `--repo-dir` is specified.
    - `--repo-dir`: Local directory path of the repository where the best practices will be applied.
    - `--clone-to-dir`: Path where the repository should be cloned if not present locally. Compatible with `--repo-urls`.
    - `--use-ai`: Enables AI features to customize the application of best practices based on the project’s specific needs. Specify the model provider and model name as an argument (e.g., `azure/gpt-4o`).
    ```bash
-   slim apply --best-practice-ids SLIM-123 SLIM-456 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 
+   slim apply --best-practices readme governance-small --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 
    ```
    - To apply a best practice using AI customization:
    ```bash
    # Apply a specific best practice using AI customization
-   slim apply --best-practice-ids SLIM-123 --repo-urls https://github.com/your_org/your_repo.git --use-ai <model provider>/<model name>
+   slim apply --best-practices readme --repo-urls https://github.com/your_org/your_repo.git --use-ai <model provider>/<model name>
    ```
    Example usage: 
    ```bash
    # Apply and deploy a best practice using Azure's GPT-4o model
-   slim apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai azure/gpt-4o
+   slim apply --best-practices governance-small --repo-urls https://github.com/riverma/terraformly/ --use-ai azure/gpt-4o
    ```
    ```bash
    # Apply and deploy a best practice using Ollama's LLaMA 3.1 model
-   slim apply --best-practice-ids SLIM-3.1 --repo-urls https://github.com/riverma/terraformly/ --use-ai ollama/gemma3
+   slim apply --best-practices governance-small --repo-urls https://github.com/riverma/terraformly/ --use-ai ollama/gemma3
    ```
    
 3. **Deploy a best practice**
    - After applying best practices, you may want to deploy (commit and push) them to a remote repository.
-   - `--best-practice-ids`: List of best practice IDs that have been applied and are ready for deployment.
+   - `--best-practices`: List of best practice aliases that have been applied and are ready for deployment.
    - `--repo-dir`: The local directory of the repository where changes will be committed and pushed.
    - `--remote-name`: Specifies the remote name in the git configuration to which the changes will be pushed.
    - `--commit-message`: A message describing the changes for the commit.
    ```bash
-   slim deploy --best-practice-ids SLIM-123 SLIM-456 --repo-dir /path/to/repo --remote-name origin --commit-message "Apply SLIM best practices"
+   slim deploy --best-practices readme governance-small --repo-dir /path/to/repo --remote-name origin --commit-message "Apply SLIM best practices"
    ```
 
 4. **Apply and deploy a best practice**
    - Combines the application and deployment of a best practice into one step.
-   - `--best-practice-ids`: List of best practice IDs to apply and then deploy.
+   - `--best-practices`: List of best practice aliases to apply and then deploy.
    - `--repo-urls`: List of repository URLs for cloning if not already cloned; not used if `--repo-dir` is specified.
    - `--repo-dir`: Specifies the directory of the repository where the best practice will be applied and changes committed.
    - `--remote-name`: Specifies the remote to which the changes will be pushed. Format should be a GitHub-like URL base. For example `https://github.com/my_github_user`
    - `--commit-message`: A message describing the changes for the commit.
    - `--use-ai`: If specified, enables AI customization of the best practice before applying. False by default.
    ```bash
-   slim apply-deploy --best-practice-ids SLIM-123 --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 --remote-name origin --commit-message "Integrated SLIM best practice with AI customization"
+   slim apply-deploy --best-practices readme --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 --remote-name origin --commit-message "Integrated SLIM best practice with AI customization"
    ```
    Example output:
    ```
    AI features disabled
-   Applied best practice SLIM-123 and committed to branch slim-123
-   Pushed changes to remote origin on branch slim-123
+   Applied best practice readme and committed to branch readme
+   Pushed changes to remote origin on branch readme
    ```
 
 5. **Generate documentation**
@@ -205,19 +205,19 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
    
    **Template-Only Mode** - Generate just the template structure without analyzing a repository:
    ```bash
-   slim apply --best-practice-ids doc-gen --template-only --output-dir ../docs-site
+   slim apply --best-practices docs-website --template-only --output-dir ../docs-site
    ```
    
    **AI-Enhanced Documentation** (Recommended approach):
    ```bash
    # Using OpenAI (recommended for quality)
-   slim apply --best-practice-ids doc-gen --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai openai/gpt-4o
+   slim apply --best-practices docs-website --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai openai/gpt-4o
    
    # Using Azure OpenAI (recommended for enterprise)
-   slim apply --best-practice-ids doc-gen --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai azure/gpt-4o
+   slim apply --best-practices docs-website --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai azure/gpt-4o
    
    # Using local models (basic quality, not recommended for production)
-   slim apply --best-practice-ids doc-gen --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai ollama/gemma3
+   slim apply --best-practices docs-website --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai ollama/gemma3
 
    # Explore available AI models
    slim models list
@@ -227,16 +227,16 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
    
    Example usage:
    ```bash
-   slim apply --best-practice-ids doc-gen --repo-dir ./hysds --output-dir ./hysds-docs-site --use-ai openai/gpt-4o
+   slim apply --best-practices docs-website --repo-dir ./hysds --output-dir ./hysds-docs-site --use-ai openai/gpt-4o
    ```
    
    **Revising an Existing Site**:
    ```bash
    # With cloud models (recommended)
-   slim apply --best-practice-ids doc-gen --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai openai/gpt-4o
+   slim apply --best-practices docs-website --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai openai/gpt-4o
    
    # With local models (basic quality)
-   slim apply --best-practice-ids doc-gen --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai ollama/gemma3
+   slim apply --best-practices docs-website --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai ollama/gemma3
    ```
    
    **Generated Content**

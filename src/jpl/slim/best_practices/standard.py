@@ -14,6 +14,7 @@ import uuid
 import git
 
 from jpl.slim.best_practices.base import BestPractice
+from jpl.slim.best_practices.practice_mapping import get_file_path
 from jpl.slim.utils.io_utils import download_and_place_file
 from jpl.slim.utils.ai_utils import generate_with_ai
 # Import the constant directly to avoid circular imports
@@ -131,7 +132,7 @@ class StandardPractice(BestPractice):
             return None, None, None
             
     def apply(self, repo_path, use_ai=False, model=None, repo_url=None,
-              target_dir_to_clone_to=None, branch=None, no_prompt=False):
+              target_dir_to_clone_to=None, branch=None, no_prompt=False, **kwargs):
         """
         Apply the standard best practice to a repository.
 
@@ -169,36 +170,13 @@ class StandardPractice(BestPractice):
         if not git_repo:
             return None
 
-        # Process best practice by ID
-        if self.best_practice_id == 'SLIM-1.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'GOVERNANCE.md')
-        elif self.best_practice_id == 'SLIM-1.2':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'GOVERNANCE.md')
-        elif self.best_practice_id == 'SLIM-1.3':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'GOVERNANCE.md')
-        elif self.best_practice_id == 'SLIM-3.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'README.md')
-        elif self.best_practice_id == 'SLIM-4.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, '.github/ISSUE_TEMPLATE/bug_report.md')
-        elif self.best_practice_id == 'SLIM-4.2':
-            applied_file_path = download_and_place_file(git_repo, self.uri, '.github/ISSUE_TEMPLATE/bug_report.yml')
-        elif self.best_practice_id == 'SLIM-4.3':
-            applied_file_path = download_and_place_file(git_repo, self.uri, '.github/ISSUE_TEMPLATE/new_feature.md')
-        elif self.best_practice_id == 'SLIM-4.4':
-            applied_file_path = download_and_place_file(git_repo, self.uri, '.github/ISSUE_TEMPLATE/new_feature.yml')
-        elif self.best_practice_id == 'SLIM-5.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'CHANGELOG.md')
-        elif self.best_practice_id == 'SLIM-7.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, '.github/PULL_REQUEST_TEMPLATE.md')
-        elif self.best_practice_id == 'SLIM-8.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'CODE_OF_CONDUCT.md')
-        elif self.best_practice_id == 'SLIM-9.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'CONTRIBUTING.md')
-        elif self.best_practice_id == 'SLIM-13.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'TESTING.md')
+        # Process best practice by alias
+        file_path = get_file_path(self.best_practice_id)
+        if file_path:
+            applied_file_path = download_and_place_file(git_repo, self.uri, file_path)
         else:
             applied_file_path = None  # nothing was modified
-            logging.warning(f"SLIM best practice {self.best_practice_id} not supported.")
+            logging.warning(f"Best practice {self.best_practice_id} not supported or no file mapping found.")
 
         # Apply AI customization if requested
         if applied_file_path and use_ai and model:
@@ -206,9 +184,13 @@ class StandardPractice(BestPractice):
 
         if applied_file_path:
             logging.info(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
+            print(f"✅ Successfully applied best practice '{self.best_practice_id}' to repository")
+            print(f"   📁 Repository: {git_repo.working_tree_dir}")
+            print(f"   🌿 Branch: {git_branch.name}")
             return git_repo  # return the modified git repo object
         else:
             logging.error(f"Failed to apply best practice {self.best_practice_id}")
+            print(f"❌ Failed to apply best practice '{self.best_practice_id}'")
             return None
 
     def _apply_ai_customization(self, git_repo, file_path, model):

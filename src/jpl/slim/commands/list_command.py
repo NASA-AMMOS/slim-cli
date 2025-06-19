@@ -45,13 +45,13 @@ def handle_command(args):
 
     console = Console()
     table = Table(show_header=True, header_style="bold magenta", show_lines=True)
-    headers = ["ID", "Title", "Description", "Asset"]
+    headers = ["Alias", "Title", "Description", "Asset"]
     for header in headers:
         table.add_column(header)
 
-    for asset_id, info in asset_mapping.items():
+    for alias, info in asset_mapping.items():
         table.add_row(
-            asset_id, 
+            alias, 
             textwrap.fill(info['title'], width=30), 
             textwrap.fill(info['description'], width=50), 
             textwrap.fill(info['asset_name'], width=20)

@@ -1,7 +1,7 @@
 """
 Tests for the secrets detection best practices module.
 
-This module contains tests for the SLIM-2.1 and SLIM-2.2 best practices implementation.
+This module contains tests for the secrets-github and secrets-precommit best practices implementation.
 """
 
 import os
@@ -40,15 +40,15 @@ class TestSecretsDetection(unittest.TestCase):
         self.repo.git.commit('-m', 'Initial commit')
 
         # Create instances for testing
-        self.secrets_detection_2_1 = SecretsDetection(
-            best_practice_id='SLIM-2.1',
+        self.secrets_detection_github = SecretsDetection(
+            best_practice_id='secrets-github',
             uri='https://example.com/detect-secrets.yaml',
             title='Secrets Detection',
             description='Implements detect-secrets for scanning repositories'
         )
 
-        self.secrets_detection_2_2 = SecretsDetection(
-            best_practice_id='SLIM-2.2',
+        self.secrets_detection_precommit = SecretsDetection(
+            best_practice_id='secrets-precommit',
             uri='https://example.com/pre-commit-config.yaml',
             title='Pre-commit',
             description='Implements pre-commit hooks'
@@ -72,7 +72,7 @@ class TestSecretsDetection(unittest.TestCase):
         mock_download.return_value = os.path.join(self.test_dir, '.github/workflows/detect-secrets.yaml')
 
         # Execute - always use no_prompt=True for automated testing
-        result = self.secrets_detection_2_1.apply(self.test_dir, no_prompt=True)
+        result = self.secrets_detection_github.apply(self.test_dir, no_prompt=True)
 
         # Assert
         self.assertIsNotNone(result)
@@ -89,7 +89,7 @@ class TestSecretsDetection(unittest.TestCase):
         mock_download.return_value = os.path.join(self.test_dir, '.pre-commit-config.yaml')
 
         # Execute - always use no_prompt=True for automated testing
-        result = self.secrets_detection_2_2.apply(self.test_dir, no_prompt=True)
+        result = self.secrets_detection_precommit.apply(self.test_dir, no_prompt=True)
 
         # Assert
         self.assertIsNotNone(result)
@@ -113,7 +113,7 @@ class TestSecretsDetection(unittest.TestCase):
 
         try:
             # Execute
-            result = self.secrets_detection_2_1.apply(self.test_dir, no_prompt=True)
+            result = self.secrets_detection_github.apply(self.test_dir, no_prompt=True)
 
             # Assert
             self.assertIsNotNone(result)
@@ -137,7 +137,7 @@ class TestSecretsDetection(unittest.TestCase):
 
         try:
             # Execute
-            result = self.secrets_detection_2_2.apply(self.test_dir, no_prompt=True)
+            result = self.secrets_detection_precommit.apply(self.test_dir, no_prompt=True)
 
             # Assert
             self.assertIsNotNone(result)
@@ -161,7 +161,7 @@ class TestSecretsDetection(unittest.TestCase):
 
         try:
             # Execute - should return None because of unverified secrets
-            result = self.secrets_detection_2_1.apply(self.test_dir, no_prompt=True)
+            result = self.secrets_detection_github.apply(self.test_dir, no_prompt=True)
 
             # Assert
             self.assertIsNone(result)  # Application should fail
@@ -176,10 +176,10 @@ class TestSecretsDetection(unittest.TestCase):
         # First apply a practice with no_prompt=True
         with patch('jpl.slim.best_practices.secrets_detection.download_and_place_file') as mock_download:
             mock_download.return_value = os.path.join(self.test_dir, '.github/workflows/detect-secrets.yaml')
-            self.secrets_detection_2_1.apply(self.test_dir, no_prompt=True)
+            self.secrets_detection_github.apply(self.test_dir, no_prompt=True)
 
         # Then deploy
-        result = self.secrets_detection_2_1.deploy(self.test_dir)
+        result = self.secrets_detection_github.deploy(self.test_dir)
 
         # Assert
         self.assertTrue(result)

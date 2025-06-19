@@ -27,7 +27,7 @@ def setup_parser(subparsers):
         The parser for the 'deploy' command
     """
     parser = subparsers.add_parser('deploy', help='Deploys a best practice, i.e. places the best practice in a git repo, adds, commits, and pushes to the git remote.')
-    parser.add_argument('--best-practice-ids', nargs='+', required=True, help='Best practice IDs to deploy')
+    parser.add_argument('--best-practices', nargs='+', required=True, help='Best practice aliases to deploy (e.g., readme, governance-small, secrets-github)')
     parser.add_argument('--repo-dir', required=False, help='Repository directory location on local machine')
     parser.add_argument('--remote', required=False, default=None, help=f"Push to a specified remote name. If not specified, pushes to '{GIT_DEFAULT_REMOTE_NAME}'.")
     parser.add_argument('--commit-message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}'")
@@ -46,7 +46,7 @@ def handle_command(args):
     """
     # Clean argument extraction - no more brittle popping!
     deploy_best_practices(
-        best_practice_ids=args.best_practice_ids,
+        best_practice_ids=args.best_practices,
         repo_dir=args.repo_dir,
         remote=args.remote,
         commit_message=args.commit_message
