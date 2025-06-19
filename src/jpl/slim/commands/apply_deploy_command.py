@@ -43,7 +43,7 @@ def setup_parser(subparsers):
     from jpl.slim.commands.common import SUPPORTED_MODELS, get_ai_model_pairs
 
     parser = subparsers.add_parser('apply-deploy', help='Applies and deploys a best practice')
-    parser.add_argument('--best-practice-ids', nargs='+', required=True, help='Best practice IDs to apply')
+    parser.add_argument('--best-practices', nargs='+', required=True, help='Best practice aliases to apply (e.g., readme, governance-small, secrets-github)')
     parser.add_argument('--repo-urls', nargs='+', required=False, help='Repository URLs to apply to. Do not use if --repo-dir specified')
     parser.add_argument('--repo-urls-file', required=False, help='Path to a file containing repository URLs')
     parser.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
@@ -73,7 +73,7 @@ def handle_command(args):
     """
     # Clean argument extraction - no more brittle popping!
     apply_and_deploy_best_practices(
-        best_practice_ids=args.best_practice_ids,
+        best_practice_ids=args.best_practices,
         use_ai_flag=bool(args.use_ai),
         model=args.use_ai if args.use_ai else None,
         remote=args.remote,

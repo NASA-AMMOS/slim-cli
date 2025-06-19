@@ -125,13 +125,13 @@ def fetch_best_practices_from_file(file_path):
 
 def create_slim_registry_dictionary(practices):
     """
-    Create a dictionary of best practices from the SLIM registry.
+    Create a dictionary of best practices from the SLIM registry using aliases as keys.
     
     Args:
         practices: List of best practices
         
     Returns:
-        dict: Dictionary of best practices
+        dict: Dictionary of best practices keyed by alias
     """
     asset_mapping = {}
     
@@ -141,17 +141,21 @@ def create_slim_registry_dictionary(practices):
         
         if 'assets' in practice and practice['assets']:
             for j, asset in enumerate(practice['assets'], start=1):
-                asset_id = f"SLIM-{i}.{j}"
+                # Use alias as the key instead of SLIM-X.X format
+                alias = asset.get('alias')
+                if not alias:
+                    # Skip assets without aliases for now
+                    continue
+                
                 asset_name = asset.get('name', 'N/A')
                 asset_uri = asset.get('uri', '')
-                asset_mapping[asset_id] = {
+                asset_mapping[alias] = {
                     'title': title, 
                     'description': description, 
                     'asset_name': asset_name,
                     'asset_uri': asset_uri
                 }
-        else:
-            asset_mapping[f"SLIM-{i}"] = {'title': title, 'description': description, 'asset_name': 'None'}
+        # Skip practices without assets - they don't have implementations yet
     return asset_mapping
 
 
