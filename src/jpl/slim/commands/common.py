@@ -14,7 +14,7 @@ from typing import Dict, List, Any, Tuple
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/data/slim-registry.json"
 
 # Documentation practice aliases - both should work
-DOCUMENTATION_PRACTICE_IDS = {'doc-gen', 'SLIM-17.1'}
+DOCUMENTATION_PRACTICE_IDS = {'doc-gen', 'SLIM-18.1'}
 
 # LiteLLM supported models organized by provider and use case
 SUPPORTED_MODELS = {
