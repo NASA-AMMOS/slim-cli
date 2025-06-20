@@ -9,14 +9,14 @@ from typing import Dict, List, Optional, Any, Union
 
 from jpl.slim.best_practices.standard import StandardPractice
 from jpl.slim.best_practices.secrets_detection import SecretsDetection
-from jpl.slim.best_practices.docgen import DocGenPractice
+from jpl.slim.best_practices.docs_website import DocsWebsiteBestPractice
 from jpl.slim.best_practices.practice_mapping import (
     get_practice_class_name,
     is_docgen_practice,
     get_all_aliases,
     PRACTICE_CLASS_STANDARD,
     PRACTICE_CLASS_SECRETS,
-    PRACTICE_CLASS_DOCGEN
+    PRACTICE_CLASS_DOCSWEBSITE
 )
 from jpl.slim.utils.io_utils import create_slim_registry_dictionary
 
@@ -44,7 +44,7 @@ class BestPracticeManager:
             # If it's already a dictionary, use it directly
             self.registry_dict = registry
 
-    def get_best_practice(self, alias: str) -> Optional[Union[StandardPractice, SecretsDetection, DocGenPractice]]:
+    def get_best_practice(self, alias: str) -> Optional[Union[StandardPractice, SecretsDetection, DocsWebsiteBestPractice]]:
         """
         Get a best practice by alias.
 
@@ -94,8 +94,8 @@ class BestPracticeManager:
                 title=title,
                 description=description
             )
-        elif practice_class_name == PRACTICE_CLASS_DOCGEN:
-            return DocGenPractice()
+        elif practice_class_name == PRACTICE_CLASS_DOCSWEBSITE:
+            return DocsWebsiteBestPractice()
         else:
             logging.warning(f"Unknown practice class: {practice_class_name}")
             return None

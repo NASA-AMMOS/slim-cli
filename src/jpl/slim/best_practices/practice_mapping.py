@@ -9,7 +9,7 @@ across the SLIM CLI codebase.
 # Practice class names as strings to avoid circular imports
 PRACTICE_CLASS_STANDARD = 'StandardPractice'
 PRACTICE_CLASS_SECRETS = 'SecretsDetection'
-PRACTICE_CLASS_DOCGEN = 'DocGenPractice'
+PRACTICE_CLASS_DOCSWEBSITE = 'DocsWebsiteBestPractice'
 
 # Mapping from aliases to practice class names
 ALIAS_TO_PRACTICE_CLASS = {
@@ -44,8 +44,8 @@ ALIAS_TO_PRACTICE_CLASS = {
     'static-tests-precommit': PRACTICE_CLASS_STANDARD,
     'container-scan-precommit': PRACTICE_CLASS_STANDARD,
     
-    # Documentation generation (DocGenPractice)
-    'docs-website': PRACTICE_CLASS_DOCGEN,
+    # Documentation generation (DocsWebsiteBestPractice)
+    'docs-website': PRACTICE_CLASS_DOCSWEBSITE,
 }
 
 # Mapping for StandardPractice file paths based on aliases
@@ -141,7 +141,7 @@ def is_docgen_practice(alias: str):
     Returns:
         True if it's a documentation generation practice, False otherwise
     """
-    return ALIAS_TO_PRACTICE_CLASS.get(alias) == PRACTICE_CLASS_DOCGEN
+    return ALIAS_TO_PRACTICE_CLASS.get(alias) == PRACTICE_CLASS_DOCSWEBSITE
 
 def get_all_aliases():
     """

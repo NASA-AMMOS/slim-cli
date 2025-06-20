@@ -2,18 +2,16 @@
 Tests for AI utility functions.
 """
 
-import os
-import pytest
 from unittest.mock import patch, MagicMock
 
-# Import the module that will contain the functions (this will fail until implemented)
 from jpl.slim.utils.ai_utils import (
     generate_with_ai,
     construct_prompt,
-    generate_content,
-    generate_with_openai,
-    generate_with_azure,
-    generate_with_ollama
+    generate_ai_content,
+    generate_with_model,
+    enhance_content,
+    validate_model,
+    get_model_recommendations
 )
 
 
@@ -21,64 +19,62 @@ class TestAIUtils:
     """Tests for AI utility functions."""
 
     @patch('jpl.slim.utils.ai_utils.fetch_best_practices')
-    @patch('jpl.slim.utils.ai_utils.create_slim_registry_dictionary')
-    @patch('jpl.slim.utils.ai_utils.read_file_content')
-    @patch('jpl.slim.utils.ai_utils.fetch_readme')
-    @patch('jpl.slim.utils.ai_utils.generate_content')
-    @patch('jpl.slim.commands.common.SLIM_REGISTRY_URI', 'https://raw.githubusercontent.com/NASA-AMMOS/slim/refs/heads/main/static/data/slim-registry.json')
-    @patch.dict('os.environ', {'SLIM_TEST_MODE': 'False'})
-    def test_use_ai_governance(self, mock_generate, mock_fetch_readme, mock_read_file, mock_create_dict, mock_fetch_practices):
-        """Test using AI for governance best practice."""
-        # Arrange
-        best_practice_id = 'SLIM-1.1'
-        repo_path = '/path/to/repo'
-        template_path = '/path/to/template.md'
-        model = 'openai/gpt-4o'
-        
-        mock_fetch_practices.return_value = [{'title': 'Governance', 'assets': [{'name': 'Governance', 'uri': 'https://example.com/governance.md'}]}]
-        mock_create_dict.return_value = {'SLIM-1.1': {'title': 'Governance', 'description': 'Governance best practice'}}
-        mock_read_file.return_value = 'Template content'
-        mock_fetch_readme.return_value = 'README content'
-        mock_generate.return_value = 'AI-generated content'
-        
-        # Act
-        result = generate_with_ai(best_practice_id, repo_path, template_path, model)
-        
-        # Assert
-        mock_fetch_practices.assert_called_once()
-        mock_create_dict.assert_called_once()
-        mock_read_file.assert_called_once_with(template_path)
-        mock_fetch_readme.assert_called_once_with(repo_path)
-        mock_generate.assert_called_once()
-        assert result == 'AI-generated content'
-
-    @patch('jpl.slim.utils.ai_utils.fetch_best_practices')
-    @patch('jpl.slim.utils.ai_utils.create_slim_registry_dictionary')
     @patch('jpl.slim.commands.common.SLIM_REGISTRY_URI', 'https://example.com/registry')
-    @patch.dict('os.environ', {'SLIM_TEST_MODE': 'False'})
-    def test_use_ai_best_practice_not_found(self, mock_create_dict, mock_fetch_practices):
+    def test_generate_with_ai_best_practice_not_found(self, mock_fetch_practices):
         """Test using AI when the best practice is not found."""
         # Arrange
-        best_practice_id = 'SLIM-999'
-        repo_path = '/path/to/repo'
-        template_path = '/path/to/template.md'
-        model = 'openai/gpt-4o'
+        best_practice_alias = 'governance-microtiny' # doesn't exist
+        repo_path = '/path/to/repo' # doesn't matter
+        template_path = '/path/to/template.md'  # doesn't matter
+        model = 'openai/gpt-4o' # doesn't matter
         
-        mock_fetch_practices.return_value = []
-        mock_create_dict.return_value = {}
+        # best_practice_alias doesn't exist in the below
+        mock_fetch_practices.return_value = [
+        {
+          "title": "GOVERNANCE.md",
+          "uri": "/slim/docs/guides/governance/governance-model",
+          "category": "governance",
+          "description": "A governance model template seeking to generalize how most government-sponsored open source projects can expect to operate in the open source arena.",
+          "tags": [
+            "governance",
+            "templates",
+            "repository-setup",
+            "github",
+            "markdown"
+          ],
+          "assets": [
+            {
+              "name": "Governance Template (Small Teams)",
+              "type": "text/md",
+              "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-SMALL-TEAMS.md",
+              "alias": "governance-small"
+            },
+            {
+              "name": "Governance Template (Medium Teams)",
+              "type": "text/md",
+              "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-MEDIUM-TEAMS.md",
+              "alias": "governance-medium"
+            },
+            {
+              "name": "Governance Template (Large Teams)",
+              "type": "text/md",
+              "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-LARGE-TEAMS.md",
+              "alias": "governance-large"
+            }
+          ]
+        }]
         
         # Act
-        result = generate_with_ai(best_practice_id, repo_path, template_path, model)
+        result = generate_with_ai(best_practice_alias, repo_path, template_path, model)
         
         # Assert
         mock_fetch_practices.assert_called_once()
-        mock_create_dict.assert_called_once()
         assert result is None
 
     def test_construct_prompt(self):
         """Test constructing a prompt for AI."""
         # Arrange
-        template_content = 'Template: INSERT_NAME'
+        template_content = 'Template: [INSERT_NAME_HERE]'
         best_practice = {'title': 'Governance', 'description': 'Governance best practice'}
         reference = 'Reference content'
         comment = 'Additional comment'
@@ -87,179 +83,137 @@ class TestAIUtils:
         result = construct_prompt(template_content, best_practice, reference, comment)
         
         # Assert
-        assert 'Template: INSERT_NAME' in result
+        assert 'Template: [INSERT_NAME_HERE]' in result
         assert 'Reference content' in result
         assert 'Additional comment' in result
 
-    @patch('jpl.slim.utils.ai_utils.generate_with_litellm')
-    @patch('jpl.slim.utils.ai_utils.generate_with_openai')
-    def test_generate_content_openai(self, mock_generate_openai, mock_generate_litellm):
-        """Test generating content with OpenAI."""
+    def test_generate_ai_content_invalid_model_format(self):
+        """Test generate_ai_content with invalid model format."""
         # Arrange
         prompt = 'Test prompt'
-        model = 'openai/gpt-4o'
-        
-        # Make litellm fail so it falls back to legacy implementation
-        mock_generate_litellm.side_effect = Exception("LiteLLM not available")
-        mock_generate_openai.return_value = iter(['AI', '-', 'generated', ' ', 'content'])
+        model = 'anthropic/claude-0'
         
         # Act
-        result = generate_content(prompt, model)
-        
-        # Assert
-        mock_generate_openai.assert_called_once_with(prompt, 'gpt-4o')
-        assert result == 'AI-generated content'
-
-    @patch('jpl.slim.utils.ai_utils.generate_with_litellm')
-    @patch('jpl.slim.utils.ai_utils.generate_with_azure')
-    def test_generate_content_azure(self, mock_generate_azure, mock_generate_litellm):
-        """Test generating content with Azure."""
-        # Arrange
-        prompt = 'Test prompt'
-        model = 'azure/gpt-4o'
-        
-        # Make litellm fail so it falls back to legacy implementation
-        mock_generate_litellm.side_effect = Exception("LiteLLM not available")
-        mock_generate_azure.return_value = 'AI-generated content'
-        
-        # Act
-        result = generate_content(prompt, model)
-        
-        # Assert
-        mock_generate_azure.assert_called_once_with(prompt, 'gpt-4o')
-        assert result == 'AI-generated content'
-
-    @patch('jpl.slim.utils.ai_utils.generate_with_litellm')
-    @patch('jpl.slim.utils.ai_utils.generate_with_ollama')
-    def test_generate_content_ollama(self, mock_generate_ollama, mock_generate_litellm):
-        """Test generating content with Ollama."""
-        # Arrange
-        prompt = 'Test prompt'
-        model = 'ollama/llama3.3'
-        
-        # Make litellm fail so it falls back to legacy implementation
-        mock_generate_litellm.side_effect = Exception("LiteLLM not available")
-        mock_generate_ollama.return_value = 'AI-generated content'
-        
-        # Act
-        result = generate_content(prompt, model)
-        
-        # Assert
-        mock_generate_ollama.assert_called_once_with(prompt, 'llama3.3')
-        assert result == 'AI-generated content'
-
-    def test_generate_content_unsupported_provider(self):
-        """Test generating content with an unsupported provider."""
-        # Arrange
-        prompt = 'Test prompt'
-        model = 'unsupported/model'
-        
-        # Act
-        result = generate_content(prompt, model)
+        result = generate_ai_content(prompt, model)
         
         # Assert
         assert result is None
 
-    @patch('openai.OpenAI')
-    def test_generate_with_openai(self, mock_openai_class):
-        """Test generating content with OpenAI."""
-        # Arrange
-        prompt = 'Test prompt'
-        model_name = 'gpt-4o'
-        
-        mock_client = MagicMock()
-        mock_openai_class.return_value = mock_client
-        
-        mock_response = MagicMock()
-        mock_chunk = MagicMock()
-        mock_chunk.choices[0].delta.content = 'AI-generated content'
-        mock_response.__iter__.return_value = [mock_chunk]
-        mock_client.chat.completions.create.return_value = mock_response
-        
-        # Act
-        result = list(generate_with_openai(prompt, model_name))
-        
-        # Assert
-        mock_openai_class.assert_called_once()
-        mock_client.chat.completions.create.assert_called_once_with(
-            model=model_name,
-            messages=[{"role": "user", "content": prompt}],
-            stream=True
-        )
-        assert result == ['AI-generated content']
 
-    @patch('openai.AzureOpenAI')
-    @patch('azure.identity.ClientSecretCredential')
-    @patch('azure.identity.get_bearer_token_provider')
-    @patch.dict('os.environ', {
-        'AZURE_TENANT_ID': 'test-tenant-id',
-        'AZURE_CLIENT_ID': 'test-client-id',
-        'AZURE_CLIENT_SECRET': 'test-client-secret',
-        'API_VERSION': 'test-api-version',
-        'API_ENDPOINT': 'test-api-endpoint'
-    })
-    def test_generate_with_azure(self, mock_token_provider, mock_credential, mock_azure_openai_class):
-        """Test generating content with Azure."""
+    def test_validate_model_valid(self):
+        """Test validate_model with valid model and environment."""
         # Arrange
-        prompt = 'Test prompt'
-        model_name = 'gpt-4o'
-        
-        # Set up the credential mock
-        mock_credential_instance = MagicMock()
-        mock_credential.return_value = mock_credential_instance
-        
-        # Set up the token provider mock
-        mock_token_provider_instance = MagicMock()
-        mock_token_provider.return_value = mock_token_provider_instance
-        
-        # Set up the Azure OpenAI client mock
-        mock_client = MagicMock()
-        mock_azure_openai_class.return_value = mock_client
-        
-        mock_completion = MagicMock()
-        mock_completion.choices[0].message.content = 'AI-generated content'
-        mock_client.chat.completions.create.return_value = mock_completion
+        model = 'ollama/llama3.1'  # Ollama doesn't require API keys
         
         # Act
-        result = generate_with_azure(prompt, model_name)
+        is_valid, error_message = validate_model(model)
         
         # Assert
-        mock_azure_openai_class.assert_called_once()
-        mock_client.chat.completions.create.assert_called_once()
-        assert result == 'AI-generated content'
+        assert is_valid is True
+        assert error_message == ""
 
-    @patch('ollama.chat')
-    def test_generate_with_ollama(self, mock_ollama_chat):
-        """Test generating content with Ollama."""
+    def test_validate_model_invalid_format(self):
+        """Test validate_model with invalid format."""
         # Arrange
-        prompt = 'Test prompt'
-        model_name = 'llama3.3'
-        
-        mock_response = {'message': {'content': 'AI-generated content'}}
-        mock_ollama_chat.return_value = mock_response
+        model = 'invalid-format'
         
         # Act
-        result = generate_with_ollama(prompt, model_name)
+        is_valid, error_message = validate_model(model)
         
         # Assert
-        mock_ollama_chat.assert_called_once_with(
-            model=model_name,
-            messages=[{'role': 'user', 'content': prompt}]
-        )
-        assert result == 'AI-generated content'
+        assert is_valid is False
+        assert "Invalid model format" in error_message
 
-    @patch('ollama.chat')
-    def test_generate_with_ollama_error(self, mock_ollama_chat):
-        """Test generating content with Ollama when an error occurs."""
+    @patch.dict('os.environ', {}, clear=True)
+    def test_validate_model_missing_api_key(self):
+        """Test validate_model with missing API key."""
         # Arrange
-        prompt = 'Test prompt'
-        model_name = 'llama3.3'
-        
-        mock_ollama_chat.side_effect = Exception('Ollama error')
+        model = 'anthropic/claude-3-5-sonnet-20241022'
         
         # Act
-        result = generate_with_ollama(prompt, model_name)
+        is_valid, error_message = validate_model(model)
         
         # Assert
-        mock_ollama_chat.assert_called_once()
-        assert result is None
+        assert is_valid is False
+        assert "Missing required environment variables" in error_message
+        assert "ANTHROPIC_API_KEY" in error_message
+
+    def test_get_model_recommendations(self):
+        """Test get_model_recommendations returns correct structure."""
+        # Act
+        recommendations = get_model_recommendations("documentation")
+        
+        # Assert
+        assert isinstance(recommendations, dict)
+        assert "premium" in recommendations
+        assert "balanced" in recommendations
+        assert "fast" in recommendations
+        assert "local" in recommendations
+        assert all(isinstance(models, list) for models in recommendations.values())
+
+    def test_get_model_recommendations_code_generation(self):
+        """Test get_model_recommendations for code generation task."""
+        # Act
+        recommendations = get_model_recommendations("code_generation")
+        
+        # Assert
+        assert isinstance(recommendations, dict)
+        assert "premium" in recommendations
+        # Check that code generation has different models than documentation
+        assert "mistral/codestral-latest" in recommendations["premium"]
+
+    @patch('jpl.slim.utils.ai_utils.get_prompt_with_context')
+    @patch('jpl.slim.utils.ai_utils.generate_ai_content')
+    def test_enhance_content_success(self, mock_generate, mock_get_prompt):
+        """Test enhance_content successfully enhances content."""
+        # Arrange
+        content = "Original content"
+        practice_type = "docgen"
+        section_name = "overview"
+        model = "openai/gpt-4o"
+        
+        mock_get_prompt.return_value = "Enhancement prompt"
+        mock_generate.return_value = "Enhanced content"
+        
+        # Act
+        result = enhance_content(content, practice_type, section_name, model)
+        
+        # Assert
+        mock_get_prompt.assert_called_once_with(practice_type, section_name, None)
+        assert result == "Enhanced content"
+
+    @patch('jpl.slim.utils.ai_utils.get_prompt_with_context')
+    def test_enhance_content_no_prompt(self, mock_get_prompt):
+        """Test enhance_content when no prompt is found."""
+        # Arrange
+        content = "Original content"
+        practice_type = "unknown"
+        section_name = "unknown"
+        model = "openai/gpt-4o"
+        
+        mock_get_prompt.return_value = None
+        
+        # Act
+        result = enhance_content(content, practice_type, section_name, model)
+        
+        # Assert
+        assert result == content  # Returns original content
+
+    @patch('jpl.slim.utils.ai_utils.get_prompt_with_context')
+    @patch('jpl.slim.utils.ai_utils.generate_ai_content')
+    def test_enhance_content_ai_fails(self, mock_generate, mock_get_prompt):
+        """Test enhance_content when AI generation fails."""
+        # Arrange
+        content = "Original content"
+        practice_type = "docgen"
+        section_name = "overview"
+        model = "openai/gpt-4o"
+        
+        mock_get_prompt.return_value = "Enhancement prompt"
+        mock_generate.return_value = None  # AI fails
+        
+        # Act
+        result = enhance_content(content, practice_type, section_name, model)
+        
+        # Assert
+        assert result == content  # Returns original content

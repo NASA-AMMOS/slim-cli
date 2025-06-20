@@ -17,13 +17,13 @@ from typing import Optional, Dict, Any, List
 import uuid
 
 from jpl.slim.best_practices.base import BestPractice
-from jpl.slim.docgen.generator import SlimDocGenerator
+from jpl.slim.best_practices.docs_website_impl.generator import SlimDocGenerator
 
 # Check if we're in test mode
 SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')
 
 
-class DocGenPractice(BestPractice):
+class DocsWebsiteBestPractice(BestPractice):
     """
     Best practice for documentation generation.
 

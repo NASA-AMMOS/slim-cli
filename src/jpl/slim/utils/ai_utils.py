@@ -1,9 +1,10 @@
 """
-AI utility functions for SLIM with LiteLLM integration.
+AI utility functions for SLIM with library-agnostic AI integration.
 
 This module contains utility functions for AI operations, including generating content
-with various AI models through LiteLLM's unified interface, plus legacy functions
-for backward compatibility.
+with various AI models through a unified interface. Function names are kept
+library-agnostic to support future changes in underlying AI libraries.
+Integrates with the centralized prompt management system.
 """
 
 import os
@@ -19,18 +20,16 @@ from jpl.slim.utils.io_utils import (
     fetch_code_base,
     fetch_relative_file_paths
 )
+from jpl.slim.utils.prompt_utils import get_prompt_with_context
 
 __all__ = [
     "generate_with_ai",
     "construct_prompt",
-    "generate_content",
-    "generate_with_litellm",
-    "get_model_recommendations",
-    "validate_model_config",
-    # Legacy functions for backward compatibility
-    "generate_with_openai",
-    "generate_with_azure", 
-    "generate_with_ollama"
+    "generate_ai_content",
+    "generate_with_model",
+    "enhance_content",
+    "validate_model",
+    "get_model_recommendations"
 ]
 
 
@@ -97,7 +96,7 @@ def generate_with_ai(best_practice_id, repo_path, template_path, model="openai/g
     prompt = construct_prompt(template_content, best_practice, reference, additional_instruction if best_practice_id == 'SLIM-13.1' else "")
     
     # Generate and return the content using the specified model
-    return generate_content(prompt, model)
+    return generate_ai_content(prompt, model)
 
 
 def construct_prompt(template_content, best_practice, reference, comment=""):
@@ -120,9 +119,50 @@ def construct_prompt(template_content, best_practice, reference, comment=""):
     )
 
 
-def generate_content(prompt: str, model: str, **kwargs) -> Optional[str]:
+def enhance_content(content: str, practice_type: str, section_name: str, 
+                   model: str, additional_context: Optional[str] = None) -> Optional[str]:
     """
-    Generate content using an AI model through LiteLLM's unified interface.
+    Enhance content using AI with centralized prompts and context.
+    
+    Args:
+        content: Original content to enhance
+        practice_type: Practice type (e.g., 'docgen', 'standard_practices')
+        section_name: Section name (e.g., 'overview', 'installation') 
+        model: AI model to use
+        additional_context: Optional additional context
+        
+    Returns:
+        Enhanced content, or original content if enhancement fails
+    """
+    try:
+        # Get prompt with hierarchical context
+        enhancement_prompt = get_prompt_with_context(practice_type, section_name, additional_context)
+        
+        if not enhancement_prompt:
+            logging.warning(f"No prompt found for {practice_type}.{section_name}, using content as-is")
+            return content
+        
+        # Combine prompt with content
+        full_prompt = f"{enhancement_prompt}\n\nCONTENT TO ENHANCE:\n{content}"
+        
+        # Generate enhanced content
+        enhanced = generate_ai_content(full_prompt, model)
+        
+        if enhanced:
+            logging.debug(f"Successfully enhanced {section_name} content")
+            return enhanced
+        else:
+            logging.warning(f"AI enhancement failed for {section_name}, using original content")
+            return content
+            
+    except Exception as e:
+        logging.error(f"Error during content enhancement: {str(e)}")
+        return content
+
+
+def generate_ai_content(prompt: str, model: str, **kwargs) -> Optional[str]:
+    """
+    Generate content using an AI model through a unified interface.
     
     Args:
         prompt: Prompt for the AI model
@@ -141,36 +181,19 @@ def generate_content(prompt: str, model: str, **kwargs) -> Optional[str]:
     
     # Use LiteLLM as the primary interface
     try:
-        return generate_with_litellm(prompt, model, **kwargs)
+        return generate_with_model(prompt, model, **kwargs)
     except Exception as e:
-        logging.warning(f"LiteLLM generation failed for {model}: {str(e)}")
-        
-        # Fallback to legacy implementations for backward compatibility
-        if provider == "openai":
-            collected_response = []
-            for token in generate_with_openai(prompt, model_name):
-                if token is not None:
-                    collected_response.append(token)
-                else:
-                    logging.error("Error occurred during OpenAI generation.")
-                    return None
-            return ''.join(collected_response)
-        elif provider == "azure":
-            return generate_with_azure(prompt, model_name)
-        elif provider == "ollama":
-            return generate_with_ollama(prompt, model_name)
-        else:
-            logging.error(f"Unsupported model provider: {provider}")
-            return None
+        logging.error(f"LiteLLM generation failed for {model}: {str(e)}")
+        return None
 
 
-def generate_with_litellm(prompt: str, model: str, **kwargs) -> Optional[str]:
+def generate_with_model(prompt: str, model: str, **kwargs) -> Optional[str]:
     """
-    Generate content using LiteLLM's unified interface.
+    Generate content using the primary AI interface (currently LiteLLM).
     
     Args:
         prompt: Prompt for the AI model
-        model: Model name in LiteLLM format (e.g., "openai/gpt-4o", "anthropic/claude-3-5-sonnet-20241022")
+        model: Model name in format "provider/model" (e.g., "openai/gpt-4o", "anthropic/claude-3-5-sonnet-20241022")
         **kwargs: Additional parameters to pass to the model
         
     Returns:
@@ -193,7 +216,7 @@ def generate_with_litellm(prompt: str, model: str, **kwargs) -> Optional[str]:
         # Add any additional kwargs
         completion_kwargs.update(kwargs)
         
-        logging.debug(f"Generating content with LiteLLM using model: {model}")
+        logging.debug(f"Generating content using model: {model}")
         
         response = completion(**completion_kwargs)
         
@@ -206,10 +229,10 @@ def generate_with_litellm(prompt: str, model: str, **kwargs) -> Optional[str]:
             return None
             
     except ImportError:
-        logging.error("LiteLLM not installed. Install with: pip install litellm")
+        logging.error("AI library not available. Install with: pip install litellm")
         return None
     except Exception as e:
-        logging.error(f"Error generating content with LiteLLM ({model}): {str(e)}")
+        logging.error(f"Error generating content with model ({model}): {str(e)}")
         return None
 
 
@@ -226,6 +249,9 @@ def get_model_recommendations(task: str = "documentation") -> Dict[str, Dict[str
     recommendations = {
         "documentation": {
             "premium": [
+                "anthropic/claude-4"
+                "anthropic/claude-opus-4-20250514",
+                "anthropic/claude-sonnet-4-20250514",
                 "anthropic/claude-3-5-sonnet-20241022",
                 "openai/gpt-4o",
                 "google/gemini-1.5-pro"
@@ -249,6 +275,9 @@ def get_model_recommendations(task: str = "documentation") -> Dict[str, Dict[str
         },
         "code_generation": {
             "premium": [
+                "anthropic/claude-4"
+                "anthropic/claude-opus-4-20250514",
+                "anthropic/claude-sonnet-4-20250514",
                 "anthropic/claude-3-5-sonnet-20241022",
                 "openai/gpt-4o",
                 "mistral/codestral-latest"
@@ -273,7 +302,7 @@ def get_model_recommendations(task: str = "documentation") -> Dict[str, Dict[str
     return recommendations.get(task, recommendations["documentation"])
 
 
-def validate_model_config(model: str) -> tuple[bool, str]:
+def validate_model(model: str) -> tuple[bool, str]:
     """
     Validate model configuration and check if required environment variables are set.
     
@@ -317,153 +346,3 @@ def validate_model_config(model: str) -> tuple[bool, str]:
         return False, f"Missing required environment variables for {provider}: {', '.join(missing_vars)}"
     
     return True, ""
-
-
-# Legacy functions for backward compatibility
-def generate_with_openai(prompt, model_name):
-    """
-    Generate content using OpenAI (legacy function for backward compatibility).
-    
-    Args:
-        prompt: Prompt for the AI model
-        model_name: Name of the OpenAI model to use
-        
-    Yields:
-        str: Generated content tokens
-    """
-    try:
-        from openai import OpenAI
-        from dotenv import load_dotenv
-        load_dotenv()
-        
-        client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
-        response = client.chat.completions.create(
-            model=model_name,
-            messages=[{"role": "user", "content": prompt}],
-            stream=True
-        )
-        for chunk in response:
-            if chunk.choices[0].delta.content is not None:
-                yield chunk.choices[0].delta.content
-    except Exception as e:
-        logging.error(f"An error occurred running OpenAI model: {e}")
-        yield None
-
-
-def generate_with_azure(prompt, model_name):
-    """
-    Generate content using Azure OpenAI (legacy function for backward compatibility).
-    
-    Args:
-        prompt: Prompt for the AI model
-        model_name: Name of the Azure OpenAI model to use
-        
-    Returns:
-        str: Generated content, or None if an error occurs
-    """
-    try:
-        from azure.identity import ClientSecretCredential, get_bearer_token_provider
-        from openai import AzureOpenAI
-        from dotenv import load_dotenv
-        
-        load_dotenv()
-
-        APIM_SUBSCRIPTION_KEY = os.getenv("APIM_SUBSCRIPTION_KEY")
-        default_headers = {}
-        if APIM_SUBSCRIPTION_KEY:
-            default_headers["Ocp-Apim-Subscription-Key"] = APIM_SUBSCRIPTION_KEY 
-
-        # Set up authority and credentials for Azure authentication
-        credential = ClientSecretCredential(
-            tenant_id=os.getenv("AZURE_TENANT_ID"),
-            client_id=os.getenv("AZURE_CLIENT_ID"),
-            client_secret=os.getenv("AZURE_CLIENT_SECRET"),
-            authority="https://login.microsoftonline.com",
-        )
-
-        token_provider = get_bearer_token_provider(credential, "https://cognitiveservices.azure.com/.default")
-
-        client = AzureOpenAI(
-            azure_ad_token_provider=token_provider,
-            api_version=os.getenv("API_VERSION"),
-            azure_endpoint=os.getenv("API_ENDPOINT"),
-            default_headers=default_headers,
-        )
-
-        completion = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system",
-                    "content": "As a SLIM Best Practice User, your role is to understand, apply, and implement the best practices for Software Lifecycle Improvement and Modernization (SLIM) within your software projects. You should aim to optimize your software development processes, enhance the quality of your software products, and ensure continuous improvement across all stages of the software lifecycle.",
-                },
-                {
-                    "role": "user",
-                    "content": prompt,
-                }
-            ],
-            model=model_name
-        )
-        return completion.choices[0].message.content
-    except Exception as e:
-        logging.error(f"An error occurred running on Azure model: {str(e)}")
-        return None
-
-
-def generate_with_ollama(prompt, model_name):
-    """
-    Generate content using Ollama (legacy function for backward compatibility).
-    
-    Args:
-        prompt: Prompt for the AI model
-        model_name: Name of the Ollama model to use
-        
-    Returns:
-        str: Generated content, or None if an error occurs
-    """
-    try:
-        import ollama
-
-        response = ollama.chat(model=model_name, messages=[
-            {
-                'role': 'user',
-                'content': prompt,
-            },
-        ])
-        return response['message']['content']
-    except Exception as e:
-        logging.error(f"Error running Ollama model: {e}")
-        return None
-    
-
-def generate_content_with_fallback(prompt: str, model: str, **kwargs) -> Optional[str]:
-    """
-    Generate content with automatic fallback to alternative models.
-    
-    Args:
-        prompt: Prompt for the AI model
-        model: Primary model to try
-        **kwargs: Additional parameters
-        
-    Returns:
-        Generated content or None if all attempts fail
-    """
-    # Try primary model
-    result = generate_content(prompt, model, **kwargs)
-    if result:
-        return result
-    
-    # Get tier info and try fallback models from same tier
-    tier_info = get_model_tier_info(model)
-    tier = tier_info.get("tier", "balanced")
-    
-    fallback_models = get_recommended_models("documentation", tier)
-    
-    for fallback_model in fallback_models:
-        if fallback_model != model:  # Don't try the same model again
-            logging.warning(f"Trying fallback model: {fallback_model}")
-            result = generate_content(prompt, fallback_model, **kwargs)
-            if result:
-                return result
-    
-    logging.error("All AI models failed to generate content")
-    return None

@@ -12,12 +12,24 @@ import requests
 import urllib.parse
 import tempfile
 import uuid
+import re
+from typing import Dict, Optional
 
 # Constants (these should be moved to a constants module later)
 GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = 'slim-best-practices'
 GIT_DEFAULT_REMOTE_NAME = 'origin'
 GIT_CUSTOM_REMOTE_NAME = 'slim-custom'
 GIT_DEFAULT_COMMIT_MESSAGE = 'SLIM-CLI Best Practices Bot Commit'
+
+__all__ = [
+    "generate_git_branch_name",
+    "is_open_source", 
+    "clone_repository",
+    "create_branch",
+    "extract_git_info",
+    "is_git_repository",
+    "get_git_info_summary"
+]
 
 
 def generate_git_branch_name(best_practice_ids):
@@ -167,3 +179,84 @@ def create_branch(repo, branch_name):
     except Exception as e:
         logging.error(f"An unexpected error occurred: {e}")
         return None
+
+
+def extract_git_info(repo_path: str, repo_info: Dict) -> None:
+    """
+    Extract information from git repository.
+    
+    Args:
+        repo_path: Path to the git repository
+        repo_info: Dictionary to update with extracted information
+    """
+    try:
+        repo = git.Repo(repo_path)
+        
+        # Extract URL from remotes
+        for remote in repo.remotes:
+            for url in remote.urls:
+                # Extract org and repo from common git URL formats
+                match = re.search(r'github\.com[:/]([^/]+)/([^/.]+)', url)
+                if match:
+                    repo_info['org_name'] = match.group(1)
+                    repo_info['repo_url'] = f"https://github.com/{match.group(1)}/{match.group(2)}"
+                    break
+        
+        # Get default branch
+        try:
+            default_branch = repo.active_branch.name
+            repo_info['default_branch'] = default_branch
+        except (TypeError, git.exc.GitCommandError):
+            # Head might be detached, try to get from remote
+            try:
+                ref = repo.git.symbolic_ref('refs/remotes/origin/HEAD')
+                default_branch = ref.replace('refs/remotes/origin/', '')
+                repo_info['default_branch'] = default_branch
+            except git.exc.GitCommandError:
+                # Try common branch names
+                for branch in ['main', 'master']:
+                    try:
+                        repo.git.rev_parse('--verify', branch)
+                        repo_info['default_branch'] = branch
+                        break
+                    except git.exc.GitCommandError:
+                        continue
+    
+    except Exception as e:
+        logging.warning(f"Error extracting git information: {str(e)}")
+
+
+def is_git_repository(repo_path: str) -> bool:
+    """
+    Check if a directory is a git repository.
+    
+    Args:
+        repo_path: Path to check
+        
+    Returns:
+        True if the path is a git repository
+    """
+    return os.path.exists(os.path.join(repo_path, '.git'))
+
+
+def get_git_info_summary(repo_path: str) -> Optional[Dict[str, str]]:
+    """
+    Get a summary of git repository information.
+    
+    Args:
+        repo_path: Path to the git repository
+        
+    Returns:
+        Dictionary with git info summary, or None if not a git repo
+    """
+    if not is_git_repository(repo_path):
+        return None
+        
+    git_info = {}
+    extract_git_info(repo_path, git_info)
+    
+    return {
+        'org_name': git_info.get('org_name', ''),
+        'repo_url': git_info.get('repo_url', ''),
+        'default_branch': git_info.get('default_branch', '')
+    }
