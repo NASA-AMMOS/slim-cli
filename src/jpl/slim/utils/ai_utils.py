@@ -236,70 +236,27 @@ def generate_with_model(prompt: str, model: str, **kwargs) -> Optional[str]:
         return None
 
 
-def get_model_recommendations(task: str = "documentation") -> Dict[str, Dict[str, list]]:
+def get_model_recommendations(task: str = "documentation") -> Dict[str, str]:
     """
-    Get model recommendations based on task and quality/cost preferences.
+    Get guidance on choosing AI models for specific tasks.
+    
+    Instead of providing hard-coded recommendations that become outdated,
+    this function guides users to authoritative sources for model selection.
     
     Args:
-        task: The task type ("documentation", "code_generation", "general")
+        task: The task type (currently ignored, kept for API compatibility)
         
     Returns:
-        Dict with recommended models organized by quality/cost tiers
+        Dict with guidance URLs and instructions for model selection
     """
-    recommendations = {
-        "documentation": {
-            "premium": [
-                "anthropic/claude-4"
-                "anthropic/claude-opus-4-20250514",
-                "anthropic/claude-sonnet-4-20250514",
-                "anthropic/claude-3-5-sonnet-20241022",
-                "openai/gpt-4o",
-                "google/gemini-1.5-pro"
-            ],
-            "balanced": [
-                "openai/gpt-4o-mini", 
-                "anthropic/claude-3-haiku-20240307",
-                "cohere/command-r",
-                "mistral/mistral-large-latest"
-            ],
-            "fast": [
-                "groq/llama-3.1-70b-versatile",
-                "groq/mixtral-8x7b-32768",
-                "together/meta-llama/Llama-3-8b-chat-hf"
-            ],
-            "local": [
-                "ollama/llama3.1",
-                "ollama/gemma2",
-                "vllm/meta-llama/Llama-3-8b-chat-hf"
-            ]
-        },
-        "code_generation": {
-            "premium": [
-                "anthropic/claude-4"
-                "anthropic/claude-opus-4-20250514",
-                "anthropic/claude-sonnet-4-20250514",
-                "anthropic/claude-3-5-sonnet-20241022",
-                "openai/gpt-4o",
-                "mistral/codestral-latest"
-            ],
-            "balanced": [
-                "openai/gpt-4o-mini",
-                "anthropic/claude-3-haiku-20240307", 
-                "cohere/command-r"
-            ],
-            "fast": [
-                "groq/llama-3.1-70b-versatile",
-                "together/meta-llama/CodeLlama-7b-Instruct-hf"
-            ],
-            "local": [
-                "ollama/codellama",
-                "ollama/llama3.1",
-                "vllm/meta-llama/CodeLlama-7b-Instruct-hf"
-            ]
-        }
+    return {
+        "message": "To choose the best AI model for your task, please visit these resources:",
+        "leaderboard_url": "https://www.vellum.ai/llm-leaderboard",
+        "leaderboard_description": "Visit this URL to see current LLM rankings and performance metrics",
+        "model_names_url": "https://models.litellm.ai/",
+        "model_names_description": "Visit this URL to find the correct model name format to use with SLIM-CLI",
+        "example_usage": "Example: if you want to use Claude 3.5 Sonnet, use 'anthropic/claude-3-5-sonnet-20241022'"
     }
-    
-    return recommendations.get(task, recommendations["documentation"])
 
 
 def validate_model(model: str) -> tuple[bool, str]:

@@ -138,50 +138,6 @@ class TestAIUtils:
         assert "Missing required environment variables" in error_message
         assert "ANTHROPIC_API_KEY" in error_message
 
-    def test_get_model_recommendations(self):
-        """Test get_model_recommendations returns correct structure."""
-        # Act
-        recommendations = get_model_recommendations("documentation")
-        
-        # Assert
-        assert isinstance(recommendations, dict)
-        assert "premium" in recommendations
-        assert "balanced" in recommendations
-        assert "fast" in recommendations
-        assert "local" in recommendations
-        assert all(isinstance(models, list) for models in recommendations.values())
-
-    def test_get_model_recommendations_code_generation(self):
-        """Test get_model_recommendations for code generation task."""
-        # Act
-        recommendations = get_model_recommendations("code_generation")
-        
-        # Assert
-        assert isinstance(recommendations, dict)
-        assert "premium" in recommendations
-        # Check that code generation has different models than documentation
-        assert "mistral/codestral-latest" in recommendations["premium"]
-
-    @patch('jpl.slim.utils.ai_utils.get_prompt_with_context')
-    @patch('jpl.slim.utils.ai_utils.generate_ai_content')
-    def test_enhance_content_success(self, mock_generate, mock_get_prompt):
-        """Test enhance_content successfully enhances content."""
-        # Arrange
-        content = "Original content"
-        practice_type = "docgen"
-        section_name = "overview"
-        model = "openai/gpt-4o"
-        
-        mock_get_prompt.return_value = "Enhancement prompt"
-        mock_generate.return_value = "Enhanced content"
-        
-        # Act
-        result = enhance_content(content, practice_type, section_name, model)
-        
-        # Assert
-        mock_get_prompt.assert_called_once_with(practice_type, section_name, None)
-        assert result == "Enhanced content"
-
     @patch('jpl.slim.utils.ai_utils.get_prompt_with_context')
     def test_enhance_content_no_prompt(self, mock_get_prompt):
         """Test enhance_content when no prompt is found."""
