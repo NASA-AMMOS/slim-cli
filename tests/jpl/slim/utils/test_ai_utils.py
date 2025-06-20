@@ -1,7 +1,11 @@
 """
 Tests for AI utility functions.
+
+NOTE: Currently only testing failure conditions, not actual AI-generated functionality.
 """
 
+import os
+import sys
 from unittest.mock import patch, MagicMock
 
 from jpl.slim.utils.ai_utils import (
@@ -10,8 +14,7 @@ from jpl.slim.utils.ai_utils import (
     generate_ai_content,
     generate_with_model,
     enhance_content,
-    validate_model,
-    get_model_recommendations
+    validate_model
 )
 
 
@@ -161,7 +164,7 @@ class TestAIUtils:
         """Test enhance_content when AI generation fails."""
         # Arrange
         content = "Original content"
-        practice_type = "docgen"
+        practice_type = "docs_website"
         section_name = "overview"
         model = "openai/gpt-4o"
         
@@ -173,3 +176,59 @@ class TestAIUtils:
         
         # Assert
         assert result == content  # Returns original content
+
+    def test_generate_with_model_no_content(self):
+        """Test model generation with no content returned."""
+        mock_completion = MagicMock()
+        mock_response = MagicMock()
+        mock_response.choices = []
+        mock_completion.return_value = mock_response
+        
+        with patch.dict('sys.modules', {'litellm': MagicMock(completion=mock_completion)}):
+            result = generate_with_model("test prompt", "openai/gpt-4o")
+            
+            assert result is None
+    
+    def test_generate_with_model_import_error(self):
+        """Test model generation when LiteLLM is not available."""
+        with patch('builtins.__import__', side_effect=ImportError()):
+            result = generate_with_model("test prompt", "openai/gpt-4o")
+        
+        assert result is None
+
+    def test_generate_with_model_exception(self):
+        """Test model generation when an exception occurs."""
+        mock_completion = MagicMock()
+        mock_completion.side_effect = Exception("Test error")
+        
+        with patch.dict('sys.modules', {'litellm': MagicMock(completion=mock_completion)}):
+            result = generate_with_model("test prompt", "openai/gpt-4o")
+            
+            assert result is None
+    
+
+    @patch('jpl.slim.utils.ai_utils.generate_with_model')
+    def test_generate_ai_content_unsupported_provider(self, mock_generate):
+        """Test handling of unsupported provider."""
+        mock_generate.side_effect = Exception("Primary failed")
+        
+        result = generate_ai_content("test prompt", "unsupported/model")
+        
+        assert result is None
+
+    @patch('jpl.slim.utils.ai_utils.get_prompt_with_context')
+    def test_enhance_content_exception(self, mock_get_prompt):
+        """Test content enhancement when an exception occurs."""
+        # Setup mocks
+        mock_get_prompt.side_effect = Exception("Test error")
+        
+        # Test
+        result = enhance_content(
+            content="Original content",
+            practice_type="docs_website",
+            section_name="overview",
+            model="openai/gpt-4o"
+        )
+        
+        # Should return original content
+        assert result == "Original content"
