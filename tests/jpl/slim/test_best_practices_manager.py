@@ -109,27 +109,34 @@ class TestBestPracticeManager:
         manager = BestPracticeManager(registry_dict)
         
         # Act
-        practice = manager.get_best_practice("governance-medium")  # Medium teams governance
+        practice1 = manager.get_best_practice("governance-medium")  # Medium teams governance
+        practice2 = manager.get_best_practice("governance-large")  # Large teams governance
+        practice3 = manager.get_best_practice("governance-small")  # Small teams governance
+        practice4 = manager.get_best_practice("secrets-github")
         
         # Assert
-        assert practice is not None
-        assert isinstance(practice, StandardPractice)
-        assert practice.best_practice_id == "governance-medium"
-        assert practice.title == "GOVERNANCE.md"
-        assert practice.uri == "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-MEDIUM-TEAMS.md"
-        assert practice.description == "A governance model template seeking to generalize how most government-sponsored open source projects can expect to operate in the open source arena."
+        assert practice1 is not None
+        assert isinstance(practice1, StandardPractice)
+        assert practice1.best_practice_id == "governance-medium"
+        assert practice1.title == "GOVERNANCE.md"
+        assert practice1.uri == "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-MEDIUM-TEAMS.md"
+        assert practice1.description == "A governance model template seeking to generalize how most government-sponsored open source projects can expect to operate in the open source arena."
         
-    def test_get_best_practice_returns_secrets_detection_practice(self):
-        """Test that get_best_practice returns a SecretsDetection for secrets aliases."""
-        # Arrange
-        registry_dict = create_slim_registry_dictionary()
-        manager = BestPracticeManager(registry_dict)
+        assert practice2 is not None
+        assert isinstance(practice2, StandardPractice)
+        assert practice2.best_practice_id == "governance-large"
+        assert practice2.title == "GOVERNANCE.md"
+        assert practice2.uri == "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-LARGE-TEAMS.md"
+        assert practice2.description == "A governance model template seeking to generalize how most government-sponsored open source projects can expect to operate in the open source arena."
         
-        # Act
-        practice = manager.get_best_practice("secrets-github")
+        assert practice3 is not None
+        assert isinstance(practice3, StandardPractice)
+        assert practice3.best_practice_id == "governance-small"
+        assert practice3.title == "GOVERNANCE.md"
+        assert practice3.uri == "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-SMALL-TEAMS.md"
+        assert practice3.description == "A governance model template seeking to generalize how most government-sponsored open source projects can expect to operate in the open source arena."
         
-        # Assert
-        assert practice is not None
+        assert practice4 is not None
         from jpl.slim.best_practices.secrets_detection import SecretsDetection
-        assert isinstance(practice, SecretsDetection)
-        assert practice.best_practice_id == "secrets-github"
+        assert isinstance(practice4, SecretsDetection)
+        assert practice4.best_practice_id == "secrets-github"
