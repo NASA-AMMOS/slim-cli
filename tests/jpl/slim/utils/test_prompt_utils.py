@@ -340,11 +340,24 @@ class TestSubstituteVariables:
     
     def test_substitute_variables_missing_variable(self):
         """Test variable substitution with missing variable."""
+        import warnings
+        
         text = "Hello {name}, your project is {status}."
         variables = {'name': 'John'}
-        result = substitute_variables(text, variables)
-        # Should return original text if substitution fails
-        assert result == text
+        
+        # Capture warnings
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = substitute_variables(text, variables)
+            
+            # Check that a warning was issued
+            assert len(w) == 1
+            assert "Some variables were not found" in str(w[0].message)
+            assert "['status']" in str(w[0].message)
+        
+        # Should return text with available variables substituted
+        expected = "Hello John, your project is {status}."
+        assert result == expected
     
     def test_substitute_variables_no_variables(self):
         """Test variable substitution with no variables."""
@@ -356,6 +369,28 @@ class TestSubstituteVariables:
         """Test variable substitution with empty text."""
         result = substitute_variables("", {'name': 'John'})
         assert result == ""
+    
+    def test_substitute_variables_multiple_missing(self):
+        """Test variable substitution with multiple missing variables."""
+        import warnings
+        
+        text = "Hello {name}, your {type} project is {status} at {location}."
+        variables = {'name': 'John', 'location': 'NYC'}
+        
+        # Capture warnings
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = substitute_variables(text, variables)
+            
+            # Check that a warning was issued
+            assert len(w) == 1
+            assert "Some variables were not found" in str(w[0].message)
+            assert "'type'" in str(w[0].message)
+            assert "'status'" in str(w[0].message)
+        
+        # Should return text with available variables substituted
+        expected = "Hello John, your {type} project is {status} at NYC."
+        assert result == expected
 
 
 class TestValidatePromptsFile:

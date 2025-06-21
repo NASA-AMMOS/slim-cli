@@ -213,8 +213,27 @@ def substitute_variables(text: str, variables: Dict[str, str]) -> str:
     try:
         return text.format(**variables)
     except KeyError as e:
-        logging.warning(f"Variable {e} not found in substitution dictionary")
-        return text
+        # Use string.Template for partial substitution
+        import string
+        import re
+        
+        # Find all variables in the text
+        pattern = r'\{([^}]+)\}'
+        all_vars = re.findall(pattern, text)
+        
+        # Find missing variables
+        missing_vars = [var for var in all_vars if var not in variables]
+        
+        if missing_vars:
+            import warnings
+            warnings.warn(f"Some variables were not found and cannot be substituted: {missing_vars}")
+        
+        # Perform partial substitution
+        result = text
+        for var_name, var_value in variables.items():
+            result = result.replace(f'{{{var_name}}}', str(var_value))
+        
+        return result
     except Exception as e:
         logging.warning(f"Error substituting variables: {str(e)}")
         return text
