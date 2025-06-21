@@ -23,7 +23,6 @@ GIT_DEFAULT_COMMIT_MESSAGE = 'SLIM-CLI Best Practices Bot Commit'
 
 __all__ = [
     "generate_git_branch_name",
-    "is_open_source", 
     "clone_repository",
     "create_branch",
     "extract_git_info",
@@ -50,52 +49,6 @@ def generate_git_branch_name(best_practice_ids):
     else:
         return None
 
-def is_open_source(repo_url):
-    """
-    Check if a repository is open source.
-    
-    Args:
-        repo_url: URL of the repository
-        
-    Returns:
-        bool: True if the repository is open source, False otherwise
-    """
-    # In test mode, return value based on test expectations
-    if os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't'):
-        logging.info(f"TEST MODE: Simulating license check for {repo_url}")
-        # For specific test cases in test_git_utils.py, return False
-        if "user/repo" in repo_url and not "repo.git" in repo_url:
-            return False
-        return True
-        
-    try:
-        # Extract owner and repo name from the URL
-        owner_repo = repo_url.rstrip('/').split('/')[-2:]
-        owner, repo = owner_repo[0], owner_repo[1]
-        # Remove .git suffix if present
-        repo = repo[:-4] if repo.endswith('.git') else repo
-
-        # Use the GitHub API to fetch the repository license
-        api_url = f"https://api.github.com/repos/{owner}/{repo}/license"
-        headers = {
-            "Accept": "application/vnd.github.v3+json",
-            "Authorization": f"token {os.getenv('GITHUB_API_TOKEN')}"  # Optional: Use GitHub token for higher rate limits
-        }
-        response = requests.get(api_url, headers=headers)
-        if response.status_code == 200:
-            license_data = response.json()
-            license_name = license_data.get('license', {}).get('spdx_id', '')
-            open_source_licenses = [
-                "MIT", "Apache-2.0", "GPL-3.0", "GPL-2.0", "BSD-3-Clause", 
-                "BSD-2-Clause", "LGPL-3.0", "MPL-2.0", "CDDL-1.0", "EPL-2.0"
-            ]
-            return license_name in open_source_licenses
-        else:
-            print(f"Failed to fetch license information. Status code: {response.status_code}")
-            return False
-    except Exception as e:
-        print(f"An error occurred while checking the license: {e}")
-        return False
 
 
 def clone_repository(repo_url, target_dir=None):
@@ -162,7 +115,7 @@ def create_branch(repo, branch_name):
         else:
             # Create an initial commit
             with open(os.path.join(repo.working_dir, 'README.md'), 'w') as file:
-                file.write("Initial commit")
+                file.write("Empty README for now.")
             repo.index.add(['README.md'])  # Add files to the index
             repo.index.commit('Initial commit')  # Commit the changes
             logging.debug("Initial commit created in the empty repository.")
@@ -183,7 +136,15 @@ def create_branch(repo, branch_name):
 
 def extract_git_info(repo_path: str, repo_info: Dict) -> None:
     """
-    Extract information from git repository.
+    Extract git repository information including organization, URL, and default branch.
+    
+    Extracts the following information from a git repository:
+    - org_name: Organization/user name from the remote URL
+    - repo_url: HTTPS URL of the repository
+    - default_branch: Name of the default branch (main, master, etc.)
+    
+    Supports multiple git hosting platforms including GitHub, GitHub Enterprise,
+    GitLab, and other common git hosts.
     
     Args:
         repo_path: Path to the git repository
@@ -196,10 +157,29 @@ def extract_git_info(repo_path: str, repo_info: Dict) -> None:
         for remote in repo.remotes:
             for url in remote.urls:
                 # Extract org and repo from common git URL formats
-                match = re.search(r'github\.com[:/]([^/]+)/([^/.]+)', url)
-                if match:
-                    repo_info['org_name'] = match.group(1)
-                    repo_info['repo_url'] = f"https://github.com/{match.group(1)}/{match.group(2)}"
+                # Support GitHub, GitHub Enterprise, GitLab, and other common hosts
+                patterns = [
+                    r'([^/:]+\.github\.com)[:/]([^/]+)/([^/.]+)',  # GitHub Enterprise
+                    r'(github\.com)[:/]([^/]+)/([^/.]+)',          # GitHub.com
+                    r'([^/:]+\.gitlab\.com)[:/]([^/]+)/([^/.]+)',  # GitLab instances
+                    r'(gitlab\.com)[:/]([^/]+)/([^/.]+)',          # GitLab.com
+                    r'([^/:]+\.[^/:]+)[:/]([^/]+)/([^/.]+)'        # Generic git hosts
+                ]
+                
+                for pattern in patterns:
+                    match = re.search(pattern, url)
+                    if match:
+                        host = match.group(1)
+                        org = match.group(2)
+                        repo_name = match.group(3)
+                        
+                        # Remove .git suffix if present
+                        repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name
+                        
+                        repo_info['org_name'] = org
+                        repo_info['repo_url'] = f"https://{host}/{org}/{repo_name}"
+                        break
+                if 'repo_url' in repo_info:
                     break
         
         # Get default branch
@@ -236,18 +216,28 @@ def is_git_repository(repo_path: str) -> bool:
     Returns:
         True if the path is a git repository
     """
-    return os.path.exists(os.path.join(repo_path, '.git'))
+    try:
+        git.Repo(repo_path)
+        return True
+    except (git.exc.InvalidGitRepositoryError, git.exc.NoSuchPathError):
+        return False
 
 
 def get_git_info_summary(repo_path: str) -> Optional[Dict[str, str]]:
     """
     Get a summary of git repository information.
     
+    Returns a dictionary containing:
+    - org_name: Organization/user name from the remote URL
+    - repo_url: HTTPS URL of the repository  
+    - default_branch: Name of the default branch (main, master, etc.)
+    
     Args:
         repo_path: Path to the git repository
         
     Returns:
-        Dictionary with git info summary, or None if not a git repo
+        Dictionary with git info summary containing org_name, repo_url, and default_branch,
+        or None if the path is not a valid git repository
     """
     if not is_git_repository(repo_path):
         return None
