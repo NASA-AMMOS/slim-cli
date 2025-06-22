@@ -76,12 +76,19 @@ def deploy(
     repo_dir_str = str(repo_dir) if repo_dir else None
     
     # Deploy best practices
-    deploy_best_practices(
-        best_practice_ids=best_practice_ids,
-        repo_dir=repo_dir_str,
-        remote=remote,
-        commit_message=commit_message
-    )
+    try:
+        success = deploy_best_practices(
+            best_practice_ids=best_practice_ids,
+            repo_dir=repo_dir_str,
+            remote=remote,
+            commit_message=commit_message
+        )
+        if not success:
+            raise typer.Exit(1)
+    except Exception as e:
+        console = Console()
+        console.print(f"❌ [red]Error deploying best practices: {str(e)}[/red]")
+        raise typer.Exit(1)
 
 def deploy_best_practices(best_practice_ids, repo_dir, remote=None, commit_message=GIT_DEFAULT_COMMIT_MESSAGE):
     """
@@ -96,14 +103,20 @@ def deploy_best_practices(best_practice_ids, repo_dir, remote=None, commit_messa
     # Use shared branch if multiple best_practice_ids else use default branch name
     branch_name = generate_git_branch_name(best_practice_ids)
 
+    success = True
     for best_practice_id in best_practice_ids:
-        deploy_best_practice(
+        result = deploy_best_practice(
             best_practice_id=best_practice_id,
             repo_dir=repo_dir,
             remote=remote,
             commit_message=commit_message,
             branch=branch_name
         )
+        if not result:
+            success = False
+            break
+    
+    return success
 
 def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message='Default commit message', branch=None):
     """

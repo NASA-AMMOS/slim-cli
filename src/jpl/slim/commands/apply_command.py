@@ -133,18 +133,25 @@ def apply(
     urls_from_file = repo_file_to_list(str(repo_urls_file)) if repo_urls_file else None
     
     # Apply best practices
-    apply_best_practices(
-        best_practice_ids=best_practice_ids,
-        use_ai_flag=bool(use_ai),
-        model=use_ai,
-        repo_urls=urls_from_file if urls_from_file else repo_urls,
-        existing_repo_dir=repo_dir_str,
-        target_dir_to_clone_to=clone_to_dir_str,
-        no_prompt=no_prompt,
-        output_dir=output_dir_str,
-        template_only=template_only,
-        revise_site=revise_site
-    )
+    try:
+        success = apply_best_practices(
+            best_practice_ids=best_practice_ids,
+            use_ai_flag=bool(use_ai),
+            model=use_ai,
+            repo_urls=urls_from_file if urls_from_file else repo_urls,
+            existing_repo_dir=repo_dir_str,
+            target_dir_to_clone_to=clone_to_dir_str,
+            no_prompt=no_prompt,
+            output_dir=output_dir_str,
+            template_only=template_only,
+            revise_site=revise_site
+        )
+        if not success:
+            raise typer.Exit(1)
+    except Exception as e:
+        console = Console()
+        console.print(f"❌ [red]Error applying best practices: {str(e)}[/red]")
+        raise typer.Exit(1)
 
 def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, existing_repo_dir=None, 
                          target_dir_to_clone_to=None, no_prompt=False, **kwargs):
@@ -163,7 +170,7 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
     """
     # Handle special case for docs-website best practice
     if len(best_practice_ids) == 1 and best_practice_ids[0] == "docs-website":
-        apply_best_practice(
+        result = apply_best_practice(
             best_practice_id=best_practice_ids[0],
             use_ai_flag=use_ai_flag,
             model=model,
@@ -173,13 +180,13 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
             no_prompt=no_prompt,
             **kwargs
         )
-        return
+        return result is not None
 
     # Handle normal case for other best practices
     if existing_repo_dir:
         branch = GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS if len(best_practice_ids) > 1 else best_practice_ids[0]
         for best_practice_id in best_practice_ids:
-            apply_best_practice(
+            result = apply_best_practice(
                 best_practice_id=best_practice_id,
                 use_ai_flag=use_ai_flag,
                 model=model,
@@ -188,6 +195,8 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
                 no_prompt=no_prompt,
                 **kwargs
             )
+            if result is None:
+                return False
     else:
         for repo_url in repo_urls:
             if len(best_practice_ids) > 1:
@@ -199,7 +208,7 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
                     repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
                     if target_dir_to_clone_to:
                         for best_practice_id in best_practice_ids:
-                            apply_best_practice(
+                            result = apply_best_practice(
                                 best_practice_id=best_practice_id,
                                 use_ai_flag=use_ai_flag,
                                 model=model,
@@ -209,11 +218,13 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
                                 no_prompt=no_prompt,
                                 **kwargs
                             )
+                            if result is None:
+                                return False
                     else:  # else make a temporary directory
                         repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
                         logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
                         for best_practice_id in best_practice_ids:
-                            apply_best_practice(
+                            result = apply_best_practice(
                                 best_practice_id=best_practice_id,
                                 use_ai_flag=use_ai_flag,
                                 model=model,
@@ -225,7 +236,7 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
                             )
                 else:
                     for best_practice_id in best_practice_ids:
-                        apply_best_practice(
+                        result = apply_best_practice(
                             best_practice_id=best_practice_id,
                             use_ai_flag=use_ai_flag,
                             model=model,
@@ -234,7 +245,7 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
                             **kwargs
                         )
             elif len(best_practice_ids) == 1:
-                apply_best_practice(
+                result = apply_best_practice(
                     best_practice_id=best_practice_ids[0],
                     use_ai_flag=use_ai_flag,
                     model=model,
@@ -246,6 +257,10 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
                 )
             else:
                 logging.error(f"No best practice IDs specified.")
+                return False
+    
+    # Return True if we get here (successful execution)
+    return True
 
 def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url=None, existing_repo_dir=None, 
                         target_dir_to_clone_to=None, branch=None, no_prompt=False, **kwargs):

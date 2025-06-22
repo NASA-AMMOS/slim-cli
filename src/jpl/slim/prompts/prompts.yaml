@@ -1,5 +1,5 @@
 # SLIM CLI Prompts Configuration
-# 
+#
 # This file defines all AI prompts used throughout SLIM CLI.
 # Context is optional at any level and cascades from parent to child.
 # If present, all applicable context levels are combined and passed to the LLM.
@@ -10,16 +10,16 @@ context: "You are a SLIM best practice assistant helping to improve software pro
 # Standard practices using template-based approach
 standard_practices:
   context: "You are applying SLIM standard practices to improve software governance and documentation."
-  
+
   # Governance practices
   governance:
     prompt: "Fill out all blanks in the template below that start with INSERT. Use the provided context information to fill the blanks. Return the template with filled out values."
-    
-  # Documentation practices  
+
+  # Documentation practices
   readme:
-    context: "Create comprehensive documentation that helps users understand and use the project effectively."
+    context: "You are a technical documentation specialist helping to create a README file. Format using markdown and ensure novice and expert users can read the documentation."
     prompt: "Fill out all blanks in the template below that start with INSERT. Use the provided context information to fill the blanks. Return the template with filled out values."
-    
+
   # Testing documentation
   testing-plan:
     context: "Document existing testing practices and coverage accurately based on what actually exists in the repository."
@@ -28,23 +28,23 @@ standard_practices:
 # Documentation generation practices
 docgen:
   context: "You are a technical documentation specialist helping to create comprehensive software documentation. Format using markdown and fix any errors for Docusaurus website compatibility."
-  
+
   overview:
     context: "Create an engaging project overview that captures the essence and value proposition of the project."
     prompt: "Enhance this project overview to be more comprehensive and user-friendly while maintaining accuracy. Add clear sections for features, use cases, and key concepts if they're not already present."
-    
+
   installation:
     context: "Provide clear, step-by-step installation instructions that users can follow successfully."
     prompt: "Improve this installation guide by adding clear prerequisites, troubleshooting tips, and platform-specific instructions while maintaining accuracy."
-    
+
   api:
     context: "Document APIs with clarity, comprehensive examples, and detailed parameter descriptions."
     prompt: "Enhance this API documentation by adding more detailed descriptions, usage examples, and parameter explanations while maintaining technical accuracy."
-    
+
   development:
     context: "Guide developers through the development workflow, project structure, and best practices."
     prompt: "Improve this development guide by adding more context, best practices, and workflow descriptions while maintaining accuracy."
-    
+
   contributing:
     context: "Create welcoming and clear contributing guidelines that encourage community participation."
     prompt: "Enhance these contributing guidelines by adding more specific examples, workflow descriptions, and best practices while maintaining accuracy."
@@ -53,11 +53,11 @@ docgen:
   index_js_update:
     context: "Update React component content while preserving the existing structure completely."
     prompt: "Using the provided overview.md content as context, update ONLY the text content in this React component (index.js) while preserving its existing structure completely."
-    
+
   homepage_features_update:
     context: "Update feature descriptions in React components based on documentation content."
     prompt: "Using the provided overview.md content as context, update ONLY the feature descriptions in this React component while preserving its structure."
-    
+
   docusaurus_config_update:
     context: "Update Docusaurus configuration based on project information."
     prompt: "Using the provided overview.md content as context, update ONLY the title and tagline in this docusaurus.config.js file."
@@ -66,7 +66,6 @@ docgen:
 secrets_detection:
   # No AI prompts needed - this practice uses rule-based detection
   context: "Security-focused practice for detecting and preventing secrets in code repositories."
-
 # Future practices can be added here following the same pattern
 # Each practice type can define:
 # - context (optional): Inherits from parent levels
