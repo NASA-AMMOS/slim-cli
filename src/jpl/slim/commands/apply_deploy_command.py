@@ -10,6 +10,11 @@ import os
 import tempfile
 import urllib.parse
 import uuid
+from typing import List, Optional
+from pathlib import Path
+import typer
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
 import git
 
 from jpl.slim.utils.io_utils import repo_file_to_list
@@ -18,8 +23,13 @@ from jpl.slim.commands.apply_command import apply_best_practice
 from jpl.slim.commands.deploy_command import deploy_best_practice
 from jpl.slim.commands.common import (
     GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS,
-    GIT_DEFAULT_COMMIT_MESSAGE
+    GIT_DEFAULT_COMMIT_MESSAGE,
+    SUPPORTED_MODELS,
+    get_ai_model_pairs
 )
+from jpl.slim.app import app, state, handle_dry_run_for_command
+
+console = Console()
 
 # Log message constants
 LOG_APPLY_FAILED = "Failed to apply best practice '{}'"
@@ -30,62 +40,128 @@ LOG_SUCCESS_APPLY_DEPLOY = "Successfully applied and deployed best practice ID: 
 LOG_UNABLE_TO_APPLY_DEPLOY = "Unable to apply and deploy best practice ID: {}"
 LOG_UNABLE_TO_DEPLOY = "Unable to deploy best practice ID: {}"
 
-def setup_parser(subparsers):
+@app.command(name="apply-deploy")
+def apply_deploy(
+    best_practice_ids: List[str] = typer.Option(
+        ...,
+        "--best-practice-ids", "-b",
+        help="Best practice aliases to apply (e.g., readme, governance-small, secrets-github)"
+    ),
+    repo_urls: Optional[List[str]] = typer.Option(
+        None,
+        "--repo-urls",
+        help="Repository URLs to apply to. Do not use if --repo-dir specified"
+    ),
+    repo_urls_file: Optional[Path] = typer.Option(
+        None,
+        "--repo-urls-file",
+        help="Path to a file containing repository URLs",
+        exists=True,
+        file_okay=True,
+        dir_okay=False
+    ),
+    repo_dir: Optional[Path] = typer.Option(
+        None,
+        "--repo-dir",
+        help="Repository directory location on local machine. Only one repository supported",
+        exists=True,
+        file_okay=False,
+        dir_okay=True
+    ),
+    clone_to_dir: Optional[Path] = typer.Option(
+        None,
+        "--clone-to-dir",
+        help="Local path to clone repository to. Compatible with --repo-urls"
+    ),
+    use_ai: Optional[str] = typer.Option(
+        None,
+        "--use-ai",
+        help=f"Automatically customize the application of the best practice with the specified AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}"
+    ),
+    remote: Optional[str] = typer.Option(
+        None,
+        "--remote",
+        help="Push to a specified remote. If not specified, pushes to 'origin'. Format should be a GitHub-like URL base. For example `https://github.com/my_github_user`"
+    ),
+    commit_message: str = typer.Option(
+        GIT_DEFAULT_COMMIT_MESSAGE,
+        "--commit-message", "-m",
+        help="Commit message to use for the deployment."
+    ),
+    no_prompt: bool = typer.Option(
+        False,
+        "--no-prompt",
+        help="Skip user confirmation prompts when installing dependencies"
+    ),
+    output_dir: Optional[Path] = typer.Option(
+        None,
+        "--output-dir",
+        help="Output directory for generated documentation (required for doc-gen)"
+    ),
+    template_only: bool = typer.Option(
+        False,
+        "--template-only",
+        help="Generate only the documentation template without analyzing a repository (for doc-gen)"
+    ),
+    revise_site: bool = typer.Option(
+        False,
+        "--revise-site",
+        help="Revise an existing documentation site (for doc-gen)"
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run", "-d",
+        help="Show what would be executed without making changes"
+    )
+):
     """
-    Set up the parser for the 'apply-deploy' command.
-
-    Args:
-        subparsers: Subparsers object from argparse
-
-    Returns:
-        The parser for the 'apply-deploy' command
-    """
-    from jpl.slim.commands.common import SUPPORTED_MODELS, get_ai_model_pairs
-
-    parser = subparsers.add_parser('apply-deploy', help='Applies and deploys a best practice')
-    parser.add_argument('--best-practices', nargs='+', required=True, help='Best practice aliases to apply (e.g., readme, governance-small, secrets-github)')
-    parser.add_argument('--repo-urls', nargs='+', required=False, help='Repository URLs to apply to. Do not use if --repo-dir specified')
-    parser.add_argument('--repo-urls-file', required=False, help='Path to a file containing repository URLs')
-    parser.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
-    parser.add_argument('--clone-to-dir', required=False, help='Local path to clone repository to. Compatible with --repo-urls')
-    parser.add_argument('--use-ai', metavar='MODEL', help=f'Automatically customize the application of the best practice with the specified AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}')
-    parser.add_argument('--remote', required=False, default=None, help=f"Push to a specified remote. If not specified, pushes to 'origin'. Format should be a GitHub-like URL base. For example `https://github.com/my_github_user`")
-    parser.add_argument('--commit-message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}")
-    parser.add_argument('--no-prompt', action='store_true', help='Skip user confirmation prompts when installing dependencies')
+    Apply and deploy best practices to repositories in one step.
     
-    # Doc-gen specific arguments
-    parser.add_argument('--output-dir', required=False, help='Output directory for generated documentation (required for doc-gen)')
-    parser.add_argument('--template-only', action='store_true', help='Generate only the documentation template without analyzing a repository (for doc-gen)')
-    parser.add_argument('--revise-site', action='store_true', help='Revise an existing documentation site (for doc-gen)')
-    
-    parser.set_defaults(func=handle_command)
-    return parser
-
-def handle_command(args):
+    This command combines the functionality of 'apply' and 'deploy',
+    applying best practices and then pushing them to a git remote.
     """
-    Handle the 'apply-deploy' command.
+    # Handle dry-run mode
+    if state.dry_run or dry_run:
+        if handle_dry_run_for_command(
+            "apply-deploy",
+            best_practice_ids=best_practice_ids,
+            repo_urls=repo_urls,
+            repo_urls_file=str(repo_urls_file) if repo_urls_file else None,
+            repo_dir=str(repo_dir) if repo_dir else None,
+            clone_to_dir=str(clone_to_dir) if clone_to_dir else None,
+            use_ai=use_ai,
+            remote=remote,
+            commit_message=commit_message,
+            no_prompt=no_prompt,
+            output_dir=str(output_dir) if output_dir else None,
+            template_only=template_only,
+            revise_site=revise_site,
+            dry_run=True
+        ):
+            return
     
-    Note: This function now receives only command-specific arguments.
-    CLI-level arguments are handled at the CLI level.
-
-    Args:
-        args: Command-specific arguments from argparse
-    """
-    # Clean argument extraction - no more brittle popping!
+    # Convert paths to strings for backward compatibility
+    repo_dir_str = str(repo_dir) if repo_dir else None
+    clone_to_dir_str = str(clone_to_dir) if clone_to_dir else None
+    output_dir_str = str(output_dir) if output_dir else None
+    
+    # Read URLs from file if provided
+    urls_from_file = repo_file_to_list(str(repo_urls_file)) if repo_urls_file else None
+    
+    # Apply and deploy best practices
     apply_and_deploy_best_practices(
-        best_practice_ids=args.best_practices,
-        use_ai_flag=bool(args.use_ai),
-        model=args.use_ai if args.use_ai else None,
-        remote=args.remote,
-        commit_message=args.commit_message,
-        repo_urls=repo_file_to_list(args.repo_urls_file) if args.repo_urls_file else args.repo_urls,
-        existing_repo_dir=args.repo_dir,
-        target_dir_to_clone_to=args.clone_to_dir,
-        no_prompt=args.no_prompt,
-        # Doc-gen specific arguments
-        output_dir=getattr(args, 'output_dir', None),
-        template_only=getattr(args, 'template_only', False),
-        revise_site=getattr(args, 'revise_site', False)
+        best_practice_ids=best_practice_ids,
+        use_ai_flag=bool(use_ai),
+        model=use_ai,
+        remote=remote,
+        commit_message=commit_message,
+        repo_urls=urls_from_file if urls_from_file else repo_urls,
+        existing_repo_dir=repo_dir_str,
+        target_dir_to_clone_to=clone_to_dir_str,
+        no_prompt=no_prompt,
+        output_dir=output_dir_str,
+        template_only=template_only,
+        revise_site=revise_site
     )
 
 def _apply_multiple_best_practices(best_practice_ids, use_ai_flag, model, remote=None, 

@@ -7,89 +7,124 @@ which generates unit test files for Python code in the repository.
 
 import logging
 import os
+from pathlib import Path
+from typing import Optional
+import typer
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
-def setup_parser(subparsers):
-    """
-    Set up the parser for the 'generate-tests' command.
-    
-    Args:
-        subparsers: Subparsers object from argparse
-        
-    Returns:
-        The parser for the 'generate-tests' command
-    """
-    from jpl.slim.commands.common import SUPPORTED_MODELS, get_ai_model_pairs
-    
-    parser = subparsers.add_parser('generate-tests',
-        help='Generates unit test files for Python code in the repository')
-    parser.add_argument('--repo-dir', required=True,
-        help='Repository directory location on local machine')
-    parser.add_argument('--output-dir', required=True,
-        help='Directory where test files should be generated')
-    parser.add_argument('--use-ai', metavar='MODEL',
-        help=f"Generate tests using AI model. Supported models: {get_ai_model_pairs(SUPPORTED_MODELS)}")
-    parser.set_defaults(func=handle_command)
-    return parser
+from jpl.slim.commands.common import SUPPORTED_MODELS, get_ai_model_pairs
+from jpl.slim.app import app, state, handle_dry_run_for_command
 
-def handle_command(args):
-    """
-    Handle the 'generate-tests' command.
-    
-    Note: This function now receives only command-specific arguments.
-    CLI-level arguments are handled at the CLI level.
-    
-    Args:
-        args: Command-specific arguments from argparse
-        
-    Returns:
-        bool: True if test generation was successful, False otherwise
-    """
-    return handle_generate_tests(args)
+console = Console()
 
-def handle_generate_tests(args):
+@app.command(name="generate-tests")
+def generate_tests(
+    repo_dir: Path = typer.Option(
+        ...,
+        "--repo-dir",
+        help="Repository directory location on local machine",
+        exists=True,
+        file_okay=False,
+        dir_okay=True
+    ),
+    output_dir: Path = typer.Option(
+        ...,
+        "--output-dir",
+        help="Directory where test files should be generated"
+    ),
+    use_ai: Optional[str] = typer.Option(
+        None,
+        "--use-ai",
+        help=f"Generate tests using AI model. Supported models: {get_ai_model_pairs(SUPPORTED_MODELS)}"
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run", "-d",
+        help="Show what would be executed without making changes"
+    )
+):
+    """
+    Generate unit test files for Python code in the repository.
+    
+    This command analyzes Python files in the specified repository
+    and generates corresponding unit test files.
+    """
+    # Handle dry-run mode
+    if state.dry_run or dry_run:
+        if handle_dry_run_for_command(
+            "generate-tests",
+            repo_dir=str(repo_dir),
+            output_dir=str(output_dir),
+            use_ai=use_ai,
+            dry_run=True
+        ):
+            return
+    
+    # Call the existing handler function
+    success = handle_generate_tests(
+        repo_dir=str(repo_dir),
+        output_dir=str(output_dir),
+        use_ai=use_ai
+    )
+    
+    if not success:
+        raise typer.Exit(1)
+
+def handle_generate_tests(repo_dir, output_dir, use_ai):
     """
     Handle the generate-tests command.
     
     Args:
-        args: Command-specific arguments from argparse
+        repo_dir: Repository directory path
+        output_dir: Output directory path
+        use_ai: AI model to use for test generation
         
     Returns:
         bool: True if test generation was successful, False otherwise
     """
-    logging.debug(f"Generating tests for repository: {args.repo_dir}")
+    logging.debug(f"Generating tests for repository: {repo_dir}")
     
     # Validate repository directory
-    if not os.path.isdir(args.repo_dir):
-        logging.error(f"Repository directory does not exist: {args.repo_dir}")
+    if not os.path.isdir(repo_dir):
+        console.print(f"[red]Repository directory does not exist: {repo_dir}[/red]")
         return False
         
     # Initialize and run test generator
     try:
         from jpl.slim.testgen import TestGenerator
 
-        generator = TestGenerator(
-            repo_path=args.repo_dir,
-            output_dir=args.output_dir,
-            model=args.use_ai
-        )
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=console,
+            transient=True
+        ) as progress:
+            task = progress.add_task("Generating unit tests...", total=None)
+            
+            generator = TestGenerator(
+                repo_path=repo_dir,
+                output_dir=output_dir,
+                model=use_ai
+            )
+            
+            if generator.generate_tests():
+                progress.update(task, completed=100)
+                
+        console.print(f"[green]Successfully generated tests in {output_dir}[/green]")
         
-        if generator.generate_tests():
-            logging.info(f"Successfully generated tests in {args.output_dir}")
-            
-            # Print next steps
-            print("\nTest files generated successfully!")
-            print("\nNext steps:")
-            print("1. Install pytest if you haven't already:")
-            print("   pip install pytest")
-            print("\n2. Review the generated tests and modify as needed")
-            print("\n3. Run the tests:")
-            print("   python -m pytest")
-            
-            return True
-        else:
-            logging.error("Test generation failed")
-            return False
-            
+        # Print next steps with rich formatting
+        console.print("\n[bold green]Test files generated successfully![/bold green]")
+        console.print("\n[bold]Next steps:[/bold]")
+        console.print("1. Install pytest if you haven't already:")
+        console.print("   [cyan]pip install pytest[/cyan]")
+        console.print("\n2. Review the generated tests and modify as needed")
+        console.print("\n3. Run the tests:")
+        console.print("   [cyan]python -m pytest[/cyan]")
+        
+        return True
     except Exception as e:
-        logging.error(f"Test generation failed: {str(e)}")
+        console.print(f"[red]Test generation failed: {str(e)}[/red]")
         return False

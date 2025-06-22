@@ -1,12 +1,12 @@
-import argparse
 import logging
 import os
 import sys
 import tempfile
 import urllib.parse
 import uuid
-from typing import Any, Dict
-from jpl.slim.commands.models_command import setup_parser as setup_models_parser
+from typing import Any, Dict, Optional
+import typer
+from rich.console import Console
 
 try:
     import yaml
@@ -46,11 +46,6 @@ CLI_ONLY_ARGS = {
 }
 
 # Import command modules
-from jpl.slim.commands.list_command import setup_parser as setup_list_parser
-from jpl.slim.commands.apply_command import setup_parser as setup_apply_parser
-from jpl.slim.commands.deploy_command import setup_parser as setup_deploy_parser
-from jpl.slim.commands.apply_deploy_command import setup_parser as setup_apply_deploy_parser
-from jpl.slim.commands.generate_tests_command import setup_parser as setup_generate_tests_parser
 from jpl.slim.commands.common import setup_logging
 
 # Import utility modules for backward compatibility
@@ -66,92 +61,23 @@ from jpl.slim.utils.io_utils import (
     fetch_code_base
 )
 from jpl.slim.utils.git_utils import (
-    generate_git_branch_name,
-    is_open_source
+    generate_git_branch_name
 )
 from jpl.slim.utils.ai_utils import (
     generate_with_ai,
     construct_prompt,
-    generate_content,
-    generate_with_litellm,
+    generate_ai_content,
     get_model_recommendations,
-    validate_model_config,
-    # Legacy functions for backward compatibility
-    generate_with_openai,
-    generate_with_azure,
-    generate_with_ollama
+    validate_model
 )
 
-# Import command functions for backward compatibility
-from jpl.slim.commands.list_command import handle_command as list_practices
+# Import command functions for backward compatibility (keeping only what's needed)
 from jpl.slim.commands.apply_command import apply_best_practices, apply_best_practice
 from jpl.slim.commands.deploy_command import deploy_best_practices, deploy_best_practice
 from jpl.slim.commands.apply_deploy_command import apply_and_deploy_best_practices, apply_and_deploy_best_practice
 from jpl.slim.commands.generate_tests_command import handle_generate_tests
 
 
-def extract_command_args(args: argparse.Namespace) -> Dict[str, Any]:
-    """
-    Extract only command-specific arguments, filtering out CLI-level arguments.
-    
-    Args:
-        args: Parsed arguments from argparse
-        
-    Returns:
-        Dictionary containing only command-specific arguments
-    """
-    command_args = {}
-    
-    for key, value in vars(args).items():
-        if key not in CLI_ONLY_ARGS:
-            command_args[key] = value
-    
-    return command_args
-
-
-def handle_dry_run(args: argparse.Namespace) -> bool:
-    """
-    Handle dry-run mode at the CLI level.
-    
-    Args:
-        args: Parsed arguments
-        
-    Returns:
-        True if this is a dry-run and execution should stop
-    """
-    if args.dry_run:
-        logging.info("🔍 DRY RUN MODE: Showing what would be executed")
-        logging.info(f"Command: {args.command}")
-        
-        # Show command-specific arguments
-        command_args = extract_command_args(args)
-        for key, value in command_args.items():
-            if value is not None:
-                if isinstance(value, list):
-                    logging.info(f"  --{key.replace('_', '-')}: {', '.join(str(v) for v in value)}")
-                elif isinstance(value, bool):
-                    if value:  # Only show True flags
-                        logging.info(f"  --{key.replace('_', '-')}")
-                else:
-                    logging.info(f"  --{key.replace('_', '-')}: {value}")
-        
-        logging.info("✅ Dry run complete. No actions were taken.")
-        return True
-    
-    return False
-
-
-def validate_global_arguments(args: argparse.Namespace) -> None:
-    """
-    Validate CLI-level arguments before command execution.
-    
-    Args:
-        args: Parsed arguments
-    """
-    # Validate logging level
-    if args.logging is None:
-        print("❌ Invalid logging level provided. Choose from DEBUG, INFO, WARNING, ERROR, CRITICAL.")
-        sys.exit(1)
 
 
 def check_litellm_availability():
@@ -176,7 +102,7 @@ def validate_ai_model(model: str) -> bool:
         return True  # No model specified is valid
     
     # Check model format
-    is_valid, error_msg = validate_model_config(model)
+    is_valid, error_msg = validate_model(model)
     if not is_valid:
         print(f"❌ Error: {error_msg}")
         return False
@@ -237,167 +163,71 @@ def print_startup_banner():
     print()
 
 
-def validate_ai_arguments(args):
+
+
+# Import app and state from the separate module to avoid circular imports
+from jpl.slim.app import app, state
+
+@app.callback()
+def main_callback(
+    ctx: typer.Context,
+    version: bool = typer.Option(False, "--version", "-v", help="Show version and exit"),
+    dry_run: bool = typer.Option(False, "--dry-run", "-d", help="Generate a dry-run plan of activities to be performed"),
+    logging_level: str = typer.Option("INFO", "--logging", "-l", help="Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL")
+):
     """
-    Validate AI-related arguments across all commands.
+    SLIM CLI - Software Lifecycle Improvement & Modernization
     
-    Args:
-        args: Parsed command line arguments
+    This tool automates the application of best practices to git repositories.
     """
-    # Check if any AI model is specified
-    ai_model = getattr(args, 'use_ai', None)
+    if version:
+        console = Console()
+        console.print(f"SLIM CLI v{VERSION}")
+        raise typer.Exit()
     
-    if ai_model:
-        if not validate_ai_model(ai_model):
-            print("\nFor help with AI models, run:")
-            print("  slim models list")
-            print("  slim models setup <provider>")
-            sys.exit(1)
-        
-        # Show helpful message for first-time AI users
-        provider = ai_model.split('/')[0]
-        if provider not in {'openai', 'azure', 'ollama'}:  # Non-legacy providers
-            print(f"🤖 Using AI model: {ai_model}")
-            if not LITELLM_AVAILABLE:
-                print("⚠️  Warning: This provider requires LiteLLM for optimal performance")
-            print()
-
-
-def handle_special_cases(args):
-    """
-    Handle special cases and provide helpful guidance.
+    # Convert string to logging level
+    log_level = getattr(logging, logging_level.upper(), None)
+    if log_level is None:
+        console = Console()
+        console.print("❌ Invalid logging level provided. Choose from DEBUG, INFO, WARNING, ERROR, CRITICAL.", style="red")
+        raise typer.Exit(1)
     
-    Args:
-        args: Parsed command line arguments
-    """
-    # If user tries to use AI without specifying a model, show help
-    if hasattr(args, 'use_ai') and args.use_ai == '':
-        print("❌ Error: --use-ai requires a model specification")
-        print()
-        show_model_help()
-        sys.exit(1)
+    # Store global options in state
+    state.dry_run = dry_run
+    state.logging_level = log_level
     
-    # If user is applying docs-website without output-dir
-    if (hasattr(args, 'best_practice_ids') and 
-        args.best_practice_ids and 
-        'docs-website' in args.best_practice_ids and 
-        not getattr(args, 'output_dir', None) and
-        not getattr(args, 'template_only', False)):
-        print("❌ Error: --output-dir is required for documentation generation")
-        print()
-        print("Example:")
-        print("  slim apply --best-practice-ids docs-website --repo-dir ./my-project --output-dir ./docs")
-        sys.exit(1)
-
-
-# Global parser that hands off parsing to respective, supported sub-commands
-def create_parser() -> argparse.ArgumentParser:
-    """
-    Creates a global argument parser for the SLIM tool.
-
-    This function sets up the basic command-line interface and defines the available sub-commands.
-    It also configures the logging system based on user input.
-
-    Returns:
-        The global argument parser instance.
-    """
-
-    # Create a basic argument parser
-    parser = argparse.ArgumentParser(
-        description='This tool automates the application of best practices to git repositories.',
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # List available best practices
-  slim list
-
-  # Apply documentation generation with AI
-  slim apply --best-practice-ids docs-website --repo-dir ./my-project --output-dir ./docs --use-ai openai/gpt-4o-mini
-
-  # See available AI models
-  slim models list
-
-  # Get model recommendations
-  slim models recommend --task documentation --tier balanced
-
-For more information: https://github.com/NASA-AMMOS/slim
-        """
-    )
-
-    # CLI-level arguments (handled at CLI level only)
-    parser.add_argument('--version', action='version', version=f'SLIM CLI v{VERSION}')
-    parser.add_argument('-d', '--dry-run', action='store_true', help='Generate a dry-run plan of activities to be performed')
-    parser.add_argument(
-        '-l', '--logging',
-        required=False,
-        default='INFO',  # default is a string; we'll convert it to logging.INFO below
-        type=lambda s: getattr(logging, s.upper(), None),
-        help='Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL'
-    )
-
-    subparsers = parser.add_subparsers(dest='command', required=True)
-
-    # Set up parsers for each command
-    setup_list_parser(subparsers)
-    setup_apply_parser(subparsers)
-    setup_deploy_parser(subparsers)
-    setup_apply_deploy_parser(subparsers)
-    setup_generate_tests_parser(subparsers)
-    setup_models_parser(subparsers)
+    # Set up logging
+    setup_logging(log_level)
     
-    return parser
+    # Print startup banner for interactive use (only if a command is being run)
+    if not SLIM_TEST_MODE and len(sys.argv) > 1 and ctx.invoked_subcommand is not None:
+        print_startup_banner()
+    
+    # Check LiteLLM availability if not in test mode
+    if not SLIM_TEST_MODE and ctx.invoked_subcommand is not None:
+        check_litellm_availability()
+
+
+# Import and register commands after app is created
+# We do this at module level to allow commands to access the state
+from jpl.slim.commands import list_command
+from jpl.slim.commands import models_command
+from jpl.slim.commands import apply_command  
+from jpl.slim.commands import deploy_command
+from jpl.slim.commands import apply_deploy_command
+from jpl.slim.commands import generate_tests_command
 
 
 def main():
     """
-    Main entry point for the SLIM CLI tool. Parses command-line arguments,
-    sets up logging, and executes the appropriate command function.
+    Main entry point for the SLIM CLI tool.
     """
-    # Print startup banner for interactive use
-    if not SLIM_TEST_MODE and len(sys.argv) > 1:
-        print_startup_banner()
-    
-    parser = create_parser()
-    args = parser.parse_args()
-
-    # Handle CLI-level concerns first
-    validate_global_arguments(args)
-    setup_logging(args.logging)
-    
-    # Check LiteLLM availability if not in test mode
-    if not SLIM_TEST_MODE:
-        check_litellm_availability()
-
-    # Validate AI arguments
-    validate_ai_arguments(args)
-    
-    # Handle special cases
-    handle_special_cases(args)
-
-    # Handle dry-run mode at CLI level
-    if handle_dry_run(args):
-        return
-
-    # Execute command with filtered arguments
-    if hasattr(args, 'func'):
-        try:
-            # Create a new namespace with only command-specific arguments
-            command_args = argparse.Namespace(**extract_command_args(args))
-            args.func(command_args)
-        except KeyboardInterrupt:
-            print("\n⚠️  Operation cancelled by user")
-            sys.exit(1)
-        except Exception as e:
-            if args.logging == logging.DEBUG:
-                # In debug mode, show full traceback
-                raise
-            else:
-                # In normal mode, show clean error message
-                print(f"❌ Error: {str(e)}")
-                print("\nFor detailed error information, run with --logging DEBUG")
-                sys.exit(1)
-    else:
-        parser.print_help()
+    try:
+        app()
+    except KeyboardInterrupt:
+        console = Console()
+        console.print("\n⚠️  Operation cancelled by user", style="yellow")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

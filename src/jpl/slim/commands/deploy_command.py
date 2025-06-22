@@ -7,6 +7,11 @@ which deploys best practices to repositories.
 
 import os
 import logging
+from typing import List, Optional
+from pathlib import Path
+import typer
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
 import git
 
 from jpl.slim.utils.git_utils import generate_git_branch_name
@@ -15,41 +20,67 @@ from jpl.slim.commands.common import (
     GIT_CUSTOM_REMOTE_NAME,
     GIT_DEFAULT_COMMIT_MESSAGE
 )
+from jpl.slim.app import app, state, handle_dry_run_for_command
 
-def setup_parser(subparsers):
+console = Console()
+
+@app.command()
+def deploy(
+    best_practice_ids: List[str] = typer.Option(
+        ...,
+        "--best-practice-ids", "-b",
+        help="Best practice aliases to deploy (e.g., readme, governance-small, secrets-github)"
+    ),
+    repo_dir: Optional[Path] = typer.Option(
+        None,
+        "--repo-dir",
+        help="Repository directory location on local machine",
+        exists=True,
+        file_okay=False,
+        dir_okay=True
+    ),
+    remote: Optional[str] = typer.Option(
+        None,
+        "--remote",
+        help=f"Push to a specified remote name. If not specified, pushes to '{GIT_DEFAULT_REMOTE_NAME}'."
+    ),
+    commit_message: str = typer.Option(
+        GIT_DEFAULT_COMMIT_MESSAGE,
+        "--commit-message", "-m",
+        help=f"Commit message to use for the deployment."
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run", "-d",
+        help="Show what would be executed without making changes"
+    )
+):
     """
-    Set up the parser for the 'deploy' command.
-
-    Args:
-        subparsers: Subparsers object from argparse
-
-    Returns:
-        The parser for the 'deploy' command
-    """
-    parser = subparsers.add_parser('deploy', help='Deploys a best practice, i.e. places the best practice in a git repo, adds, commits, and pushes to the git remote.')
-    parser.add_argument('--best-practices', nargs='+', required=True, help='Best practice aliases to deploy (e.g., readme, governance-small, secrets-github)')
-    parser.add_argument('--repo-dir', required=False, help='Repository directory location on local machine')
-    parser.add_argument('--remote', required=False, default=None, help=f"Push to a specified remote name. If not specified, pushes to '{GIT_DEFAULT_REMOTE_NAME}'.")
-    parser.add_argument('--commit-message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}'")
-    parser.set_defaults(func=handle_command)
-    return parser
-
-def handle_command(args):
-    """
-    Handle the 'deploy' command.
+    Deploy best practices to a git repository.
     
-    Note: This function now receives only command-specific arguments.
-    CLI-level arguments are handled at the CLI level.
-
-    Args:
-        args: Command-specific arguments from argparse
+    This command adds, commits, and pushes best practice files to a git remote.
     """
-    # Clean argument extraction - no more brittle popping!
+    # Handle dry-run mode
+    if state.dry_run or dry_run:
+        if handle_dry_run_for_command(
+            "deploy",
+            best_practice_ids=best_practice_ids,
+            repo_dir=str(repo_dir) if repo_dir else None,
+            remote=remote,
+            commit_message=commit_message,
+            dry_run=True
+        ):
+            return
+    
+    # Convert path to string for backward compatibility
+    repo_dir_str = str(repo_dir) if repo_dir else None
+    
+    # Deploy best practices
     deploy_best_practices(
-        best_practice_ids=args.best_practices,
-        repo_dir=args.repo_dir,
-        remote=args.remote,
-        commit_message=args.commit_message
+        best_practice_ids=best_practice_ids,
+        repo_dir=repo_dir_str,
+        remote=remote,
+        commit_message=commit_message
     )
 
 def deploy_best_practices(best_practice_ids, repo_dir, remote=None, commit_message=GIT_DEFAULT_COMMIT_MESSAGE):
