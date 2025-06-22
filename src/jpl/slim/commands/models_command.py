@@ -116,6 +116,7 @@ def models_validate(
         console.print(f"✅ Model [cyan]{model}[/cyan] is properly configured", style="green")
     else:
         console.print(f"❌ Model [cyan]{model}[/cyan] configuration error: {error_msg}", style="red")
+        raise typer.Exit(1)
 
 # Register the models subcommand app with the main app
 app.add_typer(models_app, name="models")

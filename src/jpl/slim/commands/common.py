@@ -291,7 +291,7 @@ def validate_model_format(model: str) -> Tuple[bool, str, str]:
 
 def check_model_availability(model: str) -> Tuple[bool, str]:
     """
-    Check if a model is supported and if required environment variables are set.
+    Check if a model is supported and properly configured using LiteLLM's built-in validation.
     
     Args:
         model: Model string in "provider/model" format
@@ -308,21 +308,49 @@ def check_model_availability(model: str) -> Tuple[bool, str]:
     if provider not in SUPPORTED_MODELS:
         return False, f"Unsupported provider: {provider}. Supported providers: {', '.join(SUPPORTED_MODELS.keys())}"
     
-    provider_config = SUPPORTED_MODELS[provider]
-    
-    # Check if model is in supported list (optional check - LiteLLM might support more)
-    supported_models = provider_config.get("models", [])
-    if supported_models and model_name not in supported_models:
-        logging.warning(f"Model {model_name} not in known supported models for {provider}, but will attempt to use it")
-    
-    # Check required environment variables
-    required_env_vars = provider_config.get("env_vars", [])
-    missing_vars = [var for var in required_env_vars if not os.getenv(var)]
-    
-    if missing_vars:
-        return False, f"Missing required environment variables for {provider}: {', '.join(missing_vars)}"
-    
-    return True, ""
+    # Use LiteLLM's built-in validation for more accurate checking
+    try:
+        from litellm import validate_environment
+        
+        # Use LiteLLM's validate_environment function for accurate validation
+        env_result = validate_environment(model)
+        
+        if not env_result.get('keys_in_environment', False):
+            missing_keys = env_result.get('missing_keys', [])
+            if missing_keys:
+                return False, f"Missing required environment variables for {provider}: {', '.join(missing_keys)}"
+            else:
+                return False, f"Environment validation failed for model {model}"
+        
+        return True, ""
+        
+    except ImportError:
+        # Fallback to original validation if LiteLLM not available
+        logging.warning("LiteLLM not available for enhanced model validation, using basic validation")
+        
+        provider_config = SUPPORTED_MODELS[provider]
+        
+        # Check if model is in supported list (optional check - LiteLLM might support more)
+        supported_models = provider_config.get("models", [])
+        if supported_models and model_name not in supported_models:
+            logging.warning(f"Model {model_name} not in known supported models for {provider}, but will attempt to use it")
+        
+        # Check required environment variables using our fallback method
+        required_env_vars = provider_config.get("env_vars", [])
+        missing_vars = [var for var in required_env_vars if not os.getenv(var)]
+        
+        if missing_vars:
+            return False, f"Missing required environment variables for {provider}: {', '.join(missing_vars)}"
+        
+        return True, ""
+        
+    except Exception as e:
+        # If LiteLLM validation fails, it usually means the model is not properly configured
+        error_msg = str(e)
+        if "not found" in error_msg.lower() or "invalid" in error_msg.lower():
+            return False, f"Model {model} is not valid or not available"
+        else:
+            return False, f"Model validation failed: {error_msg}"
 
 
 def get_model_tier_info(model: str) -> Dict[str, str]:

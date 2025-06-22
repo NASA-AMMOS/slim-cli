@@ -17,6 +17,8 @@ from jpl.slim.best_practices.base import BestPractice
 from jpl.slim.best_practices.practice_mapping import get_file_path
 from jpl.slim.utils.io_utils import download_and_place_file
 from jpl.slim.utils.ai_utils import generate_with_ai
+from jpl.slim.utils.prompt_utils import get_prompt_with_context
+from jpl.slim.utils.io_utils import read_file_content
 # Import the constant directly to avoid circular imports
 GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = 'slim-best-practices'
 
@@ -195,7 +197,7 @@ class StandardPractice(BestPractice):
 
     def _apply_ai_customization(self, git_repo, file_path, model):
         """
-        Apply AI customization to a file.
+        Apply AI customization to a file using centralized prompt system.
 
         Args:
             git_repo (git.Repo): Git repository object
@@ -206,7 +208,38 @@ class StandardPractice(BestPractice):
             bool: True if AI customization was successful, False otherwise
         """
         try:
-            ai_content = generate_with_ai(self.best_practice_id, git_repo.working_tree_dir, file_path, model)
+            # Read current file content
+            current_content = read_file_content(file_path)
+            if not current_content:
+                logging.warning(f"Could not read content from {file_path}")
+                return False
+            
+            # Get AI prompt with context from centralized system
+            prompt_with_context = get_prompt_with_context('standard_practices', self.best_practice_id)
+            
+            if not prompt_with_context:
+                logging.warning(f"No AI prompt found for best practice {self.best_practice_id}, falling back to original method")
+                # Fall back to original AI generation method
+                ai_content = generate_with_ai(self.best_practice_id, git_repo.working_tree_dir, file_path, model)
+            else:
+                # Use centralized prompt system with repository context
+                from jpl.slim.utils.io_utils import fetch_readme, fetch_code_base
+                
+                # Get repository context based on best practice type
+                if self.best_practice_id == 'readme':
+                    repo_context = fetch_code_base(git_repo.working_tree_dir)
+                    context_info = f"REPOSITORY CODE STRUCTURE:\n{repo_context}"
+                else:
+                    repo_context = fetch_readme(git_repo.working_tree_dir)
+                    context_info = f"REPOSITORY README:\n{repo_context}" if repo_context else "No README found in repository."
+                
+                # Construct full prompt
+                full_prompt = f"{prompt_with_context}\n\nTEMPLATE TO ENHANCE:\n{current_content}\n\nCONTEXT INFORMATION:\n{context_info}"
+                
+                # Generate AI content using the centralized AI utilities
+                from jpl.slim.utils.ai_utils import generate_ai_content
+                ai_content = generate_ai_content(full_prompt, model)
+            
             if ai_content:
                 with open(file_path, 'w') as f:
                     f.write(ai_content)
