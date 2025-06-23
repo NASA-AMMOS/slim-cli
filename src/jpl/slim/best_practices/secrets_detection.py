@@ -74,7 +74,7 @@ class SecretsDetection(StandardPractice):
                         # Skip confirmation if --no-prompt flag is used
                         self._install_detect_secrets()
                         # Run scan and check for unverified secrets
-                        if not self._run_detect_secrets_scan():
+                        if not self._run_detect_secrets_scan(git_repo):
                             logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
                             return None
                     else:
@@ -88,7 +88,7 @@ class SecretsDetection(StandardPractice):
                         # Prompt for confirmation before installing
                         confirmation = input("Do you want me to run an initial scan with detect-secrets (will overwrite an existing `.secrets-baseline` file)? (y/n): ")
                         if confirmation.lower() in ['y', 'yes']:
-                            scan_result = self._run_detect_secrets_scan()
+                            scan_result = self._run_detect_secrets_scan(git_repo)
                             if not scan_result:
                                 logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
                                 return None
@@ -136,20 +136,20 @@ class SecretsDetection(StandardPractice):
                 if not SLIM_TEST_MODE:
                     if no_prompt:
                         # Skip confirmation if --no-prompt flag is used
-                        self._install_pre_commit_hooks()
+                        self._install_pre_commit_hooks(git_repo)
                         
                         # Check if .secrets.baseline file exists and run detect-secrets scan if it doesn't
                         baseline_file = os.path.join(git_repo.working_dir, '.secrets.baseline')
                         if not os.path.exists(baseline_file):
                             logging.info("No existing .secrets.baseline file found. Running detect-secrets scan...")
-                            if not self._run_detect_secrets_scan():
+                            if not self._run_detect_secrets_scan(git_repo):
                                 logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
                                 return None
                     else:
                         # Prompt for confirmation before installing hooks
                         confirmation = input("Installation of the new pre-commit hook is needed via `pre-commit install`. Do you want to install the pre-commit hook for you? (y/n): ")
                         if confirmation.lower() in ['y', 'yes']:
-                            self._install_pre_commit_hooks()
+                            self._install_pre_commit_hooks(git_repo)
                         
                         # Check if .secrets.baseline file exists and prompt user
                         baseline_file = os.path.join(git_repo.working_dir, '.secrets.baseline')
@@ -159,7 +159,7 @@ class SecretsDetection(StandardPractice):
                             confirmation = input("Do you want to run an initial scan with detect-secrets to create a .secrets.baseline file? (y/n): ")
                         
                         if confirmation.lower() in ['y', 'yes']:
-                            scan_result = self._run_detect_secrets_scan()
+                            scan_result = self._run_detect_secrets_scan(git_repo)
                             if not scan_result:
                                 logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
                                 return None
@@ -262,12 +262,17 @@ class SecretsDetection(StandardPractice):
             logging.error(f"Failed to install pre-commit: {e}")
             return False
 
-    def _install_pre_commit_hooks(self):
-        """Initialize pre-commit hooks in the repository."""
+    def _install_pre_commit_hooks(self, git_repo):
+        """Initialize pre-commit hooks in the repository.
+        
+        Args:
+            git_repo: Git repository object containing the working directory context
+        """
         try:
             logging.debug("Installing pre-commit hooks...")
             subprocess.check_call(
                 ["pre-commit", "install"],
+                cwd=git_repo.working_dir,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
@@ -277,9 +282,12 @@ class SecretsDetection(StandardPractice):
             logging.error(f"Failed to install pre-commit hooks: {e}")
             return False
 
-    def _run_detect_secrets_scan(self):
+    def _run_detect_secrets_scan(self, git_repo):
         """
         Run detect-secrets scan to generate a baseline file and check for unverified secrets.
+
+        Args:
+            git_repo: Git repository object containing the working directory context
 
         Returns:
             bool: True if scan was successful and no unverified secrets were found,
@@ -289,31 +297,37 @@ class SecretsDetection(StandardPractice):
             logging.debug("Running detect-secrets scan...")
             cmd = "detect-secrets scan --all-files --exclude-files '\\.secrets.*' --exclude-files '\\.git.*' > .secrets.baseline"
             # Using shell=True since we need shell features like redirection (>)
+            # Run in the repository's working directory
             subprocess.check_call(
                 cmd,
                 shell=True,
+                cwd=git_repo.working_dir,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
             logging.debug("Successfully created .secrets.baseline file")
 
             # Check the baseline file for unverified secrets
-            return self._check_baseline_for_unverified_secrets()
+            return self._check_baseline_for_unverified_secrets(git_repo)
 
         except subprocess.CalledProcessError as e:
             logging.error(f"Failed to run detect-secrets scan: {e}")
             return False
 
-    def _check_baseline_for_unverified_secrets(self):
+    def _check_baseline_for_unverified_secrets(self, git_repo):
         """
         Check the .secrets.baseline file for unverified secrets.
+
+        Args:
+            git_repo: Git repository object containing the working directory context
 
         Returns:
             bool: True if no unverified secrets were found, False otherwise
         """
         try:
-            # Read the baseline file
-            with open('.secrets.baseline', 'r') as f:
+            # Read the baseline file from the repository directory
+            baseline_file = os.path.join(git_repo.working_dir, '.secrets.baseline')
+            with open(baseline_file, 'r') as f:
                 baseline = json.load(f)
 
             # Check the results for unverified secrets
