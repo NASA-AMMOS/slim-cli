@@ -14,9 +14,9 @@ from pathlib import Path
 from jpl.slim.utils.repo_utils import scan_repository, extract_project_metadata
 from jpl.slim.utils.ai_utils import enhance_content
 from jpl.slim.utils.git_utils import extract_git_info, is_git_repository
-from jpl.slim.docgen.template.template_manager import TemplateManager
-from jpl.slim.docgen.template.config_updater import ConfigUpdater
-from jpl.slim.docgen.utils.helpers import load_config, escape_mdx_special_characters, clean_api_doc
+from jpl.slim.best_practices.docs_website_impl.template_manager import TemplateManager
+from jpl.slim.best_practices.docs_website_impl.config_updater import ConfigUpdater
+from jpl.slim.docgen.utils.helpers import load_config, escape_mdx_special_characters, clean_api_doc, escape_yaml_value
 
 __all__ = ["SlimDocGenerator"]
 
@@ -122,7 +122,7 @@ class SlimDocGenerator:
         """Setup the documentation template."""
         try:
             self.logger.info("Setting up documentation template")
-            return self.template_manager.setup_template()
+            return self.template_manager.clone_template()
         except Exception as e:
             self.logger.error(f"Error setting up template: {str(e)}")
             return False
@@ -213,7 +213,7 @@ class SlimDocGenerator:
         languages = repo_info.get('languages', [])
         
         content = f"""---
-title: {project_name} Overview
+title: {escape_yaml_value(f"{project_name} Overview")}
 ---
 
 # {project_name}
@@ -256,7 +256,7 @@ This project is organized as follows:
         languages = repo_info.get('languages', [])
         
         content = f"""---
-title: Installation Guide
+title: {escape_yaml_value("Installation Guide")}
 ---
 
 # Installation
@@ -321,7 +321,7 @@ To verify the installation was successful:
         project_name = repo_info.get('project_name', 'Project')
         
         content = f"""---
-title: API Reference
+title: {escape_yaml_value("API Reference")}
 ---
 
 # API Reference
@@ -357,7 +357,7 @@ The {project_name} API provides programmatic access to core functionality.
         languages = repo_info.get('languages', [])
         
         content = f"""---
-title: Development Guide
+title: {escape_yaml_value("Development Guide")}
 ---
 
 # Development Guide
@@ -409,7 +409,7 @@ This guide covers the development workflow for {project_name}.
         project_name = repo_info.get('project_name', 'Project')
         
         content = f"""---
-title: Contributing Guide
+title: {escape_yaml_value("Contributing Guide")}
 ---
 
 # Contributing to {project_name}
@@ -510,7 +510,7 @@ See the [Development Guide](./development.md) for detailed setup instructions.
             self.logger.info("Revising site landing page")
             
             # Import and use site reviser
-            from jpl.slim.docgen.site_reviser import SiteReviser
+            from jpl.slim.best_practices.docs_website_impl.site_reviser import SiteReviser
             from jpl.slim.utils.ai_utils import enhance_content
             
             # Create AI enhancer if available

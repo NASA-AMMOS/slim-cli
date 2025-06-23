@@ -52,13 +52,13 @@ class BestPracticeManager:
             alias: Alias of the best practice to retrieve (e.g., "readme", "secrets-github", "docs-website")
 
         Returns:
-            Union[StandardPractice, SecretsDetection, DocGenPractice]: The best practice object if found, None otherwise
+            Union[StandardPractice, SecretsDetection, DocsWebsiteBestPractice]: The best practice object if found, None otherwise
         """
         logging.debug(f"Retrieving best practice with alias: {alias}")
 
-        # Handle docs-website as a special case for DocGenPractice
+        # Handle docs-website as a special case for DocsWebsiteBestPractice
         if is_docgen_practice(alias):
-            return DocGenPractice()
+            return DocsWebsiteBestPractice()
 
         # Check if the alias exists in the registry
         if alias not in self.registry_dict:

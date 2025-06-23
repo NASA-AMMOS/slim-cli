@@ -300,8 +300,8 @@ def clean_api_doc(api_doc_path: str) -> None:
                 
             if not in_code_block and '<' in line and '>' in line:
                 # Outside code blocks, escape any remaining angle brackets that look suspicious
-                lines[i] = re.sub(r'<([A-Za-z][A-Za-Z0-9_]*)(?!\s*[/>])(?!.*</\1>)', r'\\<\1', line)
-                lines[i] = re.sub(r'(?<!\\)<([A-Za-z][A-Za-Z0-9_]*)\s+', r'\\<\1 ', lines[i])
+                lines[i] = re.sub(r'<([A-Za-z][A-Za-z0-9_]*)(?!\s*[/>])(?!.*</\1>)', r'\\<\1', line)
+                lines[i] = re.sub(r'(?<!\\)<([A-Za-z][A-Za-z0-9_]*)\s+', r'\\<\1 ', lines[i])
                 
         content = '\n'.join(lines)
         

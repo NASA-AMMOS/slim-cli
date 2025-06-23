@@ -226,9 +226,10 @@ class ConfigUpdater:
                 config_content = f.read()
             
             # Update title
+            project_name = repo_info.get("project_name", "Documentation Site")
             config_content = re.sub(
                 r'title: .*?,',
-                f'title: "{repo_info["project_name"]}",',
+                f'title: "{project_name}",',
                 config_content
             )
             
@@ -301,9 +302,10 @@ class ConfigUpdater:
                 package_data = json.load(f)
             
             # Update name with proper sanitization
-            sanitized_name = self._sanitize_package_name(repo_info['project_name'])
+            project_name = repo_info.get('project_name', 'documentation-site')
+            sanitized_name = self._sanitize_package_name(project_name)
             package_data['name'] = sanitized_name
-            self.logger.info(f"Sanitized package name from '{repo_info['project_name']}' to '{sanitized_name}'")
+            self.logger.info(f"Sanitized package name from '{project_name}' to '{sanitized_name}'")
             
             # Update description
             if repo_info.get("description"):

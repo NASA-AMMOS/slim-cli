@@ -16,14 +16,14 @@ import traceback
 from typing import Optional, Dict, Any, List
 import uuid
 
-from jpl.slim.best_practices.base import BestPractice
+from jpl.slim.best_practices.standard import StandardPractice
 from jpl.slim.best_practices.docs_website_impl.generator import SlimDocGenerator
 
 # Check if we're in test mode
 SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')
 
 
-class DocsWebsiteBestPractice(BestPractice):
+class DocsWebsiteBestPractice(StandardPractice):
     """
     Best practice for documentation generation.
 
@@ -67,6 +67,21 @@ class DocsWebsiteBestPractice(BestPractice):
         if not output_dir:
             logging.error("Output directory (--output-dir) is required for documentation generation")
             return None
+        
+        # Set up repository (clone if needed, create branch, etc.)
+        git_repo, git_branch, actual_repo_path = self.setup_repository(
+            repo_path=repo_path,
+            repo_url=repo_url,
+            target_dir_to_clone_to=target_dir_to_clone_to,
+            branch=branch
+        )
+        
+        if not git_repo:
+            logging.error("Failed to set up repository")
+            return None
+        
+        # Use the actual repository path from setup_repository
+        repo_path = actual_repo_path
             
         # In test mode, simulate success without making actual changes
         if SLIM_TEST_MODE:
@@ -93,10 +108,10 @@ class DocsWebsiteBestPractice(BestPractice):
             if success:
                 if template_only:
                     logging.info(f"Template structure successfully generated at {output_dir}")
-                    print(f"✅ Successfully generated documentation template at {output_dir}")
+                    print(f"✅ Successfully applied best practice '{self.best_practice_id}' - documentation template at {output_dir}")
                 else:
                     logging.info(f"Documentation successfully generated at {output_dir}")
-                    print(f"✅ Successfully generated documentation at {output_dir}")
+                    print(f"✅ Successfully applied best practice '{self.best_practice_id}' - documentation generated at {output_dir}")
                 print(f"   📁 Source repository: {repo_path}")
                 return repo_path
             else:
