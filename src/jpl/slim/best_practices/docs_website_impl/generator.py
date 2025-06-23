@@ -171,6 +171,8 @@ class SlimDocGenerator:
             github_org = repo_info.get('github_org', 'your-org')
             github_repo = repo_info.get('github_repo', 'your-repo')
             
+            print(f"  🔧 Replacing PROJECT_NAME with: {project_name}")
+            
             # Define placeholder mappings (simplified set)
             placeholders = {
                 '{{PROJECT_NAME}}': project_name,
@@ -263,6 +265,7 @@ class SlimDocGenerator:
                     modified = False
                     for placeholder, replacement in placeholders.items():
                         if placeholder in content:
+                            print(f"    🔍 Found {placeholder} in {os.path.basename(file_path)}, replacing with: {replacement}")
                             content = content.replace(placeholder, replacement)
                             modified = True
                     
@@ -270,6 +273,7 @@ class SlimDocGenerator:
                     if modified:
                         with open(file_path, 'w', encoding='utf-8') as f:
                             f.write(content)
+                        print(f"    ✅ Updated placeholders in {os.path.basename(file_path)}")
                         self.logger.debug(f"Updated placeholders in {file_path}")
                 
                 except Exception as e:
@@ -344,14 +348,21 @@ class SlimDocGenerator:
                         # Lint the enhanced content
                         lint_errors = linter.lint_content(enhanced_content, file_name)
                         
-                        # Check for critical errors only
+                        # Check for critical errors and validation issues
                         critical_errors = [
                             error for error in lint_errors 
                             if error.error_type in ['unclosed_tag', 'email_as_jsx', 'url_as_jsx', 
                                                    'loose_angle_bracket', 'at_in_tag']
                         ]
                         
-                        if not critical_errors:
+                        # Check for remaining placeholders
+                        validation_errors = []
+                        if '{{PROJECT_NAME}}' in enhanced_content:
+                            validation_errors.append("Contains unreplaced {{PROJECT_NAME}} placeholder")
+                        if '[INSERT_CONTENT]' in enhanced_content:
+                            validation_errors.append("Contains unreplaced [INSERT_CONTENT] marker")
+                        
+                        if not critical_errors and not validation_errors:
                             # Success! Write the file
                             with open(file_path, 'w', encoding='utf-8') as f:
                                 f.write(enhanced_content)
@@ -359,12 +370,39 @@ class SlimDocGenerator:
                             success = True
                             break
                         else:
-                            self.logger.debug(f"Found {len(critical_errors)} critical lint errors in {file_name}, retrying...")
+                            error_msgs = []
+                            if critical_errors:
+                                error_msgs.append(f"{len(critical_errors)} critical lint errors")
+                            if validation_errors:
+                                error_msgs.append(f"validation issues: {', '.join(validation_errors)}")
+                            self.logger.debug(f"Found {', '.join(error_msgs)} in {file_name}, retrying...")
                     
                     if not success:
+                        print(f"❌ Failed to generate clean content for {file_name} after {max_attempts} attempts")
+                        
+                        # Show detailed error information
+                        if 'enhanced_content' in locals():
+                            final_lint_errors = linter.lint_content(enhanced_content, file_name)
+                            final_critical_errors = [
+                                error for error in final_lint_errors 
+                                if error.error_type in ['unclosed_tag', 'email_as_jsx', 'url_as_jsx', 
+                                                       'loose_angle_bracket', 'at_in_tag']
+                            ]
+                            
+                            print(f"   📋 Final validation status for {file_name}:")
+                            if '{{PROJECT_NAME}}' in enhanced_content:
+                                print(f"   ⚠️  Contains unreplaced {{{{PROJECT_NAME}}}} placeholder")
+                            if '[INSERT_CONTENT]' in enhanced_content:
+                                print(f"   ⚠️  Contains unreplaced [INSERT_CONTENT] marker")
+                            if final_critical_errors:
+                                print(f"   🔍 Critical lint errors ({len(final_critical_errors)}):")
+                                for error in final_critical_errors[:3]:  # Show first 3 errors
+                                    print(f"      - {error.error_type}: {error.description}")
+                                if len(final_critical_errors) > 3:
+                                    print(f"      ... and {len(final_critical_errors) - 3} more errors")
+                        
                         self.logger.warning(f"Failed to generate clean content for {file_name} after {max_attempts} attempts")
                         if self.strict_ai:
-                            print(f"❌ Error: Could not generate clean content for {file_name} after {max_attempts} attempts")
                             return False
                 
                 except Exception as e:
@@ -380,38 +418,103 @@ class SlimDocGenerator:
             return False
     
     def _ai_enhance_single_file(self, content: str, file_path: str, repo_info: Dict) -> str:
-        """Use AI to enhance a single markdown file."""
+        """Use AI to generate content for [INSERT_CONTENT] markers only."""
         try:
+            # Find all [INSERT_CONTENT] markers in the file
+            if '[INSERT_CONTENT]' not in content:
+                return content
+            
             project_name = repo_info.get('project_name', 'this project')
             file_name = os.path.basename(file_path)
             languages = ', '.join(repo_info.get('languages', []))
             project_type = self._determine_project_type(repo_info)
             
-            # Create context info for the AI prompt
-            additional_context = f"""
-Project: {project_name}
-File: {file_name}
-Languages: {languages}
-Type: {project_type}
-
-Repository Information:
-{repo_info}
-"""
+            # Extract section context (heading before the marker)
+            section_context = self._extract_section_context(content, file_name)
             
-            # Use the generate_documentation prompt from prompts.yaml
-            enhanced_content = enhance_content(
-                content=content,
-                practice_type="docs-website",
-                section_name="generate_documentation",
-                model=self.use_ai,
-                additional_context=additional_context
+            # Generate content for the INSERT_CONTENT marker
+            from jpl.slim.utils.ai_utils import generate_ai_content
+            
+            prompt_template = self._get_prompt_template("docs-website", "generate_content_only")
+            if not prompt_template:
+                self.logger.error("Could not find generate_content_only prompt template")
+                return content
+            
+            # Format the prompt with context
+            formatted_prompt = prompt_template.format(
+                project_name=project_name,
+                file_name=file_name,
+                section_context=section_context,
+                project_type=project_type,
+                languages=languages
             )
             
-            return enhanced_content if enhanced_content else content
+            # Generate the content
+            generated_content = generate_ai_content(formatted_prompt, self.use_ai)
+            
+            if generated_content:
+                # Replace the [INSERT_CONTENT] marker with the generated content
+                enhanced_content = content.replace('[INSERT_CONTENT]', generated_content.strip())
+                return enhanced_content
+            else:
+                self.logger.warning(f"AI failed to generate content for {file_name}")
+                return content
             
         except Exception as e:
             self.logger.warning(f"Error enhancing file '{file_path}': {str(e)}")
             return content
+    
+    def _extract_section_context(self, content: str, file_name: str) -> str:
+        """Extract context around [INSERT_CONTENT] marker for AI prompt."""
+        lines = content.split('\n')
+        context_lines = []
+        
+        # Find the line with [INSERT_CONTENT]
+        insert_line_idx = None
+        for i, line in enumerate(lines):
+            if '[INSERT_CONTENT]' in line:
+                insert_line_idx = i
+                break
+        
+        if insert_line_idx is None:
+            return f"Content for {file_name}"
+        
+        # Look backwards for the most recent heading
+        heading = None
+        for i in range(insert_line_idx - 1, -1, -1):
+            line = lines[i].strip()
+            if line.startswith('#'):
+                heading = line
+                break
+        
+        # Build context description
+        if heading:
+            context_lines.append(f"Section: {heading}")
+        
+        context_lines.append(f"File: {file_name}")
+        
+        # Look at a few lines before the marker for additional context
+        start_idx = max(0, insert_line_idx - 3)
+        before_lines = [line.strip() for line in lines[start_idx:insert_line_idx] 
+                       if line.strip() and not line.strip().startswith('#')]
+        if before_lines:
+            context_lines.append(f"Context: {' '.join(before_lines[-2:])}")
+        
+        return ' | '.join(context_lines)
+    
+    def _get_prompt_template(self, practice_type: str, section_name: str) -> str:
+        """Get prompt template from prompts.yaml."""
+        try:
+            from jpl.slim.utils.prompt_utils import load_prompts
+            prompts = load_prompts()
+            
+            if practice_type in prompts and section_name in prompts[practice_type]:
+                return prompts[practice_type][section_name].get('prompt', '')
+            
+            return ''
+        except Exception as e:
+            self.logger.error(f"Error loading prompt template: {str(e)}")
+            return ''
     
     def _has_empty_sections(self, content: str) -> bool:
         """Check if content has empty sections (headers with no content)."""
