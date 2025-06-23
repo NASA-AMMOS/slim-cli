@@ -15,7 +15,7 @@ from typing import List, Optional
 from pathlib import Path
 import typer
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import Progress, SpinnerColumn, TextColumn
 import git
 
 # Check if we're in test mode
@@ -155,7 +155,6 @@ def apply(
         else:
             raise typer.Exit(1)
     except Exception as e:
-        console = Console()
         console.print(f"❌ [red]Error applying best practices: {str(e)}[/red]")
         raise typer.Exit(1)
 
@@ -191,19 +190,32 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
     # Handle normal case for other best practices
     if existing_repo_dir:
         branch = GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS if len(best_practice_ids) > 1 else best_practice_ids[0]
+        
+        # Apply each best practice with simple spinner
         for best_practice_id in best_practice_ids:
-            result = apply_best_practice(
-                best_practice_id=best_practice_id,
-                use_ai_flag=use_ai_flag,
-                model=model,
-                existing_repo_dir=existing_repo_dir,
-                branch=branch,
-                no_prompt=no_prompt,
-                **kwargs
-            )
-            if result is None:
-                return False
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+                transient=True
+            ) as progress:
+                task = progress.add_task(f"Applying {best_practice_id}...", total=None)
+                
+                result = apply_best_practice(
+                    best_practice_id=best_practice_id,
+                    use_ai_flag=use_ai_flag,
+                    model=model,
+                    existing_repo_dir=existing_repo_dir,
+                    branch=branch,
+                    no_prompt=no_prompt,
+                    **kwargs
+                )
+                if result is None:
+                    return False
+                
+                progress.update(task, description=f"Completed {best_practice_id}")
     else:
+        # Apply to repo URLs with simple spinners
         for repo_url in repo_urls:
             if len(best_practice_ids) > 1:
                 if repo_url:
@@ -214,53 +226,91 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
                     repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
                     if target_dir_to_clone_to:
                         for best_practice_id in best_practice_ids:
+                            with Progress(
+                                SpinnerColumn(),
+                                TextColumn("[progress.description]{task.description}"),
+                                console=console,
+                                transient=True
+                            ) as progress:
+                                task = progress.add_task(f"Applying {best_practice_id} to {repo_url}...", total=None)
+                                result = apply_best_practice(
+                                    best_practice_id=best_practice_id,
+                                    use_ai_flag=use_ai_flag,
+                                    model=model,
+                                    repo_url=repo_url,
+                                    target_dir_to_clone_to=target_dir_to_clone_to,
+                                    branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS,
+                                    no_prompt=no_prompt,
+                                    **kwargs
+                                )
+                                if result is None:
+                                    return False
+                                progress.update(task, description=f"Completed {best_practice_id}")
+                    else:  # else make a temporary directory
+                        repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+                        logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
+                        for best_practice_id in best_practice_ids:
+                            with Progress(
+                                SpinnerColumn(),
+                                TextColumn("[progress.description]{task.description}"),
+                                console=console,
+                                transient=True
+                            ) as progress:
+                                task = progress.add_task(f"Applying {best_practice_id} to {repo_url}...", total=None)
+                                result = apply_best_practice(
+                                    best_practice_id=best_practice_id,
+                                    use_ai_flag=use_ai_flag,
+                                    model=model,
+                                    repo_url=repo_url,
+                                    target_dir_to_clone_to=repo_dir,
+                                    branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS,
+                                    no_prompt=no_prompt,
+                                    **kwargs
+                                )
+                                if result is None:
+                                    return False
+                                progress.update(task, description=f"Completed {best_practice_id}")
+                else:
+                    for best_practice_id in best_practice_ids:
+                        with Progress(
+                            SpinnerColumn(),
+                            TextColumn("[progress.description]{task.description}"),
+                            console=console,
+                            transient=True
+                        ) as progress:
+                            task = progress.add_task(f"Applying {best_practice_id}...", total=None)
                             result = apply_best_practice(
                                 best_practice_id=best_practice_id,
                                 use_ai_flag=use_ai_flag,
                                 model=model,
-                                repo_url=repo_url,
-                                target_dir_to_clone_to=target_dir_to_clone_to,
-                                branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS,
+                                existing_repo_dir=existing_repo_dir,
                                 no_prompt=no_prompt,
                                 **kwargs
                             )
                             if result is None:
                                 return False
-                    else:  # else make a temporary directory
-                        repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
-                        logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
-                        for best_practice_id in best_practice_ids:
-                            result = apply_best_practice(
-                                best_practice_id=best_practice_id,
-                                use_ai_flag=use_ai_flag,
-                                model=model,
-                                repo_url=repo_url,
-                                target_dir_to_clone_to=repo_dir,
-                                branch=GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS,
-                                no_prompt=no_prompt,
-                                **kwargs
-                            )
-                else:
-                    for best_practice_id in best_practice_ids:
-                        result = apply_best_practice(
-                            best_practice_id=best_practice_id,
-                            use_ai_flag=use_ai_flag,
-                            model=model,
-                            existing_repo_dir=existing_repo_dir,
-                            no_prompt=no_prompt,
-                            **kwargs
-                        )
+                            progress.update(task, description=f"Completed {best_practice_id}")
             elif len(best_practice_ids) == 1:
-                result = apply_best_practice(
-                    best_practice_id=best_practice_ids[0],
-                    use_ai_flag=use_ai_flag,
-                    model=model,
-                    repo_url=repo_url,
-                    existing_repo_dir=existing_repo_dir,
-                    target_dir_to_clone_to=target_dir_to_clone_to,
-                    no_prompt=no_prompt,
-                    **kwargs
-                )
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console,
+                    transient=True
+                ) as progress:
+                    task = progress.add_task(f"Applying {best_practice_ids[0]} to {repo_url}...", total=None)
+                    result = apply_best_practice(
+                        best_practice_id=best_practice_ids[0],
+                        use_ai_flag=use_ai_flag,
+                        model=model,
+                        repo_url=repo_url,
+                        existing_repo_dir=existing_repo_dir,
+                        target_dir_to_clone_to=target_dir_to_clone_to,
+                        no_prompt=no_prompt,
+                        **kwargs
+                    )
+                    if result is None:
+                        return False
+                    progress.update(task, description=f"Completed {best_practice_ids[0]}")
             else:
                 logging.error(f"No best practice IDs specified.")
                 return False
@@ -307,86 +357,45 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url=None, exi
         logging.info(f"TEST MODE: Successfully applied best practice {best_practice_id} to mock repository")
         return mock_repo
 
-    # Use progress indicator for the apply operation
-    with Progress(
-        SpinnerColumn() if use_ai_flag else BarColumn(),
-        TextColumn("[progress.description]{task.description}"),
-        TaskProgressColumn() if not use_ai_flag else TextColumn(""),
-        console=console,
-        transient=True
-    ) as progress:
-        # Initialize progress task
-        if use_ai_flag:
-            task = progress.add_task(f"Applying {best_practice_id} with AI...", total=None)
+    # Fetch best practices information
+    practices = fetch_best_practices(SLIM_REGISTRY_URI)
+    if not practices:
+        console.print("[red]No practices found or failed to fetch practices.[/red]")
+        return None
+
+    # Create a best practices manager to handle the practice
+    manager = BestPracticeManager(practices)
+
+    # Get the best practice
+    practice = manager.get_best_practice(best_practice_id)
+    if not practice:
+        logging.warning(f"Best practice with ID {best_practice_id} is not supported or not found.")
+        return None
+
+    # Determine the repository path
+    repo_path = existing_repo_dir
+    if repo_url:
+        parsed_url = urllib.parse.urlparse(repo_url)
+        repo_name = os.path.basename(parsed_url.path)
+        repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
+
+        if target_dir_to_clone_to:
+            # If target_dir_to_clone_to is specified, append repo name
+            repo_path = os.path.join(target_dir_to_clone_to, repo_name)
+            logging.debug(f"Set clone directory to {repo_path}")
         else:
-            task = progress.add_task(f"Applying {best_practice_id}...", total=100)
-            progress.update(task, completed=10)
+            # Create a temporary directory
+            repo_path = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+            logging.debug(f"Generating temporary clone directory at {repo_path}")
 
-        # Fetch best practices information
-        progress.update(task, description=f"Fetching registry for {best_practice_id}...")
-        practices = fetch_best_practices(SLIM_REGISTRY_URI)
-        if not practices:
-            console.print("[red]No practices found or failed to fetch practices.[/red]")
-            return None
-        
-        if not use_ai_flag:
-            progress.update(task, completed=20)
-
-        # Create a best practices manager to handle the practice
-        progress.update(task, description=f"Loading best practice {best_practice_id}...")
-        manager = BestPracticeManager(practices)
-
-        # Get the best practice
-        practice = manager.get_best_practice(best_practice_id)
-        if not practice:
-            logging.warning(f"Best practice with ID {best_practice_id} is not supported or not found.")
-            return None
-        
-        if not use_ai_flag:
-            progress.update(task, completed=30)
-
-        # Determine the repository path
-        progress.update(task, description=f"Preparing repository for {best_practice_id}...")
-        repo_path = existing_repo_dir
-        if repo_url:
-            parsed_url = urllib.parse.urlparse(repo_url)
-            repo_name = os.path.basename(parsed_url.path)
-            repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
-
-            if target_dir_to_clone_to:
-                # If target_dir_to_clone_to is specified, append repo name
-                repo_path = os.path.join(target_dir_to_clone_to, repo_name)
-                logging.debug(f"Set clone directory to {repo_path}")
-            else:
-                # Create a temporary directory
-                repo_path = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
-                logging.debug(f"Generating temporary clone directory at {repo_path}")
-        
-        if not use_ai_flag:
-            progress.update(task, completed=50)
-
-        # Apply the best practice
-        if use_ai_flag:
-            progress.update(task, description=f"Analyzing repository with AI for {best_practice_id}...")
-        else:
-            progress.update(task, description=f"Executing {best_practice_id} application...")
-            progress.update(task, completed=70)
-
-        result = practice.apply(
-            repo_path=repo_path,
-            use_ai=use_ai_flag,
-            model=model,
-            repo_url=repo_url,
-            target_dir_to_clone_to=target_dir_to_clone_to,
-            branch=branch,
-            no_prompt=no_prompt,
-            **kwargs
-        )
-        
-        if not use_ai_flag:
-            progress.update(task, completed=100)
-        
-        if use_ai_flag:
-            progress.update(task, description=f"Completed {best_practice_id} with AI assistance")
-        
-        return result
+    # Apply the best practice
+    return practice.apply(
+        repo_path=repo_path,
+        use_ai=use_ai_flag,
+        model=model,
+        repo_url=repo_url,
+        target_dir_to_clone_to=target_dir_to_clone_to,
+        branch=branch,
+        no_prompt=no_prompt,
+        **kwargs
+    )

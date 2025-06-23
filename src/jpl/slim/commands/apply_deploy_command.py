@@ -15,7 +15,7 @@ from typing import List, Optional
 from pathlib import Path
 import typer
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.progress import Progress, SpinnerColumn, TextColumn
 import git
 
 from jpl.slim.utils.io_utils import repo_file_to_list
@@ -371,22 +371,14 @@ def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote=
     logging.debug("AI customization enabled for applying and deploying best practices" if use_ai_flag else "AI customization disabled")
     logging.debug(f"Applying and deploying best practice ID: {best_practice_id}")
 
+    # Apply the best practice with simple spinner
     with Progress(
-        SpinnerColumn() if use_ai_flag else BarColumn(),
+        SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
-        TaskProgressColumn() if not use_ai_flag else TextColumn(""),
         console=console,
         transient=True
     ) as progress:
-        if use_ai_flag:
-            task = progress.add_task(f"Apply-deploy {best_practice_id} with AI...", total=None)
-        else:
-            task = progress.add_task(f"Apply-deploy {best_practice_id}...", total=100)
-
-        # Apply the best practice
-        progress.update(task, description=f"Applying {best_practice_id}...")
-        if not use_ai_flag:
-            progress.update(task, completed=20)
+        task = progress.add_task(f"Applying {best_practice_id}...", total=None)
         
         git_repo = apply_best_practice(
             best_practice_id=best_practice_id,
@@ -399,12 +391,18 @@ def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote=
             no_prompt=no_prompt,
             **kwargs
         )
-
-        # Deploy the best practice if applied successfully
-        if git_repo:
-            progress.update(task, description=f"Deploying {best_practice_id}...")
-            if not use_ai_flag:
-                progress.update(task, completed=60)
+        
+        progress.update(task, description=f"Completed applying {best_practice_id}")
+    
+    # Deploy the best practice if applied successfully
+    if git_repo:
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+            transient=True
+        ) as progress:
+            task = progress.add_task(f"Deploying {best_practice_id}...", total=None)
             
             result = deploy_best_practice(
                 best_practice_id=best_practice_id,
@@ -414,26 +412,23 @@ def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote=
                 branch=branch
             )
             
-            if result:
-                if not use_ai_flag:
-                    progress.update(task, completed=100)
-                else:
-                    progress.update(task, description=f"Completed apply-deploy {best_practice_id}")
-                
-                logging.info(LOG_SUCCESS_APPLY_DEPLOY.format(best_practice_id))
-                
-                # Print success message to user  
-                console.print(f"✅ Successfully applied and deployed best practice '{best_practice_id}' to repository")
-                console.print(f"   📁 Repository: {git_repo.working_dir}")
-                console.print(f"   🌿 Branch: {branch if branch else best_practice_id}")
-                console.print(f"   💬 Commit: {commit_message}")
-                if remote:
-                    console.print(f"   🚀 Deployed to: {remote}")
-                
-                return True
-            else:
-                logging.error(LOG_UNABLE_TO_DEPLOY.format(best_practice_id))
-                return False
+            progress.update(task, description=f"Completed deploying {best_practice_id}")
+        
+        if result:
+            logging.info(LOG_SUCCESS_APPLY_DEPLOY.format(best_practice_id))
+            
+            # Print success message to user  
+            console.print(f"✅ Successfully applied and deployed best practice '{best_practice_id}' to repository")
+            console.print(f"   📁 Repository: {git_repo.working_dir}")
+            console.print(f"   🌿 Branch: {branch if branch else best_practice_id}")
+            console.print(f"   💬 Commit: {commit_message}")
+            if remote:
+                console.print(f"   🚀 Deployed to: {remote}")
+            
+            return True
         else:
-            logging.error(LOG_UNABLE_TO_APPLY_DEPLOY.format(best_practice_id))
+            logging.error(LOG_UNABLE_TO_DEPLOY.format(best_practice_id))
             return False
+    else:
+        logging.error(LOG_UNABLE_TO_APPLY_DEPLOY.format(best_practice_id))
+        return False
