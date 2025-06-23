@@ -128,6 +128,59 @@ docs-website:
       - Make content specific to the actual project, not generic templates
       
       OUTPUT FORMAT: Return the complete file with [INSERT_CONTENT] markers replaced and {{PROJECT_NAME}} substituted, maintaining all original formatting and structure.
+  
+  enhance_section:
+    context: "You are enhancing a specific section of documentation. Focus on providing detailed, useful content that matches the section's purpose."
+    prompt: |
+      You are enhancing a specific section of documentation for {project_name}.
+
+      File: {file_name}
+      Section Header: {section_header}
+      Current Content: {current_content}
+
+      Context about the project:
+      - Project Name: {project_name}
+      - Languages: {languages}
+      - Project Type: {project_type}
+
+      Instructions:
+      1. Replace [INSERT_CONTENT] markers with relevant, detailed content
+      2. If the section is too brief, expand it with useful information
+      3. Keep the existing structure and formatting
+      4. Make content specific to {project_name} and the section topic
+      5. Return ONLY the enhanced section content (no header, no extra text)
+      6. DO NOT include conversational text like "Here is the enhanced section"
+      7. Focus on providing practical, useful information that matches the section's purpose
+      8. Include relevant examples, commands, and best practices where appropriate
+      
+      For troubleshooting sections: Provide specific, actionable solutions
+      For tutorial sections: Include step-by-step instructions with examples
+      For API sections: Include detailed parameter descriptions and usage examples
+      For installation sections: Provide clear prerequisites and platform-specific instructions
+      
+      OUTPUT FORMAT: Return only the enhanced section content, ready to be inserted into the documentation.
+  
+  fill_empty_section:
+    context: "You are filling in an empty section of documentation with appropriate content."
+    prompt: |
+      You are filling in an empty section of documentation for {project_name}.
+
+      File: {file_name}
+      Section Header: {section_header}
+      Context about the project:
+      - Project Name: {project_name}
+      - Languages: {languages}
+      - Project Type: {project_type}
+
+      This section appears to be empty or contains minimal content. Generate comprehensive, useful content that:
+      1. Matches the section header and purpose
+      2. Is specific to {project_name} and its technology stack
+      3. Provides practical, actionable information
+      4. Includes relevant examples where appropriate
+      5. Follows documentation best practices
+      
+      Return ONLY the section content (no header, no conversational text).
+      Make the content substantial and useful for users of {project_name}.
 
 # Security practices
 secrets_detection:
