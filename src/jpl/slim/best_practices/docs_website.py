@@ -16,6 +16,9 @@ import traceback
 from typing import Optional, Dict, Any, List
 import uuid
 
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+
 from jpl.slim.best_practices.standard import StandardPractice
 from jpl.slim.best_practices.docs_website_impl.generator import SlimDocGenerator
 
@@ -85,7 +88,7 @@ class DocsWebsiteBestPractice(StandardPractice):
             
         # In test mode, simulate success without making actual changes
         if SLIM_TEST_MODE:
-            logging.info(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
+            logging.debug(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
             return repo_path
         
         # Use the integrated documentation generator
@@ -102,15 +105,30 @@ class DocsWebsiteBestPractice(StandardPractice):
                 revise_site=revise_site
             )
             
-            # Generate documentation
-            success = generator.generate()
+            # Generate documentation with spinner
+            console = Console()
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console,
+                transient=True
+            ) as progress:
+                task_description = f"Generating documentation website"
+                if use_ai and model:
+                    task_description += f" with AI ({model})"
+                task = progress.add_task(task_description, total=None)
+                
+                success = generator.generate()
+                
+                if success:
+                    progress.update(task, description="Documentation generation completed")
             
             if success:
                 if template_only:
-                    logging.info(f"Template structure successfully generated at {output_dir}")
+                    logging.debug(f"Template structure successfully generated at {output_dir}")
                     print(f"✅ Successfully applied best practice '{self.best_practice_id}' - documentation template at {output_dir}")
                 else:
-                    logging.info(f"Documentation successfully generated at {output_dir}")
+                    logging.debug(f"Documentation successfully generated at {output_dir}")
                     print(f"✅ Successfully applied best practice '{self.best_practice_id}' - documentation generated at {output_dir}")
                 print(f"   📁 Source repository: {repo_path}")
                 return repo_path
@@ -140,5 +158,5 @@ class DocsWebsiteBestPractice(StandardPractice):
         Returns:
             bool: True (always returns True as no deployment is needed)
         """
-        logging.info(f"No deployment needed for {self.best_practice_id}. Documentation was generated in the specified output directory.")
+        logging.debug(f"No deployment needed for {self.best_practice_id}. Documentation was generated in the specified output directory.")
         return True

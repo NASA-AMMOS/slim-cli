@@ -71,10 +71,10 @@ class SlimDocGenerator:
             if not self.target_repo_path.exists():
                 raise ValueError(f"Target repository path does not exist: {target_repo_path}")
             
-            self.logger.info(f"Initialized SLIM Doc Generator for {self.target_repo_path.name}")
+            self.logger.debug(f"Initialized SLIM Doc Generator for {self.target_repo_path.name}")
         else:
             self.target_repo_path = None
-            self.logger.info("Initialized SLIM Doc Generator in template-only mode")
+            self.logger.debug("Initialized SLIM Doc Generator in template-only mode")
     
     def generate(self) -> bool:
         """
@@ -84,7 +84,7 @@ class SlimDocGenerator:
             True if generation was successful, False otherwise
         """
         try:
-            self.logger.info("Starting documentation generation")
+            self.logger.debug("Starting documentation generation")
             
             # Step 1: Setup template
             if not self._setup_template():
@@ -111,7 +111,7 @@ class SlimDocGenerator:
                 if not self._revise_site():
                     return False
             
-            self.logger.info("Documentation generation completed successfully")
+            self.logger.debug("Documentation generation completed successfully")
             return True
             
         except Exception as e:
@@ -121,7 +121,7 @@ class SlimDocGenerator:
     def _setup_template(self) -> bool:
         """Setup the documentation template."""
         try:
-            self.logger.info("Setting up documentation template")
+            self.logger.debug("Setting up documentation template")
             return self.template_manager.clone_template()
         except Exception as e:
             self.logger.error(f"Error setting up template: {str(e)}")
@@ -130,7 +130,7 @@ class SlimDocGenerator:
     def _analyze_repository(self) -> Dict:
         """Analyze the target repository using utils."""
         try:
-            self.logger.info(f"Analyzing repository: {self.target_repo_path}")
+            self.logger.debug(f"Analyzing repository: {self.target_repo_path}")
             
             # Use repo_utils for comprehensive analysis
             repo_info = scan_repository(self.target_repo_path)
@@ -139,7 +139,7 @@ class SlimDocGenerator:
             if is_git_repository(str(self.target_repo_path)):
                 extract_git_info(str(self.target_repo_path), repo_info)
             
-            self.logger.info(f"Repository analysis complete: {len(repo_info.get('files', []))} files, "
+            self.logger.debug(f"Repository analysis complete: {len(repo_info.get('files', []))} files, "
                            f"{len(repo_info.get('languages', []))} languages detected")
             
             return repo_info
@@ -151,7 +151,7 @@ class SlimDocGenerator:
     def _generate_content(self, repo_info: Dict) -> bool:
         """Generate documentation content."""
         try:
-            self.logger.info("Generating documentation content")
+            self.logger.debug("Generating documentation content")
             
             # Define content sections to generate
             sections = [
@@ -159,7 +159,13 @@ class SlimDocGenerator:
                 ("installation", "Installation"),
                 ("api", "API Reference"),
                 ("development", "Development"),
-                ("contributing", "Contributing")
+                ("contributing", "Contributing"),
+                ("changelog", "Changelog"),
+                ("deployment", "Deployment"),
+                ("architecture", "Architecture"),
+                ("testing", "Testing"),
+                ("security", "Security"),
+                ("guides", "Guides")
             ]
             
             for section_key, section_name in sections:
@@ -203,6 +209,18 @@ class SlimDocGenerator:
             return self._generate_development_content(repo_info)
         elif section_key == "contributing":
             return self._generate_contributing_content(repo_info)
+        elif section_key == "changelog":
+            return self._generate_changelog_content(repo_info)
+        elif section_key == "deployment":
+            return self._generate_deployment_content(repo_info)
+        elif section_key == "architecture":
+            return self._generate_architecture_content(repo_info)
+        elif section_key == "testing":
+            return self._generate_testing_content(repo_info)
+        elif section_key == "security":
+            return self._generate_security_content(repo_info)
+        elif section_key == "guides":
+            return self._generate_guides_content(repo_info)
         
         return ""
     
@@ -455,6 +473,1059 @@ See the [Development Guide](./development.md) for detailed setup instructions.
         
         return content
     
+    def _generate_changelog_content(self, repo_info: Dict) -> str:
+        """Generate changelog content."""
+        project_name = repo_info.get('project_name', 'Project')
+        
+        content = f"""---
+title: {escape_yaml_value("Changelog")}
+---
+
+# Changelog
+
+All notable changes to {project_name} will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+- Initial project setup
+- Basic functionality implementation
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+## [1.0.0] - YYYY-MM-DD
+
+### Added
+- Initial release of {project_name}
+
+<!-- Add new releases above this line -->
+"""
+        return content
+    
+    def _generate_deployment_content(self, repo_info: Dict) -> str:
+        """Generate deployment content."""
+        project_name = repo_info.get('project_name', 'Project')
+        languages = repo_info.get('languages', [])
+        
+        content = f"""---
+title: {escape_yaml_value("Deployment Guide")}
+---
+
+# Deployment Guide
+
+This guide covers deploying {project_name} to various environments.
+
+## Prerequisites
+
+### System Requirements
+- Operating System: Linux, macOS, or Windows
+- Memory: 512MB minimum, 2GB recommended
+- Disk Space: 1GB available space
+
+### Dependencies
+"""
+        
+        if 'Python' in languages:
+            content += "- Python 3.7 or higher\n"
+        if 'JavaScript' in languages or 'TypeScript' in languages:
+            content += "- Node.js 14 or higher\n"
+        if 'Java' in languages:
+            content += "- Java 8 or higher\n"
+        
+        content += """
+## Deployment Options
+
+### Local Deployment
+
+1. **Download and Setup**
+   ```bash
+   git clone <repository-url>
+   cd """ + project_name.lower().replace(' ', '-') + """
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   # Follow installation guide instructions
+   ```
+
+3. **Configuration**
+   ```bash
+   # Copy configuration template
+   cp config.template.yml config.yml
+   # Edit configuration as needed
+   ```
+
+4. **Start Application**
+   ```bash
+   # Add startup commands here
+   ```
+
+### Production Deployment
+
+#### Docker Deployment
+
+```dockerfile
+# Example Dockerfile
+FROM python:3.9-slim  # Adjust based on your stack
+WORKDIR /app
+COPY . .
+RUN pip install -r requirements.txt  # Adjust for your dependencies
+EXPOSE 8000
+CMD ["python", "app.py"]  # Adjust for your application
+```
+
+#### Environment Variables
+
+```bash
+# Required environment variables
+export ENV=production
+export LOG_LEVEL=info
+# Add other environment variables as needed
+```
+
+## Monitoring and Maintenance
+
+### Health Checks
+- Application health endpoint: `/health`
+- Database connection status
+- External service connectivity
+
+### Logging
+- Application logs location: `/var/log/app/`
+- Log rotation configuration
+- Log level settings
+
+### Backup and Recovery
+- Database backup procedures
+- Configuration backup
+- Recovery procedures
+
+## Troubleshooting
+
+### Common Issues
+1. **Port already in use**
+   - Solution: Change port in configuration or stop conflicting service
+
+2. **Permission denied**
+   - Solution: Check file permissions and user privileges
+
+3. **Database connection failed**
+   - Solution: Verify database configuration and connectivity
+
+### Getting Help
+- Check application logs
+- Review configuration settings
+- Contact support team
+"""
+        return content
+    
+    def _generate_architecture_content(self, repo_info: Dict) -> str:
+        """Generate architecture content."""
+        project_name = repo_info.get('project_name', 'Project')
+        languages = repo_info.get('languages', [])
+        
+        content = f"""---
+title: {escape_yaml_value("Architecture Overview")}
+---
+
+# Architecture Overview
+
+This document describes the high-level architecture of {project_name}.
+
+## System Overview
+
+{project_name} is designed with a modular architecture that promotes maintainability, scalability, and testability.
+
+## Core Components
+
+### Application Layer
+- **Purpose**: Handles business logic and application workflows
+- **Technologies**: {', '.join(languages[:3]) if languages else 'Modern technologies'}
+- **Responsibilities**:
+  - Business logic implementation
+  - Data validation and processing
+  - Workflow orchestration
+
+### Data Layer
+- **Purpose**: Manages data persistence and retrieval
+- **Components**:
+  - Data models and schemas
+  - Database interactions
+  - Data validation
+
+### Interface Layer
+- **Purpose**: Handles external interactions and APIs
+- **Components**:
+  - REST API endpoints
+  - User interfaces
+  - External service integrations
+
+## Design Patterns
+
+### Architectural Patterns
+- **Modular Design**: Components are organized into distinct modules
+- **Separation of Concerns**: Clear separation between different layers
+- **Dependency Injection**: Loose coupling between components
+
+### Code Patterns
+- **Repository Pattern**: Data access abstraction
+- **Factory Pattern**: Object creation management
+- **Observer Pattern**: Event-driven communication
+
+## Data Flow
+
+1. **Request Processing**
+   - User/API request received
+   - Input validation and sanitization
+   - Business logic execution
+   - Data persistence (if required)
+   - Response generation
+
+2. **Error Handling**
+   - Exception catching and logging
+   - Error response formatting
+   - Recovery mechanisms
+
+## Security Architecture
+
+### Authentication and Authorization
+- User authentication mechanisms
+- Role-based access control
+- Session management
+
+### Data Protection
+- Input validation and sanitization
+- SQL injection prevention
+- Cross-site scripting (XSS) protection
+
+## Performance Considerations
+
+### Optimization Strategies
+- Caching mechanisms
+- Database query optimization
+- Asynchronous processing
+- Resource pooling
+
+### Scalability
+- Horizontal scaling capabilities
+- Load balancing strategies
+- Database scaling approaches
+
+## Technology Stack
+
+### Core Technologies
+"""
+        
+        for lang in languages:
+            content += f"- **{lang}**: [Description of usage]\n"
+        
+        content += """
+### External Dependencies
+- List of major external libraries and frameworks
+- Database systems
+- Third-party services
+
+## Deployment Architecture
+
+### Environment Structure
+- Development environment
+- Staging environment
+- Production environment
+
+### Infrastructure Components
+- Application servers
+- Database servers
+- Load balancers
+- Monitoring systems
+
+## Future Considerations
+
+### Planned Improvements
+- Performance optimizations
+- Feature enhancements
+- Technology upgrades
+
+### Scalability Roadmap
+- Expected growth patterns
+- Scaling strategies
+- Technology evolution path
+"""
+        return content
+    
+    def _generate_testing_content(self, repo_info: Dict) -> str:
+        """Generate testing content."""
+        project_name = repo_info.get('project_name', 'Project')
+        languages = repo_info.get('languages', [])
+        test_dirs = repo_info.get('test_dirs', [])
+        
+        content = f"""---
+title: {escape_yaml_value("Testing Guide")}
+---
+
+# Testing Guide
+
+This document describes the testing strategy and practices for {project_name}.
+
+## Testing Philosophy
+
+We believe in comprehensive testing to ensure code quality, reliability, and maintainability. Our testing approach includes:
+
+- **Test-Driven Development (TDD)**: Writing tests before implementation
+- **Continuous Testing**: Automated testing in CI/CD pipeline
+- **Coverage Goals**: Maintaining high test coverage
+- **Quality Gates**: Tests must pass before deployment
+
+## Test Structure
+
+### Test Organization
+"""
+        
+        if test_dirs:
+            content += f"- **Test Directories**: {', '.join(test_dirs)}\n"
+        else:
+            content += "- **Test Directories**: `tests/`, `test/`\n"
+        
+        content += """- **Test Naming**: Descriptive test names that explain the scenario
+- **Test Grouping**: Tests organized by feature or module
+
+### Test Types
+
+#### Unit Tests
+- **Purpose**: Test individual functions and methods in isolation
+- **Coverage**: All public functions and critical private functions
+- **Mock Usage**: External dependencies are mocked
+- **Execution**: Fast execution (< 1 second per test)
+
+#### Integration Tests
+- **Purpose**: Test interaction between components
+- **Coverage**: API endpoints, database interactions, service integrations
+- **Environment**: Test database and external service mocks
+- **Execution**: Moderate execution time (1-10 seconds per test)
+
+#### End-to-End Tests
+- **Purpose**: Test complete user workflows
+- **Coverage**: Critical user journeys and business processes
+- **Environment**: Production-like test environment
+- **Execution**: Slower execution (10+ seconds per test)
+
+## Testing Frameworks and Tools
+
+### Primary Testing Frameworks
+"""
+        
+        if 'Python' in languages:
+            content += """- **pytest**: Main testing framework for Python code
+- **unittest**: Built-in Python testing framework
+- **pytest-cov**: Coverage reporting
+"""
+        
+        if 'JavaScript' in languages or 'TypeScript' in languages:
+            content += """- **Jest**: JavaScript testing framework
+- **Mocha**: Alternative JavaScript testing framework
+- **Cypress**: End-to-end testing framework
+"""
+        
+        if 'Java' in languages:
+            content += """- **JUnit**: Main testing framework for Java
+- **Mockito**: Mocking framework
+- **TestNG**: Alternative testing framework
+"""
+        
+        content += """
+### Supporting Tools
+- **Coverage Tools**: Track test coverage metrics
+- **Mocking Libraries**: Create test doubles for dependencies
+- **Test Data Factories**: Generate test data consistently
+- **Performance Testing**: Load and stress testing tools
+
+## Running Tests
+
+### Local Development
+
+```bash
+# Run all tests
+make test  # or npm test, pytest, etc.
+
+# Run specific test suite
+make test-unit
+make test-integration
+
+# Run with coverage
+make test-coverage
+
+# Run specific test file
+pytest tests/test_specific_module.py
+```
+
+### Continuous Integration
+
+Tests are automatically executed on:
+- Every pull request
+- Every push to main branch
+- Nightly builds for comprehensive testing
+
+### Test Configuration
+
+```yaml
+# Example test configuration
+test:
+  unit:
+    timeout: 30s
+    parallel: true
+  integration:
+    timeout: 300s
+    database: test_db
+  coverage:
+    minimum: 80%
+    exclude:
+      - tests/
+      - migrations/
+```
+
+## Writing Good Tests
+
+### Test Structure (AAA Pattern)
+```python
+def test_user_creation():
+    # Arrange: Set up test data
+    user_data = {"name": "John", "email": "john@example.com"}
+    
+    # Act: Execute the functionality
+    user = create_user(user_data)
+    
+    # Assert: Verify the results
+    assert user.name == "John"
+    assert user.email == "john@example.com"
+```
+
+### Best Practices
+- **One Assertion Per Test**: Focus on testing one thing
+- **Descriptive Names**: Test names should describe the scenario
+- **Independent Tests**: Tests should not depend on each other
+- **Fast Execution**: Optimize for quick feedback
+- **Readable Code**: Tests serve as documentation
+
+### Test Data Management
+- Use factories for consistent test data
+- Avoid hardcoded values
+- Clean up test data after tests
+- Use realistic but safe test data
+
+## Coverage Requirements
+
+### Coverage Targets
+- **Overall Coverage**: Minimum 80%
+- **New Code Coverage**: Minimum 90%
+- **Critical Paths**: 100% coverage required
+
+### Coverage Reports
+- Generated automatically in CI/CD
+- Available in HTML format for detailed analysis
+- Integrated with code review process
+
+## Testing in Different Environments
+
+### Development
+- Fast feedback loop
+- Subset of tests for quick validation
+- Local database and services
+
+### Staging
+- Full test suite execution
+- Production-like environment
+- Performance testing
+
+### Production
+- Smoke tests after deployment
+- Health checks and monitoring
+- Rollback procedures if tests fail
+
+## Performance Testing
+
+### Load Testing
+- Simulate expected user load
+- Identify performance bottlenecks
+- Validate scalability assumptions
+
+### Stress Testing
+- Test system limits
+- Evaluate graceful degradation
+- Identify breaking points
+
+## Troubleshooting Tests
+
+### Common Issues
+1. **Flaky Tests**: Tests that pass/fail inconsistently
+   - Solution: Identify and eliminate race conditions
+   
+2. **Slow Tests**: Tests taking too long to execute
+   - Solution: Optimize database queries, use mocks
+
+3. **Test Dependencies**: Tests that depend on external services
+   - Solution: Mock external dependencies
+
+### Debugging Tests
+- Use debugging tools in your IDE
+- Add logging to understand test execution
+- Isolate failing tests
+- Check test environment configuration
+
+## Contributing to Tests
+
+### Adding New Tests
+1. Follow naming conventions
+2. Use appropriate test type (unit/integration/e2e)
+3. Ensure tests are independent
+4. Add documentation for complex test scenarios
+
+### Updating Existing Tests
+1. Maintain backward compatibility when possible
+2. Update related tests when changing functionality
+3. Ensure coverage is maintained or improved
+4. Review test performance impact
+"""
+        return content
+    
+    def _generate_security_content(self, repo_info: Dict) -> str:
+        """Generate security content."""
+        project_name = repo_info.get('project_name', 'Project')
+        languages = repo_info.get('languages', [])
+        
+        content = f"""---
+title: {escape_yaml_value("Security Guide")}
+---
+
+# Security Guide
+
+This document outlines the security practices and considerations for {project_name}.
+
+## Security Philosophy
+
+Security is a fundamental aspect of {project_name}. We follow security-by-design principles and implement defense-in-depth strategies to protect against various threats.
+
+## Security Principles
+
+### Core Principles
+- **Least Privilege**: Grant minimum necessary permissions
+- **Defense in Depth**: Multiple layers of security controls
+- **Fail Secure**: Default to secure state on failure
+- **Complete Mediation**: Check every access request
+- **Open Design**: Security through proper design, not obscurity
+
+### Development Practices
+- **Secure Coding Standards**: Following OWASP guidelines
+- **Code Reviews**: Security-focused code reviews
+- **Static Analysis**: Automated security scanning
+- **Dependency Management**: Regular updates and vulnerability scanning
+
+## Authentication and Authorization
+
+### Authentication Mechanisms
+- **Strong Passwords**: Minimum complexity requirements
+- **Multi-Factor Authentication (MFA)**: Additional security layer
+- **Session Management**: Secure session handling
+- **Account Lockout**: Protection against brute force attacks
+
+### Authorization Controls
+- **Role-Based Access Control (RBAC)**: Users assigned roles with specific permissions
+- **Principle of Least Privilege**: Minimal access rights
+- **Access Reviews**: Regular permission audits
+- **Separation of Duties**: Critical operations require multiple approvals
+
+## Data Protection
+
+### Data Classification
+- **Public**: No restrictions
+- **Internal**: Restricted to organization
+- **Confidential**: Limited access required
+- **Restricted**: Highest level of protection
+
+### Encryption Standards
+- **Data at Rest**: AES-256 encryption
+- **Data in Transit**: TLS 1.3 minimum
+- **Key Management**: Secure key storage and rotation
+- **Certificate Management**: Regular certificate updates
+
+### Data Handling
+- **Data Minimization**: Collect only necessary data
+- **Data Retention**: Clear retention policies
+- **Data Disposal**: Secure deletion procedures
+- **Backup Security**: Encrypted backups with access controls
+
+## Input Validation and Sanitization
+
+### Input Validation
+- **Whitelist Approach**: Allow only expected input patterns
+- **Data Type Validation**: Ensure correct data types
+- **Length Limits**: Prevent buffer overflow attacks
+- **Character Encoding**: Proper encoding validation
+
+### Common Vulnerabilities Prevention
+"""
+        
+        if 'Python' in languages:
+            content += """
+#### SQL Injection Prevention (Python)
+```python
+# Good: Using parameterized queries
+cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+
+# Bad: String concatenation
+cursor.execute(f"SELECT * FROM users WHERE id = {user_id}")
+```
+"""
+        
+        if 'JavaScript' in languages or 'TypeScript' in languages:
+            content += """
+#### Cross-Site Scripting (XSS) Prevention (JavaScript)
+```javascript
+// Good: Proper escaping
+const safeHTML = escapeHtml(userInput);
+
+// Bad: Direct insertion
+element.innerHTML = userInput;
+```
+"""
+        
+        content += """
+### Output Encoding
+- **HTML Encoding**: Prevent XSS in web applications
+- **URL Encoding**: Safe URL parameter handling
+- **JSON Encoding**: Prevent injection in JSON responses
+
+## Network Security
+
+### Communication Security
+- **HTTPS Only**: All communications encrypted
+- **HSTS Headers**: Force HTTPS connections
+- **Certificate Pinning**: Prevent man-in-the-middle attacks
+- **API Security**: Secure API design and implementation
+
+### Network Controls
+- **Firewall Rules**: Restrict network access
+- **VPN Access**: Secure remote access
+- **Network Segmentation**: Isolate critical systems
+- **Intrusion Detection**: Monitor for suspicious activity
+
+## Application Security
+
+### Secure Configuration
+- **Default Passwords**: Change all default credentials
+- **Error Handling**: Avoid information disclosure
+- **Logging**: Security event logging without sensitive data
+- **File Permissions**: Restrict file system access
+
+### Security Headers
+```http
+# Example security headers
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+Content-Security-Policy: default-src 'self'
+X-Frame-Options: DENY
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+```
+
+### Dependency Security
+- **Dependency Scanning**: Regular vulnerability scans
+- **Update Policies**: Timely security updates
+- **License Compliance**: Track open source licenses
+- **Supply Chain Security**: Verify dependency integrity
+
+## Incident Response
+
+### Incident Classification
+- **Low**: Minor security events
+- **Medium**: Potential security impact
+- **High**: Confirmed security breach
+- **Critical**: Severe security incident
+
+### Response Procedures
+1. **Detection**: Identify security incidents
+2. **Containment**: Limit incident impact
+3. **Investigation**: Determine root cause
+4. **Recovery**: Restore normal operations
+5. **Lessons Learned**: Improve security measures
+
+### Communication Plan
+- **Internal Notifications**: Alert security team
+- **External Communications**: Customer/user notifications
+- **Regulatory Reporting**: Compliance requirements
+- **Documentation**: Incident documentation
+
+## Security Testing
+
+### Security Testing Types
+- **Static Application Security Testing (SAST)**: Code analysis
+- **Dynamic Application Security Testing (DAST)**: Runtime testing
+- **Interactive Application Security Testing (IAST)**: Hybrid approach
+- **Penetration Testing**: Simulated attacks
+
+### Automated Security Scanning
+- **Dependency Scanning**: Check for vulnerable dependencies
+- **Secret Scanning**: Detect exposed credentials
+- **Container Scanning**: Secure container images
+- **Infrastructure Scanning**: Secure cloud resources
+
+## Compliance and Standards
+
+### Relevant Standards
+- **OWASP Top 10**: Web application security risks
+- **ISO 27001**: Information security management
+- **NIST Cybersecurity Framework**: Security guidelines
+- **SOC 2**: Security and availability controls
+
+### Compliance Requirements
+- Regular security assessments
+- Security training for developers
+- Incident response procedures
+- Data protection measures
+
+## Security Training and Awareness
+
+### Developer Training
+- Secure coding practices
+- Common vulnerability patterns
+- Security testing techniques
+- Incident response procedures
+
+### Security Resources
+- **OWASP**: Open Web Application Security Project
+- **CWE**: Common Weakness Enumeration
+- **CVE**: Common Vulnerabilities and Exposures
+- **Security Advisories**: Vendor security notifications
+
+## Reporting Security Issues
+
+### Responsible Disclosure
+If you discover a security vulnerability, please:
+
+1. **Do Not** disclose publicly
+2. **Email** security@[organization].com
+3. **Provide** detailed vulnerability information
+4. **Allow** reasonable time for response
+
+### Bug Bounty Program
+- Scope of eligible vulnerabilities
+- Reward structure
+- Submission guidelines
+- Response timelines
+
+## Security Checklist
+
+### Development
+- [ ] Input validation implemented
+- [ ] Output encoding applied
+- [ ] Authentication and authorization in place
+- [ ] Secure configuration applied
+- [ ] Security headers configured
+
+### Deployment
+- [ ] Secrets management configured
+- [ ] Network security controls applied
+- [ ] Monitoring and logging enabled
+- [ ] Backup and recovery tested
+- [ ] Incident response plan ready
+
+### Operations
+- [ ] Regular security updates applied
+- [ ] Access reviews conducted
+- [ ] Security monitoring active
+- [ ] Incident response tested
+- [ ] Security training completed
+"""
+        return content
+    
+    def _generate_guides_content(self, repo_info: Dict) -> str:
+        """Generate guides content."""
+        project_name = repo_info.get('project_name', 'Project')
+        languages = repo_info.get('languages', [])
+        
+        content = f"""---
+title: {escape_yaml_value("User Guides")}
+---
+
+# User Guides
+
+Welcome to the {project_name} user guides! This section provides comprehensive guidance for users and developers.
+
+## Quick Start Guide
+
+### Getting Started in 5 Minutes
+
+1. **Installation**: Follow the [Installation Guide](./installation.md)
+2. **Configuration**: Set up your basic configuration
+3. **First Steps**: Try the basic functionality
+4. **Next Steps**: Explore advanced features
+
+### Basic Usage
+
+```bash
+# Example basic commands
+{project_name.lower()} --help
+{project_name.lower()} init
+{project_name.lower()} run
+```
+
+## User Guides
+
+### For End Users
+
+#### Getting Started
+- **Prerequisites**: What you need before starting
+- **Installation**: Step-by-step installation
+- **Configuration**: Initial setup and configuration
+- **First Use**: Your first experience with {project_name}
+
+#### Common Tasks
+- **Daily Operations**: Frequent tasks and workflows
+- **Configuration Management**: Managing settings and preferences
+- **Troubleshooting**: Common issues and solutions
+- **Best Practices**: Tips for effective usage
+
+#### Advanced Features
+- **Power User Features**: Advanced functionality
+- **Customization**: Personalizing your experience
+- **Integration**: Working with other tools
+- **Automation**: Automating repetitive tasks
+
+### For Administrators
+
+#### System Administration
+- **Installation and Setup**: System-wide installation
+- **User Management**: Managing users and permissions
+- **Configuration Management**: System configuration
+- **Monitoring and Maintenance**: Keeping the system healthy
+
+#### Security Administration
+- **Security Configuration**: Secure setup
+- **Access Control**: Managing permissions
+- **Audit and Compliance**: Monitoring and reporting
+- **Incident Response**: Handling security events
+
+## Developer Guides
+
+### For New Developers
+
+#### Development Environment Setup
+1. **Prerequisites**: Required tools and software
+2. **Repository Setup**: Cloning and initial setup
+3. **Dependencies**: Installing development dependencies
+4. **IDE Configuration**: Setting up your development environment
+
+#### First Contribution
+1. **Code Style**: Understanding the coding standards
+2. **Development Workflow**: How we work with code
+3. **Testing**: Running and writing tests
+4. **Submitting Changes**: Creating pull requests
+
+### For Experienced Developers
+
+#### Architecture Deep Dive
+- **System Design**: How the system is architected
+- **Code Organization**: Understanding the codebase
+- **Design Patterns**: Patterns used in the project
+- **Extension Points**: How to extend functionality
+
+#### Advanced Development
+- **Performance Optimization**: Making the code faster
+- **Security Considerations**: Security best practices
+- **Debugging Techniques**: Troubleshooting complex issues
+- **Testing Strategies**: Advanced testing approaches
+
+## API Guides
+
+### REST API Guide
+
+#### Authentication
+```bash
+# Example API authentication
+curl -H "Authorization: Bearer YOUR_TOKEN" \\
+     https://api.example.com/v1/endpoint
+```
+
+#### Common Operations
+- **CRUD Operations**: Create, Read, Update, Delete
+- **Filtering and Sorting**: Query parameters
+- **Pagination**: Handling large result sets
+- **Error Handling**: Understanding API errors
+
+#### Advanced API Usage
+- **Batch Operations**: Processing multiple items
+- **Webhooks**: Real-time notifications
+- **Rate Limiting**: Managing API usage
+- **Versioning**: Working with different API versions
+
+### SDK/Library Guide
+
+"""
+        
+        if 'Python' in languages:
+            content += """#### Python SDK
+```python
+import {}_sdk
+
+# Initialize client
+client = {}_sdk.Client(api_key="your_key")
+
+# Basic operations
+result = client.get_data()
+client.create_item(data)
+```
+""".format(project_name.lower().replace('-', '_'), project_name.lower().replace('-', '_'))
+        
+        if 'JavaScript' in languages:
+            content += """#### JavaScript SDK
+```javascript
+const {{ Client }} = require('{}-sdk');
+
+// Initialize client
+const client = new Client({{ apiKey: 'your_key' }});
+
+// Basic operations
+const result = await client.getData();
+await client.createItem(data);
+```
+""".format(project_name.lower())
+        
+        content += """
+## Integration Guides
+
+### Third-Party Integrations
+
+#### Popular Integrations
+- **Tool A**: Integration with Tool A
+- **Tool B**: Integration with Tool B
+- **Tool C**: Integration with Tool C
+
+#### Custom Integrations
+- **API Integration**: Building custom API integrations
+- **Webhook Integration**: Setting up webhooks
+- **Plugin Development**: Creating custom plugins
+- **Extension Development**: Building extensions
+
+### CI/CD Integration
+
+#### GitHub Actions
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup
+        run: |
+          # Setup commands
+      - name: Test
+        run: |
+          # Test commands
+```
+
+#### Jenkins Integration
+- **Pipeline Setup**: Creating Jenkins pipelines
+- **Environment Configuration**: Setting up build environments
+- **Deployment Automation**: Automated deployments
+- **Monitoring Integration**: Build monitoring
+
+## Troubleshooting Guides
+
+### Common Issues
+
+#### Installation Problems
+**Problem**: Installation fails with dependency errors
+**Solution**: 
+1. Check system requirements
+2. Update package managers
+3. Install missing dependencies
+4. Try alternative installation methods
+
+#### Configuration Issues
+**Problem**: Application won't start with configuration errors
+**Solution**:
+1. Validate configuration file syntax
+2. Check required configuration values
+3. Verify file permissions
+4. Review log files for specific errors
+
+#### Performance Issues
+**Problem**: Application running slowly
+**Solution**:
+1. Check system resources (CPU, memory)
+2. Review database performance
+3. Analyze network connectivity
+4. Optimize configuration settings
+
+### Error Messages
+
+#### Common Error Codes
+- **Error 400**: Bad Request - Check input parameters
+- **Error 401**: Unauthorized - Verify authentication
+- **Error 403**: Forbidden - Check permissions
+- **Error 404**: Not Found - Verify resource exists
+- **Error 500**: Internal Server Error - Check logs
+
+#### Debugging Steps
+1. **Reproduce the Issue**: Consistent reproduction steps
+2. **Check Logs**: Application and system logs
+3. **Verify Configuration**: Configuration file validation
+4. **Test Components**: Isolate the problem area
+5. **Gather Information**: System information and context
+
+## Best Practices
+
+### General Best Practices
+- **Regular Updates**: Keep software updated
+- **Backup Strategy**: Regular backups of important data
+- **Monitoring**: Set up monitoring and alerting
+- **Documentation**: Keep configuration documented
+- **Security**: Follow security best practices
+
+### Performance Best Practices
+- **Resource Management**: Efficient resource usage
+- **Caching Strategy**: Appropriate caching implementation
+- **Database Optimization**: Optimized database queries
+- **Network Optimization**: Minimize network overhead
+
+### Security Best Practices
+- **Access Control**: Implement proper access controls
+- **Data Protection**: Protect sensitive data
+- **Regular Audits**: Conduct security audits
+- **Incident Response**: Have incident response procedures
+
+## Getting Help
+
+### Community Resources
+- **Documentation**: This comprehensive documentation
+- **Community Forums**: User community discussions
+- **Stack Overflow**: Q&A with the community
+- **GitHub Issues**: Bug reports and feature requests
+
+### Professional Support
+- **Enterprise Support**: Professional support options
+- **Consulting Services**: Implementation assistance
+- **Training Programs**: Formal training options
+- **Custom Development**: Tailored development services
+
+### Contributing Back
+- **Bug Reports**: Help improve the software
+- **Feature Requests**: Suggest new features
+- **Documentation**: Improve documentation
+- **Code Contributions**: Contribute to the codebase
+"""
+        return content
+    
     def _save_section_content(self, section_key: str, content: str) -> None:
         """Save section content to the appropriate file."""
         # Determine output file path based on section
@@ -466,7 +1537,13 @@ See the [Development Guide](./development.md) for detailed setup instructions.
             "installation": "installation.md", 
             "api": "api.md",
             "development": "development.md",
-            "contributing": "contributing.md"
+            "contributing": "contributing.md",
+            "changelog": "changelog.md",
+            "deployment": "deployment.md",
+            "architecture": "architecture.md",
+            "testing": "testing.md",
+            "security": "security.md",
+            "guides": "guides.md"
         }
         
         filename = filename_map.get(section_key, f"{section_key}.md")
@@ -488,7 +1565,7 @@ See the [Development Guide](./development.md) for detailed setup instructions.
     def _update_configuration(self, repo_info: Dict) -> bool:
         """Update site configuration."""
         try:
-            self.logger.info("Updating site configuration")
+            self.logger.debug("Updating site configuration")
             
             config_data = {
                 'title': repo_info.get('project_name', 'Documentation'),
@@ -507,7 +1584,7 @@ See the [Development Guide](./development.md) for detailed setup instructions.
     def _revise_site(self) -> bool:
         """Revise the site landing page."""
         try:
-            self.logger.info("Revising site landing page")
+            self.logger.debug("Revising site landing page")
             
             # Import and use site reviser
             from jpl.slim.best_practices.docs_website_impl.site_reviser import SiteReviser

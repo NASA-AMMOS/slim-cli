@@ -8,6 +8,7 @@ import re
 from typing import Dict, Optional, Tuple
 
 from jpl.slim.best_practices.docs_website_impl.helpers import extract_frontmatter
+from jpl.slim.utils.prompt_utils import get_prompt
 
 
 class SiteReviser:
@@ -34,7 +35,7 @@ class SiteReviser:
         self.static_dir = os.path.join(output_dir, 'static')
         self.img_dir = os.path.join(self.static_dir, 'img')
         
-    def revise(self) -> bool:
+    def revise_site(self) -> bool:
         """
         Revise the site landing page content based on docs/overview.md using AI enhancement.
         
@@ -42,7 +43,7 @@ class SiteReviser:
             True if revision was successful, False otherwise
         """
         try:
-            self.logger.info("Revising site landing page content based on docs/overview.md")
+            self.logger.debug("Revising site landing page content based on docs/overview.md")
             
             # Check if necessary directories exist
             if not os.path.exists(self.docs_dir):
@@ -97,7 +98,7 @@ class SiteReviser:
                 overall_success = False
             
             if overall_success:
-                self.logger.info("Successfully revised site landing page content using AI with overview.md context")
+                self.logger.debug("Successfully revised site landing page content using AI with overview.md context")
                 return True
             else:
                 self.logger.warning("Some files could not be updated, but the process completed")
@@ -152,9 +153,15 @@ class SiteReviser:
             with open(index_js_path, 'r', encoding='utf-8') as f:
                 current_content = f.read()
             
-            # Create prompt for AI to update index.js content
+            # Get the prompt from centralized prompts.yaml
+            base_prompt = get_prompt('docgen', 'index_js_update')
+            if not base_prompt:
+                self.logger.warning("Could not load index_js_update prompt from prompts.yaml, using fallback")
+                base_prompt = "Using the provided overview.md content as context, update ONLY the text content in this React component (index.js) while preserving its existing structure completely."
+            
+            # Create full prompt with context
             prompt = f"""
-Using the provided overview.md content as context, update ONLY the text content in this React component (index.js) while preserving its existing structure completely.
+{base_prompt}
 
 OVERVIEW.MD CONTENT (Use this as the source of information):
 ```
@@ -166,19 +173,11 @@ CURRENT INDEX.JS:
 {current_content}
 ```
 
-INSTRUCTIONS:
-1. Update ONLY textual content (titles, descriptions, feature text) based on overview.md
-2. DO NOT change any component structure, imports, exports, or function definitions
-3. DO NOT modify any className values or styling
-4. DO NOT change any hooks or hook calls
-5. Preserve ALL variable references exactly as they appear
-6. Make minimal changes to the code - only replace static text strings
-
 Return ONLY the complete, updated index.js code.
 """
             
             # Use AI to update the content
-            self.logger.info("Enhancing index_js_update content with AI")
+            self.logger.debug("Enhancing index_js_update content with AI")
             updated_content = self.ai_enhancer.enhance(prompt, "index_js_update")
             
             if updated_content:
@@ -190,9 +189,9 @@ Return ONLY the complete, updated index.js code.
                     with open(index_js_path, 'w', encoding='utf-8') as f:
                         f.write(updated_content)
                     
-                    self.logger.info("Updated index.js content using AI with overview.md context")
+                    self.logger.debug("Updated index.js content using AI with overview.md context")
                 else:
-                    self.logger.info("No changes needed for index.js")
+                    self.logger.debug("No changes needed for index.js")
                 
                 return True
             else:
@@ -230,9 +229,15 @@ Return ONLY the complete, updated index.js code.
             with open(index_js_path, 'r', encoding='utf-8') as f:
                 current_content = f.read()
             
-            # Create prompt for AI to update HomepageFeatures content
+            # Get the prompt from centralized prompts.yaml
+            base_prompt = get_prompt('docgen', 'homepage_features_update')
+            if not base_prompt:
+                self.logger.warning("Could not load homepage_features_update prompt from prompts.yaml, using fallback")
+                base_prompt = "Using the provided overview.md content as context, update ONLY the feature descriptions in this React component while preserving its structure."
+            
+            # Create full prompt with context
             prompt = f"""
-Using the provided overview.md content as context, update ONLY the feature descriptions in this React component (HomepageFeatures/index.js) while preserving its structure.
+{base_prompt}
 
 OVERVIEW.MD CONTENT (Use this as the source of information):
 ```
@@ -244,17 +249,11 @@ CURRENT COMPONENT:
 {current_content}
 ```
 
-INSTRUCTIONS:
-1. Update ONLY the feature titles and descriptions based on the Features section in overview.md
-2. DO NOT change the component structure, imports, or exports
-3. DO NOT modify any className values or styling
-4. Ensure the component remains functionally identical, just with updated content
-
 Return ONLY the updated component code.
 """
             
             # Use AI to update the content
-            self.logger.info("Enhancing homepage_features_update content with AI")
+            self.logger.debug("Enhancing homepage_features_update content with AI")
             updated_content = self.ai_enhancer.enhance(prompt, "homepage_features_update")
             
             if updated_content:
@@ -266,9 +265,9 @@ Return ONLY the updated component code.
                     with open(index_js_path, 'w', encoding='utf-8') as f:
                         f.write(updated_content)
                     
-                    self.logger.info("Updated HomepageFeatures content using AI with overview.md context")
+                    self.logger.debug("Updated HomepageFeatures content using AI with overview.md context")
                 else:
-                    self.logger.info("No changes needed for HomepageFeatures")
+                    self.logger.debug("No changes needed for HomepageFeatures")
                 
                 return True
             else:
@@ -299,9 +298,15 @@ Return ONLY the updated component code.
             with open(config_path, 'r', encoding='utf-8') as f:
                 current_config = f.read()
             
-            # Create prompt for AI to update docusaurus.config.js content
+            # Get the prompt from centralized prompts.yaml
+            base_prompt = get_prompt('docgen', 'docusaurus_config_update')
+            if not base_prompt:
+                self.logger.warning("Could not load docusaurus_config_update prompt from prompts.yaml, using fallback")
+                base_prompt = "Using the provided overview.md content as context, update ONLY the title and tagline in this docusaurus.config.js file."
+            
+            # Create full prompt with context
             prompt = f"""
-Using the provided overview.md content as context, update ONLY the title and tagline in this docusaurus.config.js file.
+{base_prompt}
 
 OVERVIEW.MD CONTENT (Use this as the source of information):
 ```
@@ -313,16 +318,11 @@ CURRENT CONFIG:
 {current_config}
 ```
 
-INSTRUCTIONS:
-1. Update ONLY the title and tagline values based on overview.md
-2. DO NOT change any other configuration settings
-3. DO NOT modify any structural elements, plugins, or presets
-
 Return ONLY the updated configuration code.
 """
             
             # Use AI to update the content
-            self.logger.info("Enhancing docusaurus_config_update content with AI")
+            self.logger.debug("Enhancing docusaurus_config_update content with AI")
             updated_config = self.ai_enhancer.enhance(prompt, "docusaurus_config_update")
             
             if updated_config:
@@ -334,9 +334,9 @@ Return ONLY the updated configuration code.
                     with open(config_path, 'w', encoding='utf-8') as f:
                         f.write(updated_config)
                     
-                    self.logger.info("Updated docusaurus.config.js content using AI with overview.md context")
+                    self.logger.debug("Updated docusaurus.config.js content using AI with overview.md context")
                 else:
-                    self.logger.info("No changes needed for docusaurus.config.js")
+                    self.logger.debug("No changes needed for docusaurus.config.js")
                 
                 return True
             else:

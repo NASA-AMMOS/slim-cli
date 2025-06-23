@@ -152,15 +152,19 @@ def show_model_help():
 
 def print_startup_banner():
     """Print a helpful startup banner with version and AI info."""
-    print(f"🛠️  SLIM CLI v{VERSION}")
-    
-    if LITELLM_AVAILABLE:
-        print("✅ LiteLLM integration enabled - 100+ AI models available")
-    else:
-        print("⚠️  LiteLLM not installed - limited AI model support")
-    
-    print("   Use 'slim models list' to see available AI models")
-    print()
+    # Only show banner if LiteLLM is not available or in debug mode
+    log_level = logging.getLogger().getEffectiveLevel()
+    if not LITELLM_AVAILABLE or log_level <= logging.DEBUG:
+        print(f"🛠️  SLIM CLI v{VERSION}")
+        
+        if LITELLM_AVAILABLE:
+            if log_level <= logging.DEBUG:
+                print("✅ LiteLLM integration enabled - 100+ AI models available")
+        else:
+            print("⚠️  LiteLLM not installed - limited AI model support")
+        
+        print("   Use 'slim models list' to see available AI models")
+        print()
 
 
 

@@ -63,6 +63,30 @@ docgen:
     context: "Create welcoming and clear contributing guidelines that encourage community participation."
     prompt: "Enhance these contributing guidelines by adding more specific examples, workflow descriptions, and best practices while maintaining accuracy."
 
+  changelog:
+    context: "Document project changes, releases, and version history clearly and comprehensively."
+    prompt: "Enhance this changelog by adding clear version histories, release notes, and change descriptions while maintaining chronological accuracy."
+
+  deployment:
+    context: "Provide clear deployment instructions and operational guidance for the project."
+    prompt: "Improve this deployment guide by adding detailed deployment steps, environment configurations, and operational best practices while maintaining accuracy."
+
+  architecture:
+    context: "Document system architecture, design patterns, and technical implementation details."
+    prompt: "Enhance this architecture documentation by adding clear system diagrams, design patterns, and technical implementation details while maintaining accuracy."
+
+  testing:
+    context: "Document testing strategies, test suites, and quality assurance practices."
+    prompt: "Improve this testing documentation by adding comprehensive testing strategies, coverage information, and testing best practices while maintaining accuracy."
+
+  security:
+    context: "Document security practices, vulnerability management, and security considerations."
+    prompt: "Enhance this security documentation by adding security best practices, vulnerability management, and security considerations while maintaining accuracy."
+
+  guides:
+    context: "Create comprehensive user and developer guides that provide step-by-step instructions."
+    prompt: "Improve these guides by adding more detailed step-by-step instructions, examples, and troubleshooting information while maintaining accuracy."
+
   # Site-specific enhancements for React components
   index_js_update:
     context: "Update React component content while preserving the existing structure completely."

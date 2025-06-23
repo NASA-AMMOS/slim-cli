@@ -201,6 +201,11 @@ def generate_with_model(prompt: str, model: str, **kwargs) -> Optional[str]:
     """
     try:
         from litellm import completion
+        import litellm
+        
+        # Suppress LiteLLM debug logging unless we're in debug mode
+        if logging.getLogger().getEffectiveLevel() > logging.DEBUG:
+            litellm.suppress_debug_info = True
         
         # Prepare messages
         messages = [{"role": "user", "content": prompt}]
