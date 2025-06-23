@@ -3,7 +3,7 @@ Tests for helper functions in the docgen utils module.
 """
 
 import pytest
-from jpl.slim.docgen.utils.helpers import escape_yaml_value
+from jpl.slim.best_practices.docs_website_impl.helpers import escape_yaml_value
 
 
 class TestEscapeYamlValue:

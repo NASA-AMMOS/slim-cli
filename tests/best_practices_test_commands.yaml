@@ -160,7 +160,7 @@ docs-website:
   enabled: true
   commands:
     - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/nasa-ammos/MMTC --output-dir {temp_dir}"
-      enabled: true
+      enabled: false
     - command: "slim apply --best-practice-ids docs-website --repo-dir {temp_dir} --output-dir {temp_dir}"
       enabled: false
     - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --template-only"

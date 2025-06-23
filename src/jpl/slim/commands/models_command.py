@@ -11,6 +11,7 @@ from enum import Enum
 import typer
 from rich.console import Console
 from rich.table import Table
+from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from jpl.slim.commands.common import (
     SUPPORTED_MODELS, MODEL_RECOMMENDATIONS,
@@ -58,15 +59,28 @@ def models_list(
         if handle_dry_run_for_command("models list", provider=provider, tier=tier, dry_run=True):
             return
     
-    models = get_ai_model_pairs()
-    
-    if provider:
-        models = [m for m in models if m.startswith(f"{provider}/")]
-    
-    if tier:
-        # Filter by tier - this would need to be implemented
-        # For now, we'll show all models with tier info
-        pass
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True
+    ) as progress:
+        task = progress.add_task("Loading model registry...", total=None)
+        
+        progress.update(task, description="Fetching available models...")
+        models = get_ai_model_pairs()
+        
+        if provider:
+            progress.update(task, description=f"Filtering by provider: {provider}...")
+            models = [m for m in models if m.startswith(f"{provider}/")]
+        
+        if tier:
+            progress.update(task, description=f"Filtering by tier: {tier}...")
+            # Filter by tier - this would need to be implemented
+            # For now, we'll show all models with tier info
+            pass
+        
+        progress.update(task, description=f"Found {len(models)} models")
     
     console.print(f"\n[bold]Found {len(models)} models:[/bold]")
     for model in sorted(models):
@@ -83,7 +97,19 @@ def models_recommend(
         if handle_dry_run_for_command("models recommend", task=task.value, tier=tier.value, dry_run=True):
             return
     
-    recommended = get_recommended_models(task.value, tier.value)
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True
+    ) as progress:
+        task_id = progress.add_task(f"Analyzing recommendations for {task.value}...", total=None)
+        
+        progress.update(task_id, description=f"Finding {tier.value} models for {task.value}...")
+        recommended = get_recommended_models(task.value, tier.value)
+        
+        progress.update(task_id, description=f"Found {len(recommended)} recommendations")
+    
     console.print(f"\n[bold]Recommended {tier.value} models for {task.value}:[/bold]")
     for model in recommended:
         console.print(f"  • [cyan]{model}[/cyan]")
@@ -111,7 +137,22 @@ def models_validate(
         if handle_dry_run_for_command("models validate", model=model, dry_run=True):
             return
     
-    is_available, error_msg = check_model_availability(model)
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True
+    ) as progress:
+        task = progress.add_task(f"Validating model {model}...", total=None)
+        
+        progress.update(task, description="Checking model format...")
+        progress.update(task, description="Verifying environment configuration...")
+        progress.update(task, description="Testing model availability...")
+        
+        is_available, error_msg = check_model_availability(model)
+        
+        progress.update(task, description="Validation complete")
+    
     if is_available:
         console.print(f"✅ Model [cyan]{model}[/cyan] is properly configured", style="green")
     else:

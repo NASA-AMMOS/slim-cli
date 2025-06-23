@@ -7,7 +7,7 @@ import os
 import re
 from typing import Dict, Optional, Tuple
 
-from jpl.slim.docgen.utils.helpers import extract_frontmatter
+from jpl.slim.best_practices.docs_website_impl.helpers import extract_frontmatter
 
 
 class SiteReviser:

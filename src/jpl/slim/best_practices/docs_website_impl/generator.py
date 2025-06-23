@@ -16,7 +16,7 @@ from jpl.slim.utils.ai_utils import enhance_content
 from jpl.slim.utils.git_utils import extract_git_info, is_git_repository
 from jpl.slim.best_practices.docs_website_impl.template_manager import TemplateManager
 from jpl.slim.best_practices.docs_website_impl.config_updater import ConfigUpdater
-from jpl.slim.docgen.utils.helpers import load_config, escape_mdx_special_characters, clean_api_doc, escape_yaml_value
+from jpl.slim.best_practices.docs_website_impl.helpers import load_config, escape_mdx_special_characters, clean_api_doc, escape_yaml_value
 
 __all__ = ["SlimDocGenerator"]
 

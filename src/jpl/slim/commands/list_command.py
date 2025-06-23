@@ -39,21 +39,26 @@ def list(
     
     logging.debug("Listing all best practices...")
     
-    # Fetch practices with progress indicator
+    # Fetch practices with enhanced progress indicator
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         console=console,
         transient=True
     ) as progress:
-        progress.add_task("Fetching best practices from registry...", total=None)
+        task = progress.add_task("Connecting to SLIM registry...", total=None)
+        
+        progress.update(task, description="Fetching best practices from registry...")
         practices = fetch_best_practices(SLIM_REGISTRY_URI)
 
-    if not practices:
-        console.print("[red]No practices found or failed to fetch practices.[/red]")
-        raise typer.Exit(1)
+        if not practices:
+            console.print("[red]No practices found or failed to fetch practices.[/red]")
+            raise typer.Exit(1)
 
-    asset_mapping = create_slim_registry_dictionary(practices)
+        progress.update(task, description="Processing registry data...")
+        asset_mapping = create_slim_registry_dictionary(practices)
+        
+        progress.update(task, description=f"Found {len(asset_mapping)} best practices")
 
     # Create and configure the table
     table = Table(

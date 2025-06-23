@@ -8,6 +8,7 @@ which applies best practices to repositories.
 import logging
 import os
 import tempfile
+import time
 import urllib.parse
 import uuid
 from typing import List, Optional
@@ -132,7 +133,8 @@ def apply(
     # Read URLs from file if provided
     urls_from_file = repo_file_to_list(str(repo_urls_file)) if repo_urls_file else None
     
-    # Apply best practices
+    # Apply best practices with timing
+    start_time = time.time()
     try:
         success = apply_best_practices(
             best_practice_ids=best_practice_ids,
@@ -146,7 +148,11 @@ def apply(
             template_only=template_only,
             revise_site=revise_site
         )
-        if not success:
+        if success:
+            end_time = time.time()
+            duration = end_time - start_time
+            console.print(f"\n✅ [green]Apply operation completed in {duration:.2f} seconds[/green]")
+        else:
             raise typer.Exit(1)
     except Exception as e:
         console = Console()
@@ -301,45 +307,86 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url=None, exi
         logging.info(f"TEST MODE: Successfully applied best practice {best_practice_id} to mock repository")
         return mock_repo
 
-    # Fetch best practices information
-    practices = fetch_best_practices(SLIM_REGISTRY_URI)
-    if not practices:
-        print("No practices found or failed to fetch practices.")
-        return None
-
-    # Create a best practices manager to handle the practice
-    manager = BestPracticeManager(practices)
-
-    # Get the best practice
-    practice = manager.get_best_practice(best_practice_id)
-    if not practice:
-        logging.warning(f"Best practice with ID {best_practice_id} is not supported or not found.")
-        return None
-
-    # Determine the repository path
-    repo_path = existing_repo_dir
-    if repo_url:
-        parsed_url = urllib.parse.urlparse(repo_url)
-        repo_name = os.path.basename(parsed_url.path)
-        repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
-
-        if target_dir_to_clone_to:
-            # If target_dir_to_clone_to is specified, append repo name
-            repo_path = os.path.join(target_dir_to_clone_to, repo_name)
-            logging.debug(f"Set clone directory to {repo_path}")
+    # Use progress indicator for the apply operation
+    with Progress(
+        SpinnerColumn() if use_ai_flag else BarColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        TaskProgressColumn() if not use_ai_flag else TextColumn(""),
+        console=console,
+        transient=True
+    ) as progress:
+        # Initialize progress task
+        if use_ai_flag:
+            task = progress.add_task(f"Applying {best_practice_id} with AI...", total=None)
         else:
-            # Create a temporary directory
-            repo_path = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
-            logging.debug(f"Generating temporary clone directory at {repo_path}")
+            task = progress.add_task(f"Applying {best_practice_id}...", total=100)
+            progress.update(task, completed=10)
 
-    # Apply the best practice
-    return practice.apply(
-        repo_path=repo_path,
-        use_ai=use_ai_flag,
-        model=model,
-        repo_url=repo_url,
-        target_dir_to_clone_to=target_dir_to_clone_to,
-        branch=branch,
-        no_prompt=no_prompt,
-        **kwargs
-    )
+        # Fetch best practices information
+        progress.update(task, description=f"Fetching registry for {best_practice_id}...")
+        practices = fetch_best_practices(SLIM_REGISTRY_URI)
+        if not practices:
+            console.print("[red]No practices found or failed to fetch practices.[/red]")
+            return None
+        
+        if not use_ai_flag:
+            progress.update(task, completed=20)
+
+        # Create a best practices manager to handle the practice
+        progress.update(task, description=f"Loading best practice {best_practice_id}...")
+        manager = BestPracticeManager(practices)
+
+        # Get the best practice
+        practice = manager.get_best_practice(best_practice_id)
+        if not practice:
+            logging.warning(f"Best practice with ID {best_practice_id} is not supported or not found.")
+            return None
+        
+        if not use_ai_flag:
+            progress.update(task, completed=30)
+
+        # Determine the repository path
+        progress.update(task, description=f"Preparing repository for {best_practice_id}...")
+        repo_path = existing_repo_dir
+        if repo_url:
+            parsed_url = urllib.parse.urlparse(repo_url)
+            repo_name = os.path.basename(parsed_url.path)
+            repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
+
+            if target_dir_to_clone_to:
+                # If target_dir_to_clone_to is specified, append repo name
+                repo_path = os.path.join(target_dir_to_clone_to, repo_name)
+                logging.debug(f"Set clone directory to {repo_path}")
+            else:
+                # Create a temporary directory
+                repo_path = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+                logging.debug(f"Generating temporary clone directory at {repo_path}")
+        
+        if not use_ai_flag:
+            progress.update(task, completed=50)
+
+        # Apply the best practice
+        if use_ai_flag:
+            progress.update(task, description=f"Analyzing repository with AI for {best_practice_id}...")
+        else:
+            progress.update(task, description=f"Executing {best_practice_id} application...")
+            progress.update(task, completed=70)
+
+        result = practice.apply(
+            repo_path=repo_path,
+            use_ai=use_ai_flag,
+            model=model,
+            repo_url=repo_url,
+            target_dir_to_clone_to=target_dir_to_clone_to,
+            branch=branch,
+            no_prompt=no_prompt,
+            **kwargs
+        )
+        
+        if not use_ai_flag:
+            progress.update(task, completed=100)
+        
+        if use_ai_flag:
+            progress.update(task, description=f"Completed {best_practice_id} with AI assistance")
+        
+        return result
