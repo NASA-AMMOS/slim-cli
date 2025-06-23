@@ -38,7 +38,7 @@ class DocsWebsiteBestPractice(StandardPractice):
         """Initialize the documentation generation best practice."""
         super().__init__(
             best_practice_id="docs-website",
-            uri="https://github.com/NASA-AMMOS/slim-docsite-template.git",
+            uri="/Users/rverma/Desktop/test/yunks/slim-cli/example_sites/slim-docsite-template/",
             title="Documentation Generator",
             description="Generates comprehensive documentation sites for software projects using the SLIM docsite template and AI enhancement"
         )
@@ -50,8 +50,8 @@ class DocsWebsiteBestPractice(StandardPractice):
         
         Args:
             repo_path (str): Path to the repository
-            use_ai (bool, optional): Whether to use AI assistance. Defaults to False.
-            model (str, optional): AI model to use if use_ai is True. Defaults to None.
+            use_ai (bool, optional): Whether to use AI assistance. Required for docs-website.
+            model (str, optional): AI model to use. Required for docs-website.
             repo_url (str, optional): Repository URL to apply to. Defaults to None.
             target_dir_to_clone_to (str, optional): Directory to clone repository to. Defaults to None.
             branch (str, optional): Git branch to use. Defaults to None.
@@ -61,6 +61,12 @@ class DocsWebsiteBestPractice(StandardPractice):
             str: Repository path if successful, None otherwise
         """
         logging.debug(f"Applying best practice {self.best_practice_id}")
+        
+        # Early validation - docs-website requires AI
+        if not use_ai or not model:
+            logging.error("The docs-website best practice requires --use-ai flag with a model specified")
+            print("❌ Error: docs-website requires AI assistance. Please use: --use-ai <model>")
+            return None
         
         # Extract additional parameters that might be passed via the command line
         template_only = kwargs.get('template_only', False)

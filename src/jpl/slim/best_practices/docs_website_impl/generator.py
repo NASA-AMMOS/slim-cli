@@ -78,7 +78,7 @@ class SlimDocGenerator:
     
     def generate(self) -> bool:
         """
-        Generate the documentation site.
+        Generate the documentation site using simplified AI-driven flow.
         
         Returns:
             True if generation was successful, False otherwise
@@ -86,29 +86,20 @@ class SlimDocGenerator:
         try:
             self.logger.debug("Starting documentation generation")
             
-            # Step 1: Setup template
+            # Step 1: Clone template to output directory
             if not self._setup_template():
                 return False
             
-            # Step 2: Analyze repository (if not template-only)
-            repo_info = {}
-            if not self.template_only and self.target_repo_path:
-                repo_info = self._analyze_repository()
-                if not repo_info:
-                    return False
+            # Step 2: Analyze repository to extract basic information
+            repo_info = self._analyze_repository() if self.target_repo_path else {}
             
-            # Step 3: Generate content
-            if not self.template_only:
-                if not self._generate_content(repo_info):
-                    return False
-            
-            # Step 4: Update configuration
-            if not self._update_configuration(repo_info):
+            # Step 3: Replace universal placeholders (PROJECT_NAME, etc.)
+            if not self._replace_basic_placeholders(repo_info):
                 return False
             
-            # Step 5: Revise site if requested
-            if self.revise_site and not self.template_only:
-                if not self._revise_site():
+            # Step 4: Use AI to fill [INSERT_CONTENT] markers in all markdown files
+            if self.use_ai:
+                if not self._ai_enhance_content(repo_info):
                     return False
             
             self.logger.debug("Documentation generation completed successfully")
@@ -1608,3 +1599,243 @@ jobs:
         except Exception as e:
             self.logger.error(f"Error revising site: {str(e)}")
             return False
+    
+    def _replace_basic_placeholders(self, repo_info: Dict) -> bool:
+        """Replace universal placeholders in template files."""
+        try:
+            self.logger.debug("Replacing basic placeholders")
+            
+            # Extract basic project information
+            project_name = repo_info.get('project_name', 'Documentation Site')
+            project_description = repo_info.get('description', 'A software project documentation site')
+            project_overview = repo_info.get('overview', project_description)
+            github_org = repo_info.get('github_org', 'your-org')
+            github_repo = repo_info.get('github_repo', 'your-repo')
+            
+            # Define placeholder mappings
+            placeholders = {
+                '{{PROJECT_NAME}}': project_name,
+                '{{PROJECT_DESCRIPTION}}': project_description,
+                '{{PROJECT_OVERVIEW}}': project_overview,
+                '{{GITHUB_ORG}}': github_org,
+                '{{GITHUB_REPO}}': github_repo,
+            }
+            
+            # Extract and add feature placeholders
+            features = self._extract_features(repo_info)
+            for i, feature in enumerate(features[:6], 1):  # Limit to 6 features
+                placeholders[f'{{{{FEATURE_{i}_TITLE}}}}'] = feature.get('title', f'Feature {i}')
+                placeholders[f'{{{{FEATURE_{i}_DESCRIPTION}}}}'] = feature.get('description', f'Description for feature {i}')
+            
+            # Fill remaining feature slots if needed
+            for i in range(len(features) + 1, 7):
+                placeholders[f'{{{{FEATURE_{i}_TITLE}}}}'] = f'Feature {i}'
+                placeholders[f'{{{{FEATURE_{i}_DESCRIPTION}}}}'] = f'Description for feature {i}'
+            
+            # Replace placeholders in all files
+            return self._replace_placeholders_in_files(placeholders)
+            
+        except Exception as e:
+            self.logger.error(f"Error replacing basic placeholders: {str(e)}")
+            return False
+    
+    def _extract_features(self, repo_info: Dict) -> List[Dict]:
+        """Extract key features from repository analysis."""
+        features = []
+        
+        # Extract features from README if available
+        readme_content = repo_info.get('readme_content', '')
+        if readme_content:
+            # Simple feature extraction logic
+            lines = readme_content.split('\n')
+            current_feature = None
+            
+            for line in lines:
+                line = line.strip()
+                if line.startswith('- ') or line.startswith('* '):
+                    # Found a bullet point - potential feature
+                    feature_text = line[2:].strip()
+                    if len(feature_text) > 10:  # Only consider substantial bullet points
+                        features.append({
+                            'title': feature_text[:50] + ('...' if len(feature_text) > 50 else ''),
+                            'description': feature_text
+                        })
+        
+        # If no features found, generate generic ones based on project type
+        if not features:
+            languages = repo_info.get('languages', [])
+            if 'Python' in languages:
+                features.extend([
+                    {'title': 'Python-Based', 'description': 'Built with Python for reliability and ease of use'},
+                    {'title': 'Easy Installation', 'description': 'Simple pip install process'},
+                ])
+            if 'JavaScript' in languages:
+                features.extend([
+                    {'title': 'Modern JavaScript', 'description': 'Built with modern JavaScript frameworks'},
+                    {'title': 'NPM Package', 'description': 'Easy installation via npm'},
+                ])
+            
+            # Add generic features
+            features.extend([
+                {'title': 'Open Source', 'description': 'Open source project with community contributions'},
+                {'title': 'Well Documented', 'description': 'Comprehensive documentation and examples'},
+                {'title': 'Actively Maintained', 'description': 'Regular updates and bug fixes'},
+                {'title': 'Cross Platform', 'description': 'Works on multiple operating systems'},
+            ])
+        
+        return features[:6]  # Return max 6 features
+    
+    def _replace_placeholders_in_files(self, placeholders: Dict[str, str]) -> bool:
+        """Replace placeholders in all template files."""
+        try:
+            # Find all files that might contain placeholders
+            files_to_process = []
+            for root, dirs, files in os.walk(self.output_dir):
+                for file in files:
+                    if file.endswith(('.js', '.md', '.json', '.tsx', '.jsx')):
+                        files_to_process.append(os.path.join(root, file))
+            
+            for file_path in files_to_process:
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    
+                    # Replace all placeholders
+                    modified = False
+                    for placeholder, replacement in placeholders.items():
+                        if placeholder in content:
+                            content = content.replace(placeholder, replacement)
+                            modified = True
+                    
+                    # Write back if modified
+                    if modified:
+                        with open(file_path, 'w', encoding='utf-8') as f:
+                            f.write(content)
+                        self.logger.debug(f"Updated placeholders in {file_path}")
+                
+                except Exception as e:
+                    self.logger.warning(f"Error processing file {file_path}: {str(e)}")
+                    continue
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error replacing placeholders in files: {str(e)}")
+            return False
+    
+    def _ai_enhance_content(self, repo_info: Dict) -> bool:
+        """Use AI to fill [INSERT_CONTENT] markers in markdown files."""
+        try:
+            self.logger.debug("AI enhancing content")
+            
+            # Find all markdown files in docs directory
+            docs_dir = self.output_dir / "docs"
+            if not docs_dir.exists():
+                self.logger.warning("No docs directory found")
+                return True
+            
+            markdown_files = []
+            for root, dirs, files in os.walk(docs_dir):
+                for file in files:
+                    if file.endswith('.md'):
+                        markdown_files.append(os.path.join(root, file))
+            
+            # Process each markdown file
+            for file_path in markdown_files:
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    
+                    # Check if file contains [INSERT_CONTENT] marker
+                    if '[INSERT_CONTENT]' in content:
+                        enhanced_content = self._ai_fill_content(content, file_path, repo_info)
+                        if enhanced_content and enhanced_content != content:
+                            with open(file_path, 'w', encoding='utf-8') as f:
+                                f.write(enhanced_content)
+                            self.logger.debug(f"AI enhanced content in {file_path}")
+                
+                except Exception as e:
+                    self.logger.warning(f"Error AI enhancing file {file_path}: {str(e)}")
+                    continue
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error during AI content enhancement: {str(e)}")
+            return False
+    
+    def _ai_fill_content(self, content: str, file_path: str, repo_info: Dict) -> str:
+        """Use AI to fill [INSERT_CONTENT] marker in a specific file."""
+        try:
+            # Determine file type and section from path
+            file_name = os.path.basename(file_path)
+            section_type = file_name.replace('.md', '')
+            
+            # Build context for AI
+            project_name = repo_info.get('project_name', 'this project')
+            project_type = self._determine_project_type(repo_info)
+            languages = repo_info.get('languages', [])
+            
+            # Create AI prompt based on section type
+            context_info = f"""
+Project: {project_name}
+Type: {project_type}
+Technologies: {', '.join(languages[:5])}
+Structure: {repo_info.get('structure_summary', 'Standard project structure')}
+"""
+            
+            # Use the general docs-website prompt for all sections
+            enhanced_content = enhance_content(
+                content=content,
+                practice_type="docs-website",
+                section_name="generate_documentation",
+                model=self.use_ai,
+                additional_context=context_info
+            )
+            
+            return enhanced_content
+            
+        except Exception as e:
+            self.logger.error(f"Error AI filling content for {file_path}: {str(e)}")
+            return content  # Return original content if AI fails
+    
+    def _determine_project_type(self, repo_info: Dict) -> str:
+        """Determine the type of project based on repository analysis."""
+        languages = repo_info.get('languages', [])
+        files = repo_info.get('files', [])
+        
+        # Check for specific project types
+        if any('package.json' in f for f in files):
+            if any('react' in f.lower() for f in files):
+                return "React web application"
+            elif any('vue' in f.lower() for f in files):
+                return "Vue.js web application"
+            else:
+                return "Node.js application"
+        
+        if any('setup.py' in f or 'pyproject.toml' in f for f in files):
+            if any('fastapi' in f.lower() or 'flask' in f.lower() for f in files):
+                return "Python web API"
+            elif any('cli' in f.lower() or 'main.py' in f for f in files):
+                return "Python CLI tool"
+            else:
+                return "Python library"
+        
+        if any('pom.xml' in f or 'build.gradle' in f for f in files):
+            return "Java application"
+        
+        if any('Cargo.toml' in f for f in files):
+            return "Rust application"
+        
+        if any('go.mod' in f for f in files):
+            return "Go application"
+        
+        # Default based on primary language
+        if 'JavaScript' in languages:
+            return "JavaScript application"
+        elif 'Python' in languages:
+            return "Python project"
+        elif 'Java' in languages:
+            return "Java project"
+        else:
+            return "software project"

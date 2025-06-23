@@ -100,6 +100,27 @@ docgen:
     context: "Update Docusaurus configuration based on project information."
     prompt: "Using the provided overview.md content as context, update ONLY the title and tagline in this docusaurus.config.js file."
 
+# Documentation website generation practices
+docs-website:
+  context: "You are creating comprehensive documentation for a software project. Generate professional, detailed content that accurately reflects the project's capabilities and structure."
+  
+  generate_documentation:
+    prompt: |
+      You are creating documentation for a software project. Based on the repository analysis provided:
+      
+      1. Identify the project type and technology stack
+      2. Replace all [INSERT_CONTENT] markers with appropriate, comprehensive documentation
+      3. Adapt content to the specific project type and structure
+      4. Include relevant examples, commands, and best practices
+      5. Generate professional documentation that matches the section context
+      6. Ensure all content is accurate and project-specific
+      
+      For each [INSERT_CONTENT] marker, generate substantial content that would be found in professional documentation. 
+      Consider the file name and section headings to understand what type of content is needed.
+      
+      Repository context will be provided with project type, technologies, directory structure, and key features.
+      Generate comprehensive, helpful documentation that serves both beginners and advanced users.
+
 # Security practices
 secrets_detection:
   # No AI prompts needed - this practice uses rule-based detection
