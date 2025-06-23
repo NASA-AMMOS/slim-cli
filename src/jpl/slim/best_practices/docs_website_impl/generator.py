@@ -1612,7 +1612,7 @@ jobs:
             github_org = repo_info.get('github_org', 'your-org')
             github_repo = repo_info.get('github_repo', 'your-repo')
             
-            # Define placeholder mappings
+            # Define placeholder mappings (simplified set)
             placeholders = {
                 '{{PROJECT_NAME}}': project_name,
                 '{{PROJECT_DESCRIPTION}}': project_description,
@@ -1724,9 +1724,9 @@ jobs:
             return False
     
     def _ai_enhance_content(self, repo_info: Dict) -> bool:
-        """Use AI to fill [INSERT_CONTENT] markers in markdown files."""
+        """Use AI to fill [INSERT_CONTENT] markers in markdown files with multi-pass processing."""
         try:
-            self.logger.debug("AI enhancing content")
+            self.logger.debug("AI enhancing content with multi-pass processing")
             
             # Find all markdown files in docs directory
             docs_dir = self.output_dir / "docs"
@@ -1740,23 +1740,43 @@ jobs:
                     if file.endswith('.md'):
                         markdown_files.append(os.path.join(root, file))
             
-            # Process each markdown file
+            # Sort files by priority (core files first)
+            priority_files = []
+            regular_files = []
+            
             for file_path in markdown_files:
-                try:
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                    
-                    # Check if file contains [INSERT_CONTENT] marker
-                    if '[INSERT_CONTENT]' in content:
-                        enhanced_content = self._ai_fill_content(content, file_path, repo_info)
-                        if enhanced_content and enhanced_content != content:
-                            with open(file_path, 'w', encoding='utf-8') as f:
-                                f.write(enhanced_content)
-                            self.logger.debug(f"AI enhanced content in {file_path}")
+                file_name = os.path.basename(file_path).lower()
+                if any(priority in file_name for priority in ['installation', 'quick-start', 'features', 'contributing']):
+                    priority_files.append(file_path)
+                else:
+                    regular_files.append(file_path)
+            
+            # Process files in batches to avoid context window issues
+            all_files = priority_files + regular_files
+            batch_size = 3  # Process 3 files at a time to stay within context limits
+            
+            for i in range(0, len(all_files), batch_size):
+                batch = all_files[i:i + batch_size]
+                self.logger.debug(f"Processing batch {i//batch_size + 1}: {[os.path.basename(f) for f in batch]}")
                 
-                except Exception as e:
-                    self.logger.warning(f"Error AI enhancing file {file_path}: {str(e)}")
-                    continue
+                for file_path in batch:
+                    try:
+                        with open(file_path, 'r', encoding='utf-8') as f:
+                            content = f.read()
+                        
+                        # Check if file contains [INSERT_CONTENT] marker or generic placeholders
+                        if '[INSERT_CONTENT]' in content or '[Project Name]' in content:
+                            enhanced_content = self._ai_fill_content(content, file_path, repo_info)
+                            if enhanced_content and enhanced_content != content:
+                                # Clean the AI response
+                                cleaned_content = self._clean_ai_response(enhanced_content, content)
+                                with open(file_path, 'w', encoding='utf-8') as f:
+                                    f.write(cleaned_content)
+                                self.logger.debug(f"AI enhanced content in {os.path.basename(file_path)}")
+                    
+                    except Exception as e:
+                        self.logger.warning(f"Error AI enhancing file {os.path.basename(file_path)}: {str(e)}")
+                        continue
             
             return True
             
@@ -1776,12 +1796,18 @@ jobs:
             project_type = self._determine_project_type(repo_info)
             languages = repo_info.get('languages', [])
             
-            # Create AI prompt based on section type
+            # Extract key features for better context
+            features = self._extract_features(repo_info)
+            
+            # Create comprehensive AI context
+            feature_titles = [feature.get('title', '') for feature in features[:3]] if features else []
             context_info = f"""
 Project: {project_name}
 Type: {project_type}
 Technologies: {', '.join(languages[:5])}
 Structure: {repo_info.get('structure_summary', 'Standard project structure')}
+Key Features: {', '.join(feature_titles) if feature_titles else 'General software features'}
+File being processed: {section_type}.md
 """
             
             # Use the general docs-website prompt for all sections
@@ -1796,8 +1822,71 @@ Structure: {repo_info.get('structure_summary', 'Standard project structure')}
             return enhanced_content
             
         except Exception as e:
-            self.logger.error(f"Error AI filling content for {file_path}: {str(e)}")
+            self.logger.error(f"Error AI filling content for {os.path.basename(file_path)}: {str(e)}")
             return content  # Return original content if AI fails
+    
+    def _clean_ai_response(self, ai_response: str, original_content: str) -> str:
+        """Clean AI response to remove conversation artifacts and preserve structure."""
+        try:
+            # Remove common conversation artifacts
+            lines = ai_response.split('\n')
+            cleaned_lines = []
+            skip_next = False
+            in_content = False
+            
+            for line in lines:
+                line_lower = line.lower().strip()
+                
+                # Skip conversation markers
+                if any(marker in line_lower for marker in [
+                    '### user:', '### assistant:', 'here is the enhanced',
+                    'here is the content', 'content to enhance:',
+                    'you are a software', 'based on the repository'
+                ]):
+                    skip_next = True
+                    continue
+                    
+                # Skip empty lines after conversation markers
+                if skip_next and not line.strip():
+                    continue
+                elif skip_next:
+                    skip_next = False
+                
+                # Look for the start of actual content (YAML front matter)
+                if line.strip().startswith('---') and not in_content:
+                    in_content = True
+                    cleaned_lines.append(line)
+                    continue
+                
+                if in_content:
+                    cleaned_lines.append(line)
+            
+            # If we couldn't find proper content, try to extract it differently
+            if not cleaned_lines or not any('---' in line for line in cleaned_lines[:5]):
+                # Look for content after "CONTENT TO ENHANCE:" or similar
+                content_start = -1
+                for i, line in enumerate(lines):
+                    if 'content to enhance:' in line.lower() or line.strip().startswith('---'):
+                        content_start = i + 1 if 'content to enhance:' in line.lower() else i
+                        break
+                
+                if content_start >= 0:
+                    cleaned_lines = lines[content_start:]
+                else:
+                    # Fallback: return original content
+                    return original_content
+            
+            result = '\n'.join(cleaned_lines).strip()
+            
+            # Ensure we have valid content
+            if not result or len(result) < 50:
+                return original_content
+                
+            return result
+            
+        except Exception as e:
+            self.logger.warning(f"Error cleaning AI response: {str(e)}")
+            return original_content
     
     def _determine_project_type(self, repo_info: Dict) -> str:
         """Determine the type of project based on repository analysis."""

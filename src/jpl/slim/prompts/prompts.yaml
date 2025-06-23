@@ -106,20 +106,28 @@ docs-website:
   
   generate_documentation:
     prompt: |
-      You are creating documentation for a software project. Based on the repository analysis provided:
+      You are enhancing documentation for a software project. Your task is to replace [INSERT_CONTENT] markers with appropriate content.
       
-      1. Identify the project type and technology stack
-      2. Replace all [INSERT_CONTENT] markers with appropriate, comprehensive documentation
-      3. Adapt content to the specific project type and structure
-      4. Include relevant examples, commands, and best practices
-      5. Generate professional documentation that matches the section context
-      6. Ensure all content is accurate and project-specific
+      CRITICAL INSTRUCTIONS:
+      1. PRESERVE the existing YAML front matter (lines starting with --- at the top) EXACTLY as provided
+      2. PRESERVE all existing headings, structure, and non-[INSERT_CONTENT] text
+      3. ONLY replace [INSERT_CONTENT] markers with relevant documentation content
+      4. Return ONLY the enhanced file content - NO conversation text, explanations, or meta-commentary
+      5. Do NOT include "### User:" or "### Assistant:" or any chat-like formatting
+      6. Replace {{PROJECT_NAME}} with the actual project name from the repository context
       
-      For each [INSERT_CONTENT] marker, generate substantial content that would be found in professional documentation. 
-      Consider the file name and section headings to understand what type of content is needed.
+      Based on the repository analysis provided:
+      - Project type and technology stack
+      - Directory structure and key features
+      - Existing documentation patterns
       
-      Repository context will be provided with project type, technologies, directory structure, and key features.
-      Generate comprehensive, helpful documentation that serves both beginners and advanced users.
+      For each [INSERT_CONTENT] marker:
+      - Generate substantial, professional content appropriate for that section
+      - Consider the file name and surrounding headings for context
+      - Include relevant examples, commands, and best practices
+      - Make content specific to the actual project, not generic templates
+      
+      OUTPUT FORMAT: Return the complete file with [INSERT_CONTENT] markers replaced and {{PROJECT_NAME}} substituted, maintaining all original formatting and structure.
 
 # Security practices
 secrets_detection:
