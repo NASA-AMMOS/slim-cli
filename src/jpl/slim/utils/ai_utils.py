@@ -22,6 +22,50 @@ from jpl.slim.utils.io_utils import (
 )
 from jpl.slim.utils.prompt_utils import get_prompt_with_context
 
+# Configure LiteLLM logging at module level to suppress output by default
+def _configure_litellm_logging():
+    """Configure LiteLLM logging to be silent by default."""
+    try:
+        import litellm
+        
+        # Set global LiteLLM verbosity to False
+        litellm.set_verbose = False
+        litellm.suppress_debug_info = True
+        
+        # Suppress all LiteLLM loggers unless in debug mode
+        loggers_to_suppress = [
+            "LiteLLM",
+            "litellm", 
+            "litellm.main",
+            "litellm.router",
+            "litellm.proxy",
+            "litellm.utils",
+            "litellm.cost_calculator",
+            "httpx",  # HTTP client used by LiteLLM
+            "httpcore",  # HTTP core library
+            "urllib3",  # Another HTTP library
+            "requests"  # HTTP requests library
+        ]
+        
+        root_logger_level = logging.getLogger().getEffectiveLevel()
+        
+        for logger_name in loggers_to_suppress:
+            logger = logging.getLogger(logger_name)
+            if root_logger_level > logging.DEBUG:
+                # Completely disable the logger
+                logger.setLevel(logging.CRITICAL + 1)
+                logger.propagate = False
+            else:
+                # In debug mode, allow logs but set to DEBUG level
+                logger.setLevel(logging.DEBUG)
+                
+    except ImportError:
+        # LiteLLM not available, skip configuration
+        pass
+
+# Apply LiteLLM logging configuration when module is imported
+_configure_litellm_logging()
+
 __all__ = [
     "generate_with_ai",
     "construct_prompt",
@@ -203,9 +247,8 @@ def generate_with_model(prompt: str, model: str, **kwargs) -> Optional[str]:
         from litellm import completion
         import litellm
         
-        # Suppress LiteLLM debug logging unless we're in debug mode
-        if logging.getLogger().getEffectiveLevel() > logging.DEBUG:
-            litellm.suppress_debug_info = True
+        # Apply LiteLLM logging configuration (in case it wasn't done at module level)
+        _configure_litellm_logging()
         
         # Prepare messages
         messages = [{"role": "user", "content": prompt}]

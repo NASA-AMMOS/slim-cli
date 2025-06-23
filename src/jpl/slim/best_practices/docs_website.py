@@ -68,6 +68,25 @@ class DocsWebsiteBestPractice(StandardPractice):
             print("❌ Error: docs-website requires AI assistance. Please use: --use-ai <model>")
             return None
         
+        # Validate AI model configuration before proceeding
+        from jpl.slim.utils.ai_utils import validate_model, generate_ai_content
+        is_valid, error_message = validate_model(model)
+        if not is_valid:
+            logging.error(f"AI model validation failed: {error_message}")
+            print(f"❌ Error: {error_message}")
+            return None
+        
+        # Test AI connectivity with a simple request
+        print("🔍 Testing AI model connectivity...")
+        test_prompt = "Reply with only the word 'OK' to confirm you are working."
+        test_response = generate_ai_content(test_prompt, model)
+        if not test_response:
+            logging.error(f"AI model connectivity test failed for {model}")
+            print(f"❌ Error: Cannot connect to AI model '{model}'. Please check your API keys and network connection.")
+            return None
+        
+        print(f"✅ AI model '{model}' is working correctly")
+        
         # Extract additional parameters that might be passed via the command line
         template_only = kwargs.get('template_only', False)
         revise_site = kwargs.get('revise_site', False)
@@ -111,23 +130,22 @@ class DocsWebsiteBestPractice(StandardPractice):
                 revise_site=revise_site
             )
             
-            # Generate documentation with spinner
+            # Generate documentation with progress updates
+            print("🔄 Starting documentation generation...")
+            
+            # Show simple spinner during AI generation
             console = Console()
             with Progress(
                 SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
+                TextColumn(f"AI generation in progress ({model})"),
                 console=console,
                 transient=True
             ) as progress:
-                task_description = f"Generating documentation website"
-                if use_ai and model:
-                    task_description += f" with AI ({model})"
-                task = progress.add_task(task_description, total=None)
-                
-                success = generator.generate()
-                
-                if success:
-                    progress.update(task, description="Documentation generation completed")
+                task = progress.add_task("", total=None)
+                success = generator.generate(progress_task=None, progress=None)
+            
+            if success:
+                print("✅ Documentation generation completed")
             
             if success:
                 if template_only:

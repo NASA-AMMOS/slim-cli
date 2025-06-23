@@ -108,7 +108,17 @@ docs-website:
     prompt: |
       You are enhancing documentation for a software project. Your task is to replace [INSERT_CONTENT] markers with appropriate content.
       
-      CRITICAL INSTRUCTIONS:
+      CRITICAL MDX SAFETY RULES - MUST FOLLOW:
+      1. NEVER use angle brackets < > except in fenced code blocks
+      2. NEVER write email addresses in angle brackets (use `email@domain.com` or [email](mailto:email))
+      3. NEVER write URLs in angle brackets (use [text](url) format)
+      4. ALWAYS escape special characters that might be interpreted as JSX
+      5. ALWAYS use proper markdown link syntax: [text](url)
+      6. NEVER use loose comparison operators < or > in text
+      7. ALWAYS wrap code in triple backticks with language tags
+      8. NEVER use malformed links or incomplete brackets
+      
+      CONTENT INSTRUCTIONS:
       1. PRESERVE the existing YAML front matter (lines starting with --- at the top) EXACTLY as provided
       2. PRESERVE all existing headings, structure, and non-[INSERT_CONTENT] text
       3. ONLY replace [INSERT_CONTENT] markers with relevant documentation content
@@ -126,6 +136,7 @@ docs-website:
       - Consider the file name and surrounding headings for context
       - Include relevant examples, commands, and best practices
       - Make content specific to the actual project, not generic templates
+      - Follow all MDX safety rules above
       
       OUTPUT FORMAT: Return the complete file with [INSERT_CONTENT] markers replaced and {{PROJECT_NAME}} substituted, maintaining all original formatting and structure.
   
@@ -143,7 +154,16 @@ docs-website:
       - Languages: {languages}
       - Project Type: {project_type}
 
-      Instructions:
+      CRITICAL MDX SAFETY RULES - MUST FOLLOW:
+      1. NEVER use angle brackets < > except in fenced code blocks
+      2. NEVER write email addresses in angle brackets (use `email@domain.com` or [email](mailto:email))
+      3. NEVER write URLs in angle brackets (use [text](url) format)
+      4. ALWAYS escape special characters that might be interpreted as JSX
+      5. ALWAYS use proper markdown link syntax: [text](url)
+      6. NEVER use loose comparison operators < or > in text
+      7. ALWAYS wrap code in triple backticks with language tags
+
+      Content Instructions:
       1. Replace [INSERT_CONTENT] markers with relevant, detailed content
       2. If the section is too brief, expand it with useful information
       3. Keep the existing structure and formatting
@@ -172,15 +192,57 @@ docs-website:
       - Languages: {languages}
       - Project Type: {project_type}
 
+      CRITICAL MDX SAFETY RULES - MUST FOLLOW:
+      1. NEVER use angle brackets < > except in fenced code blocks
+      2. NEVER write email addresses in angle brackets (use `email@domain.com` or [email](mailto:email))
+      3. NEVER write URLs in angle brackets (use [text](url) format)
+      4. ALWAYS escape special characters that might be interpreted as JSX
+      5. ALWAYS use proper markdown link syntax: [text](url)
+      6. NEVER use loose comparison operators < or > in text
+      7. ALWAYS wrap code in triple backticks with language tags
+
       This section appears to be empty or contains minimal content. Generate comprehensive, useful content that:
       1. Matches the section header and purpose
       2. Is specific to {project_name} and its technology stack
       3. Provides practical, actionable information
       4. Includes relevant examples where appropriate
       5. Follows documentation best practices
+      6. Follows all MDX safety rules above
       
       Return ONLY the section content (no header, no conversational text).
       Make the content substantial and useful for users of {project_name}.
+  
+  fix_markdown_lint_errors:
+    context: "You are fixing markdown syntax errors to ensure MDX/Docusaurus compilation success."
+    prompt: |
+      Fix the following markdown syntax errors in this documentation file. The markdown will be compiled by MDX/Docusaurus.
+      
+      File: {file_name}
+      
+      Linter Errors Found:
+      {lint_errors}
+      
+      Current Content:
+      {content}
+      
+      CRITICAL INSTRUCTIONS:
+      1. Fix ALL linting errors while preserving the intended content and meaning
+      2. Ensure all HTML/JSX tags are properly closed or self-closing
+      3. Escape or fix special characters that might be interpreted as JSX:
+         - Email addresses: change <email@example.com> to `email@example.com` or [email](mailto:email@example.com)
+         - URLs in angle brackets: change <http://example.com> to [http://example.com](http://example.com)
+         - Comparison operators: wrap in backticks `< >` or use words "less than", "greater than"
+      4. Fix any malformed markdown links - use [text](url) format
+      5. Ensure code blocks are properly fenced with triple backticks
+      6. Return ONLY the corrected content - no explanations or conversation
+      
+      Common MDX-specific fixes:
+      - Replace <tag> with `<tag>` if it's meant to be shown as text
+      - Ensure @ symbols in text are not at the start of what looks like a tag
+      - Escape curly braces {{ }} if they're meant to be displayed
+      - Convert loose URLs to proper markdown links
+      
+      OUTPUT: Return the complete corrected markdown content.
 
 # Security practices
 secrets_detection:

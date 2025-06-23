@@ -13,7 +13,7 @@ from jpl.slim.cli import app
 
 # Centralized AI model configuration for tests
 # Can be overridden by environment variable SLIM_TEST_AI_MODEL
-DEFAULT_TEST_AI_MODEL = "ollama/gemma:2b"
+DEFAULT_TEST_AI_MODEL = "ollama/llama3.1"
 
 # Get model from environment variable if set, otherwise use default
 TEST_AI_MODEL = os.environ.get("SLIM_TEST_AI_MODEL", DEFAULT_TEST_AI_MODEL)

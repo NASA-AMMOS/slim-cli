@@ -29,7 +29,7 @@
 
 # Standard best practices (from test_best_practice_standard.py)
 readme:
-  enabled: true # Practice-level toggle (optional, defaults to true)
+  enabled: false # Practice-level toggle (optional, defaults to true)
   commands:
     - command: "slim apply --best-practice-ids readme --repo-urls https://github.com/octocat/Hello-World"
       enabled: true # Individual command toggle
@@ -71,7 +71,7 @@ readme:
       enabled: true
 
 contributing:
-  enabled: true # Practice-level toggle (optional, defaults to true)
+  enabled: false # Practice-level toggle (optional, defaults to true)
   commands:
     - command: "slim apply --best-practice-ids contributing --repo-urls https://github.com/octocat/Hello-World"
       enabled: true
@@ -83,7 +83,7 @@ contributing:
       enabled: true
 
 changelog:
-  enabled: true
+  enabled: false
   commands:
     - command: "slim apply --best-practice-ids changelog --repo-urls https://github.com/octocat/Hello-World"
       enabled: true
@@ -91,7 +91,7 @@ changelog:
       enabled: true
 
 code-of-conduct:
-  enabled: true
+  enabled: false
   commands:
     - command: "slim apply --best-practice-ids code-of-conduct --repo-urls https://github.com/octocat/Hello-World"
       enabled: true
@@ -99,14 +99,14 @@ code-of-conduct:
       enabled: true
 
 governance-small:
-  enabled: true
+  enabled: false
   commands:
     - command: "slim apply --best-practice-ids governance-small --repo-urls https://github.com/octocat/Hello-World"
       enabled: true
 
 # Secrets detection best practices (from test_best_practice_secrets_detection.py)
 secrets-github:
-  enabled: true
+  enabled: false
   commands:
     - command: "slim apply --best-practice-ids secrets-github --repo-urls https://github.com/octocat/Hello-World --no-prompt"
       enabled: true
@@ -138,7 +138,7 @@ secrets-github:
       enabled: true
 
 secrets-precommit:
-  enabled: true
+  enabled: false
   commands:
     - command: "slim apply --best-practice-ids secrets-precommit --repo-urls https://github.com/octocat/Hello-World --no-prompt"
       enabled: true
@@ -157,48 +157,48 @@ secrets-precommit:
 
 # Documentation website best practice (from test_best_practice_docs_website.py)
 docs-website:
-  enabled: false
+  enabled: true
   commands:
-    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/nasa-ammos/MMTC --output-dir {temp_dir}"
+    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/nasa-ammos/MMTC --output-dir {temp_dir} --use-ai {test_ai_model}"
+      enabled: true
+    - command: "slim apply --best-practice-ids docs-website --repo-dir {temp_dir} --output-dir {temp_dir} --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply --best-practice-ids docs-website --repo-dir {temp_dir} --output-dir {temp_dir}"
+    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --template-only --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --template-only"
+    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --revise-site --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --revise-site"
+    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --template-only --revise-site --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --template-only --revise-site"
+    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir}  --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --use-ai ollama/llama3.2"
+    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --clone-to-dir {temp_dir} --output-dir {temp_dir} --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --clone-to-dir {temp_dir} --output-dir {temp_dir}"
+    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --no-prompt --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --no-prompt"
+    - command: "slim deploy --best-practice-ids docs-website --repo-dir {temp_git_repo_with_remote} --remote origin --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim deploy --best-practice-ids docs-website --repo-dir {temp_git_repo_with_remote} --remote origin"
+    - command: "slim deploy --best-practice-ids docs-website --repo-dir {temp_git_repo_with_remote} --remote origin --commit-message 'Add documentation website' --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim deploy --best-practice-ids docs-website --repo-dir {temp_git_repo_with_remote} --remote origin --commit-message 'Add documentation website'"
+    - command: "slim apply-deploy --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply-deploy --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir}"
+    - command: "slim apply-deploy --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --template-only --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply-deploy --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --template-only"
+    - command: "slim apply-deploy --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir}  --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply-deploy --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --use-ai ollama/gemma2"
+    - command: "slim apply-deploy --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --template-only --revise-site --remote https://github.com/octocat/Hello-World --commit-message 'Generate comprehensive documentation' --no-prompt --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply-deploy --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir {temp_dir} --template-only --revise-site --remote https://github.com/octocat/Hello-World --commit-message 'Generate comprehensive documentation' --no-prompt"
+    - command: "slim apply-deploy --best-practice-ids docs-website --repo-dir {temp_git_repo_with_remote} --output-dir {temp_dir} --remote origin --commit-message 'Add documentation site' --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply-deploy --best-practice-ids docs-website --repo-dir {temp_git_repo_with_remote} --output-dir {temp_dir} --remote origin --commit-message 'Add documentation site'"
+    - command: "slim apply --best-practice-ids docs-website --repo-urls-file {temp_urls_file} --output-dir {temp_dir} --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply --best-practice-ids docs-website --repo-urls-file {temp_urls_file} --output-dir {temp_dir}"
-      enabled: false
-    - command: "slim apply-deploy --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --clone-to-dir {temp_dir} --output-dir {temp_dir} --use-ai ollama/llama3.2 --template-only --revise-site --no-prompt --remote origin --commit-message 'AI-generated documentation site'"
+    - command: "slim apply-deploy --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --clone-to-dir {temp_dir} --output-dir {temp_dir}  --use-ai {test_ai_model} --template-only --revise-site --no-prompt --remote origin --commit-message 'AI-generated documentation site'"
       enabled: false
     # Error scenarios for docs-website
-    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World" # missing output-dir
+    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --use-ai {test_ai_model}" # missing output-dir
       enabled: false
-    - command: "slim apply --best-practice-ids docs-website --repo-dir /nonexistent/directory --output-dir {temp_dir}"
+    - command: "slim apply --best-practice-ids docs-website --repo-dir /nonexistent/directory --output-dir {temp_dir} --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim deploy --best-practice-ids docs-website --repo-dir /nonexistent/directory"
+    - command: "slim deploy --best-practice-ids docs-website --repo-dir /nonexistent/directory --use-ai {test_ai_model}"
       enabled: false
-    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir /nonexistent/parent/output"
+    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/octocat/Hello-World --output-dir /nonexistent/parent/output --use-ai {test_ai_model}"
       enabled: false
