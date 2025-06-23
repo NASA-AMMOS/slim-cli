@@ -180,8 +180,8 @@ class CommandTestRunner:
                     else:
                         i += 1
                 
-                # Add the repo directory
-                apply_args.extend(['--repo-dir', temp_dir])
+                # Add the repo directory and --no-prompt for automated testing
+                apply_args.extend(['--repo-dir', temp_dir, '--no-prompt'])
                 
                 # Apply the best practices first
                 if len(apply_args) > 1:  # Make sure we have some best practice IDs
