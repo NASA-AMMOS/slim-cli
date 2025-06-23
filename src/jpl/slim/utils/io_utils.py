@@ -8,6 +8,8 @@ import os
 import json
 import logging
 import requests
+import fnmatch
+from pathlib import Path
 
 
 def download_and_place_file(repo, url, filename, target_relative_path_in_repo=''):
@@ -191,9 +193,171 @@ def fetch_readme(repo_path):
     return None
 
 
+def fetch_repository_context(repo_path, repository_context_config):
+    """
+    Fetch repository context based on configuration categories and patterns.
+    
+    Args:
+        repo_path: Path to the repository
+        repository_context_config: Dictionary with categories, include_patterns, exclude_patterns, max_characters
+        
+    Returns:
+        str: Combined context content, or None if not found
+    """
+    categories = repository_context_config.get('categories', ['documentation'])
+    max_characters = repository_context_config.get('max_characters', 10000)
+    include_patterns = repository_context_config.get('include_patterns', ['README*', '*.md'])
+    exclude_patterns = repository_context_config.get('exclude_patterns', ['*.log', '.git/'])
+    
+    context_parts = []
+    total_chars = 0
+    
+    # Process each category in order
+    for category in categories:
+        if total_chars >= max_characters:
+            break
+            
+        category_content = ""
+        
+        if category == "documentation":
+            category_content = fetch_documentation_files(repo_path, include_patterns, exclude_patterns)
+        elif category == "code":
+            category_content = fetch_code_files(repo_path, include_patterns, exclude_patterns)
+        elif category == "config":
+            category_content = fetch_config_files(repo_path, include_patterns, exclude_patterns)
+        elif category == "structure":
+            category_content = fetch_directory_structure(repo_path, exclude_patterns)
+        elif category == "tests":
+            category_content = fetch_test_files(repo_path, include_patterns, exclude_patterns)
+        
+        if category_content:
+            remaining_chars = max_characters - total_chars
+            if len(category_content) > remaining_chars:
+                category_content = category_content[:remaining_chars] + "... [truncated]"
+            
+            context_parts.append(f"=== {category.upper()} ===\n{category_content}")
+            total_chars += len(category_content)
+    
+    return "\n\n".join(context_parts) if context_parts else None
+
+
+def fetch_documentation_files(repo_path, include_patterns, exclude_patterns):
+    """Fetch documentation files content."""
+    doc_patterns = ['README*', '*.md', '*.rst', '*.txt', 'CHANGELOG*', 'LICENSE*', 'CONTRIBUTING*']
+    # Combine with user patterns, prioritizing documentation patterns
+    combined_patterns = doc_patterns + [p for p in include_patterns if p not in doc_patterns]
+    return _fetch_files_by_patterns(repo_path, combined_patterns, exclude_patterns)
+
+
+def fetch_code_files(repo_path, include_patterns, exclude_patterns):
+    """Fetch code files content."""
+    code_patterns = ['*.py', '*.js', '*.ts', '*.java', '*.go', '*.rs', '*.cpp', '*.c', '*.h', '*.cs', '*.php', '*.rb']
+    # Filter include_patterns to only code-related patterns
+    code_include = [p for p in include_patterns if any(fnmatch.fnmatch(p, cp) for cp in code_patterns)]
+    if not code_include:
+        code_include = code_patterns
+    return _fetch_files_by_patterns(repo_path, code_include, exclude_patterns, max_files=10)
+
+
+def fetch_config_files(repo_path, include_patterns, exclude_patterns):
+    """Fetch configuration files content."""
+    config_patterns = ['package.json', 'setup.py', 'pyproject.toml', 'Cargo.toml', 'pom.xml', '*.yaml', '*.yml', '*.ini', '*.cfg', 'Makefile', 'Dockerfile']
+    # Combine with user patterns
+    combined_patterns = config_patterns + [p for p in include_patterns if p not in config_patterns]
+    return _fetch_files_by_patterns(repo_path, combined_patterns, exclude_patterns)
+
+
+def fetch_test_files(repo_path, include_patterns, exclude_patterns):
+    """Fetch test files content."""
+    test_patterns = ['test_*.py', '*_test.py', '*.test.js', '*.spec.js', 'tests/**', 'test/**']
+    # Filter include_patterns to only test-related patterns
+    test_include = [p for p in include_patterns if 'test' in p.lower()]
+    if not test_include:
+        test_include = test_patterns
+    return _fetch_files_by_patterns(repo_path, test_include, exclude_patterns, max_files=5)
+
+
+def fetch_directory_structure(repo_path, exclude_patterns):
+    """Fetch directory structure as a tree listing."""
+    structure_lines = []
+    
+    def add_to_structure(root, dirs, files, level=0):
+        indent = "  " * level
+        rel_root = os.path.relpath(root, repo_path)
+        if rel_root != ".":
+            structure_lines.append(f"{indent}{os.path.basename(root)}/")
+        
+        # Filter directories by exclude patterns
+        dirs_filtered = [d for d in dirs if not _matches_exclude_patterns(os.path.join(rel_root, d), exclude_patterns)]
+        files_filtered = [f for f in files if not _matches_exclude_patterns(os.path.join(rel_root, f), exclude_patterns)]
+        
+        # Add files
+        for file in sorted(files_filtered)[:20]:  # Limit to first 20 files per directory
+            structure_lines.append(f"{indent}  {file}")
+        
+        return dirs_filtered
+    
+    # Walk directory tree
+    for root, dirs, files in os.walk(repo_path):
+        if len(structure_lines) > 100:  # Limit total lines
+            structure_lines.append("... [truncated]")
+            break
+            
+        level = root[len(repo_path):].count(os.sep)
+        dirs[:] = add_to_structure(root, dirs, files, level)
+    
+    return "\n".join(structure_lines) if structure_lines else None
+
+
+def _fetch_files_by_patterns(repo_path, include_patterns, exclude_patterns, max_files=None):
+    """Helper function to fetch files matching include patterns but not exclude patterns."""
+    content_parts = []
+    file_count = 0
+    
+    for root, dirs, files in os.walk(repo_path):
+        # Filter out excluded directories
+        dirs[:] = [d for d in dirs if not _matches_exclude_patterns(os.path.join(root, d), exclude_patterns)]
+        
+        for file in files:
+            if max_files and file_count >= max_files:
+                break
+                
+            file_path = os.path.join(root, file)
+            rel_path = os.path.relpath(file_path, repo_path)
+            
+            # Check if file matches exclude patterns
+            if _matches_exclude_patterns(rel_path, exclude_patterns):
+                continue
+                
+            # Check if file matches include patterns
+            if _matches_include_patterns(rel_path, include_patterns):
+                content = read_file_content(file_path)
+                if content:
+                    content_parts.append(f"--- {rel_path} ---\n{content}")
+                    file_count += 1
+        
+        if max_files and file_count >= max_files:
+            break
+    
+    return "\n\n".join(content_parts) if content_parts else None
+
+
+def _matches_include_patterns(file_path, patterns):
+    """Check if file path matches any include pattern."""
+    return any(fnmatch.fnmatch(file_path, pattern) or fnmatch.fnmatch(os.path.basename(file_path), pattern) for pattern in patterns)
+
+
+def _matches_exclude_patterns(file_path, patterns):
+    """Check if file path matches any exclude pattern."""
+    return any(fnmatch.fnmatch(file_path, pattern) or pattern in file_path for pattern in patterns)
+
+
 def fetch_code_base(repo_path):
     """
-    Fetch the code base from a repository.
+    Legacy function - fetch code base from repository.
+    
+    This function is maintained for backwards compatibility.
+    Use fetch_repository_context() for new implementations.
     
     Args:
         repo_path: Path to the repository
@@ -201,10 +365,11 @@ def fetch_code_base(repo_path):
     Returns:
         str: Content of the code base, or None if not found
     """
-    code_base = ""
-    for root, _, files in os.walk(repo_path):
-        for file in files:
-            if file.endswith(('.py', '.js', '.java', '.cpp', '.cs')):  # Add more extensions as needed
-                file_path = os.path.join(root, file)
-                code_base += read_file_content(file_path) or ""
-    return code_base if code_base else None
+    # Use default configuration for backwards compatibility
+    default_config = {
+        'categories': ['code'],
+        'max_characters': 50000,
+        'include_patterns': ['*.py', '*.js', '*.java', '*.cpp', '*.cs', '*.go', '*.rs'],
+        'exclude_patterns': ['*.log', '.git/', '__pycache__/', 'node_modules/']
+    }
+    return fetch_repository_context(repo_path, default_config)

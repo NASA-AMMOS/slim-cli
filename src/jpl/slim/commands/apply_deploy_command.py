@@ -386,6 +386,15 @@ def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote=
         )
         if result:
             logging.info(LOG_SUCCESS_APPLY_DEPLOY.format(best_practice_id))
+            
+            # Print success message to user  
+            print(f"✅ Successfully applied and deployed best practice '{best_practice_id}' to repository")
+            print(f"   📁 Repository: {git_repo.working_dir}")
+            print(f"   🌿 Branch: {branch if branch else best_practice_id}")
+            print(f"   💬 Commit: {commit_message}")
+            if remote:
+                print(f"   🚀 Deployed to: {remote}")
+            
             return True
         else:
             logging.error(LOG_UNABLE_TO_DEPLOY.format(best_practice_id))

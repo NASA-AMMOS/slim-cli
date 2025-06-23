@@ -19,6 +19,7 @@ __all__ = [
     "get_prompt_with_context",
     "get_prompt",
     "get_context_hierarchy",
+    "get_repository_context",
     "load_prompts",
     "clear_prompts_cache"
 ]
@@ -71,6 +72,58 @@ def clear_prompts_cache():
     """Clear the prompts cache. Useful for testing or when prompts file changes."""
     global _prompts_cache
     _prompts_cache = None
+
+
+def get_repository_context(practice_type: str, prompt_key: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Get repository context configuration with hierarchical inheritance.
+    
+    Child settings override parent settings. Returns the final merged configuration
+    for repository context fetching.
+    
+    Args:
+        practice_type: The practice type (e.g., 'docgen', 'standard_practices')
+        prompt_key: Optional specific prompt key (e.g., 'overview', 'readme')
+        
+    Returns:
+        Dictionary with repository context configuration
+    """
+    try:
+        prompts_dict = load_prompts()
+    except Exception as e:
+        logging.warning(f"Could not load prompts for repository context: {str(e)}")
+        return _get_default_repository_context()
+    
+    # Start with default configuration
+    repo_context = _get_default_repository_context()
+    
+    # Apply global repository context if present
+    if 'repository_context' in prompts_dict:
+        repo_context.update(prompts_dict['repository_context'])
+    
+    # Apply practice type repository context if present
+    if practice_type in prompts_dict:
+        practice_dict = prompts_dict[practice_type]
+        if isinstance(practice_dict, dict) and 'repository_context' in practice_dict:
+            repo_context.update(practice_dict['repository_context'])
+        
+        # Apply specific prompt repository context if present
+        if prompt_key and prompt_key in practice_dict:
+            prompt_dict = practice_dict[prompt_key]
+            if isinstance(prompt_dict, dict) and 'repository_context' in prompt_dict:
+                repo_context.update(prompt_dict['repository_context'])
+    
+    return repo_context
+
+
+def _get_default_repository_context() -> Dict[str, Any]:
+    """Get default repository context configuration."""
+    return {
+        'categories': ['documentation'],
+        'max_characters': 10000,
+        'include_patterns': ['README*', '*.md'],
+        'exclude_patterns': ['*.log', 'node_modules/', '.git/', '__pycache__/', '*.pyc']
+    }
 
 
 def get_context_hierarchy(practice_type: str, prompt_key: Optional[str] = None) -> List[str]:

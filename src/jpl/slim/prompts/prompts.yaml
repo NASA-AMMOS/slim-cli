@@ -3,13 +3,23 @@
 # This file defines all AI prompts used throughout SLIM CLI.
 # Context is optional at any level and cascades from parent to child.
 # If present, all applicable context levels are combined and passed to the LLM.
+#
+# Repository context can also be defined at any level to control what
+# repository information is included in AI prompts. Child settings override parent settings.
 
 # Global context for all SLIM practices (optional)
-context: "You are a SLIM best practice assistant helping to improve software projects following NASA AMMOS standards."
+context: "You are a software best practice assistant helping to improve software projects."
+
+# Global repository context (applies to all unless overridden)
+repository_context:
+  categories: ["documentation"]
+  max_characters: 10000
+  include_patterns: ["README*", "*.md", "CHANGELOG*", "LICENSE*"]
+  exclude_patterns: ["*.log", "node_modules/", ".git/", "__pycache__/", "*.pyc"]
 
 # Standard practices using template-based approach
 standard_practices:
-  context: "You are applying SLIM standard practices to improve software governance and documentation."
+  context: "You are applying best practices to improve software governance and documentation."
 
   # Governance practices
   governance:
@@ -18,7 +28,11 @@ standard_practices:
   # Documentation practices
   readme:
     context: "You are a technical documentation specialist helping to create a README file. Format using markdown and ensure novice and expert users can read the documentation."
-    prompt: "Fill out all blanks in the template below that start with INSERT. Use the provided context information to fill the blanks. Return the template with filled out values."
+    prompt: "Fill out ONLY the placeholders that are enclosed in square brackets and contain the word INSERT (e.g., [INSERT YOUR REPO / PROJ NAME HERE]). Use the provided repository context to determine appropriate values. Do NOT modify any other parts of the template, including badges, links, or formatting. Return the complete template with only the INSERT placeholders replaced."
+    repository_context:
+      categories: ["documentation", "structure"]
+      max_characters: 8000
+      include_patterns: ["README*", "*.md", "package.json", "setup.py", "pyproject.toml"]
 
   # Testing documentation
   testing-plan:

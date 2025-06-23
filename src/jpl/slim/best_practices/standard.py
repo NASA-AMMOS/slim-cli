@@ -17,8 +17,8 @@ from jpl.slim.best_practices.base import BestPractice
 from jpl.slim.best_practices.practice_mapping import get_file_path
 from jpl.slim.utils.io_utils import download_and_place_file
 from jpl.slim.utils.ai_utils import generate_with_ai
-from jpl.slim.utils.prompt_utils import get_prompt_with_context
-from jpl.slim.utils.io_utils import read_file_content
+from jpl.slim.utils.prompt_utils import get_prompt_with_context, get_repository_context
+from jpl.slim.utils.io_utils import read_file_content, fetch_repository_context
 # Import the constant directly to avoid circular imports
 GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = 'slim-best-practices'
 
@@ -94,8 +94,8 @@ class StandardPractice(BestPractice):
                 else:
                     git_repo = git.Repo.clone_from(repo_url, target_dir_to_clone_to)
 
-            # Change directory to the cloned repository
-            os.chdir(target_dir_to_clone_to)
+            # Note: We don't change the working directory to avoid global state issues
+            # Git operations work with absolute paths from git_repo object
 
             if git_repo.head.is_valid():
                 if self.best_practice_id in git_repo.heads:
@@ -125,12 +125,28 @@ class StandardPractice(BestPractice):
 
         except git.exc.InvalidGitRepositoryError:
             logging.error(f"Error: {target_dir_to_clone_to} is not a valid Git repository.")
+            print(f"❌ Error: {target_dir_to_clone_to} is not a valid Git repository.")
             return None, None, None
         except git.exc.GitCommandError as e:
             logging.error(f"Git command error: {e}")
+            # Extract user-friendly error message from Git command error
+            error_msg = str(e)
+            if "Could not resolve host" in error_msg:
+                print(f"❌ Error: Unable to access repository. Could not resolve host.")
+            elif "Repository not found" in error_msg or "not found" in error_msg:
+                print(f"❌ Error: Repository not found. Please check the URL and try again.")
+            elif "could not read Username" in error_msg or "Authentication failed" in error_msg:
+                print(f"❌ Error: Repository not found or access denied. Please check the URL and your permissions.")
+            elif "Permission denied" in error_msg or "access denied" in error_msg:
+                print(f"❌ Error: Permission denied. Please check your access credentials.")
+            elif "Connection refused" in error_msg or "Connection timed out" in error_msg:
+                print(f"❌ Error: Connection failed. Please check your network connection and try again.")
+            else:
+                print(f"❌ Error: Failed to clone repository. Please check the repository URL and try again.")
             return None, None, None
         except Exception as e:
             logging.error(f"An unexpected error occurred: {e}")
+            print(f"❌ Error: An unexpected error occurred while setting up repository: {str(e)}")
             return None, None, None
             
     def apply(self, repo_path, use_ai=False, model=None, repo_url=None,
@@ -223,15 +239,16 @@ class StandardPractice(BestPractice):
                 ai_content = generate_with_ai(self.best_practice_id, git_repo.working_tree_dir, file_path, model)
             else:
                 # Use centralized prompt system with repository context
-                from jpl.slim.utils.io_utils import fetch_readme, fetch_code_base
+                logging.debug(f"Fetching repository context from: {git_repo.working_tree_dir}")
                 
-                # Get repository context based on best practice type
-                if self.best_practice_id == 'readme':
-                    repo_context = fetch_code_base(git_repo.working_tree_dir)
-                    context_info = f"REPOSITORY CODE STRUCTURE:\n{repo_context}"
-                else:
-                    repo_context = fetch_readme(git_repo.working_tree_dir)
-                    context_info = f"REPOSITORY README:\n{repo_context}" if repo_context else "No README found in repository."
+                # Get repository context configuration for this specific best practice
+                repo_context_config = get_repository_context('standard_practices', self.best_practice_id)
+                logging.debug(f"Repository context config: {repo_context_config}")
+                
+                # Fetch repository context using the new system
+                repo_context = fetch_repository_context(git_repo.working_tree_dir, repo_context_config)
+                context_info = f"REPOSITORY CONTEXT:\n{repo_context}" if repo_context else "No repository context found."
+                logging.debug(f"Fetched repository context, length: {len(repo_context) if repo_context else 0}")
                 
                 # Construct full prompt
                 full_prompt = f"{prompt_with_context}\n\nTEMPLATE TO ENHANCE:\n{current_content}\n\nCONTEXT INFORMATION:\n{context_info}"

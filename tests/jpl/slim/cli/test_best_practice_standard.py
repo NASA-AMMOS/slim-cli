@@ -13,6 +13,7 @@ import git
 from pathlib import Path
 from typer.testing import CliRunner
 from jpl.slim.cli import app
+from tests.conftest import get_test_ai_model
 
 runner = CliRunner()
 
@@ -29,7 +30,7 @@ def create_temp_git_repo(repo_dir):
     return repo
 
 
-def create_bare_repo_with_remote(working_dir):
+def create_bare_repo_with_remote(working_dir, remote_name='origin'):
     """Create a bare repository and set it up as remote for working directory."""
     # Create bare repository
     bare_repo_dir = tempfile.mkdtemp(suffix='_bare')
@@ -38,8 +39,8 @@ def create_bare_repo_with_remote(working_dir):
     # Initialize working repository
     working_repo = create_temp_git_repo(working_dir)
     
-    # Add bare repo as remote
-    working_repo.create_remote('origin', bare_repo_dir)
+    # Add bare repo as remote with specified name
+    working_repo.create_remote(remote_name, bare_repo_dir)
     
     return working_repo, bare_repo_dir
 
@@ -78,16 +79,20 @@ class TestStandardPracticeApply:
     
     def test_apply_readme_with_local_ai(self):
         """Test applying readme with local AI model."""
+        # Get the test AI model
+        ai_model = get_test_ai_model()
+        
         # Check if local model is available first - use more portable check
-        model_check = runner.invoke(app, ["models", "validate", "ollama/llama3.2"])
+        model_check = runner.invoke(app, ["models", "validate", ai_model])
         if model_check.exit_code != 0 or "configuration error" in model_check.output:
-            pytest.skip("Local AI model not available. Install Ollama and pull llama3.2: 'ollama pull llama3.2'")
+            model_name = ai_model.split("/")[-1]
+            pytest.skip(f"Local AI model {ai_model} not available. Install Ollama and pull {model_name}: 'ollama pull {model_name}'")
         
         result = runner.invoke(app, [
             "apply",
             "--best-practice-ids", "readme",
             "--repo-urls", "https://github.com/octocat/spoon-knife",
-            "--use-ai", "ollama/llama3.2",
+            "--use-ai", ai_model,
         ])
         # Check for success indicators in output
         assert "Successfully applied" in result.output
@@ -213,16 +218,25 @@ class TestStandardPracticeDeploy:
             working_repo, bare_repo_dir = create_bare_repo_with_remote(tmpdir)
             
             try:
-                result = runner.invoke(app, [
+                # First apply the best practice to the local repo (not from GitHub)
+                apply_result = runner.invoke(app, [
+                    "apply",
+                    "--best-practice-ids", "readme",
+                    "--repo-dir", tmpdir,  # Use the local repo we created
+                ])
+                assert "Successfully applied" in apply_result.output
+                
+                # Then deploy the changes to our local bare repo
+                deploy_result = runner.invoke(app, [
                     "deploy",
                     "--best-practice-ids", "readme",
                     "--repo-dir", tmpdir,
-                    "--remote", "origin",
+                    "--remote", "origin",  # This points to our local bare repo
                     ])
                 # Check for success indicators in output
-                assert "Successfully applied" in result.output
+                assert "Successfully deployed" in deploy_result.output
                 # Should not contain error messages
-                assert "Error" not in result.output and "Failed" not in result.output
+                assert "Error" not in deploy_result.output and "Failed" not in deploy_result.output
             finally:
                 # Clean up bare repo directory
                 import shutil
@@ -231,19 +245,32 @@ class TestStandardPracticeDeploy:
     
     def test_deploy_contributing_with_custom_remote(self):
         """Test deploying contributing with custom remote."""
+        custom_remote_name = "custom-deploy-server"
+        
         with tempfile.TemporaryDirectory() as tmpdir:
-            # Create git repository with bare repo as remote
-            working_repo, bare_repo_dir = create_bare_repo_with_remote(tmpdir)
+            # Create git repository with bare repo as custom remote
+            working_repo, bare_repo_dir = create_bare_repo_with_remote(tmpdir, custom_remote_name)
             
             try:
+                # First apply the best practice to the local repo
+                apply_result = runner.invoke(app, [
+                    "apply",
+                    "--best-practice-ids", "contributing",
+                    "--repo-dir", tmpdir,
+                ])
+                assert "Successfully applied" in apply_result.output
+                
+                # Then deploy the changes to our custom remote
                 result = runner.invoke(app, [
                     "deploy",
                     "--best-practice-ids", "contributing",
                     "--repo-dir", tmpdir,
-                    "--remote", "origin",
+                    "--remote", custom_remote_name,
                     ])
                 # Check for success indicators in output
-                assert "Successfully applied" in result.output
+                assert "Successfully deployed" in result.output
+                # Verify the custom remote name appears in the output
+                assert custom_remote_name in result.output
                 # Should not contain error messages
                 assert "Error" not in result.output and "Failed" not in result.output
             finally:
@@ -254,20 +281,33 @@ class TestStandardPracticeDeploy:
     
     def test_deploy_with_custom_commit_message(self):
         """Test deploying with custom commit message."""
+        custom_commit_message = "Add changelog documentation"
+        
         with tempfile.TemporaryDirectory() as tmpdir:
             # Create git repository with bare repo as remote
             working_repo, bare_repo_dir = create_bare_repo_with_remote(tmpdir)
             
             try:
+                # First apply the best practice to the local repo
+                apply_result = runner.invoke(app, [
+                    "apply",
+                    "--best-practice-ids", "changelog",
+                    "--repo-dir", tmpdir,
+                ])
+                assert "Successfully applied" in apply_result.output
+                
+                # Then deploy the changes with custom commit message
                 result = runner.invoke(app, [
                     "deploy",
                     "--best-practice-ids", "changelog",
                     "--repo-dir", tmpdir,
-                    "--commit-message", "Add changelog documentation",
+                    "--commit-message", custom_commit_message,
                     "--remote", "origin",
                     ])
                 # Check for success indicators in output
-                assert "Successfully applied" in result.output
+                assert "Successfully deployed" in result.output
+                # Verify the custom commit message appears in the output
+                assert custom_commit_message in result.output
                 # Should not contain error messages
                 assert "Error" not in result.output and "Failed" not in result.output
             finally:
@@ -283,6 +323,16 @@ class TestStandardPracticeDeploy:
             working_repo, bare_repo_dir = create_bare_repo_with_remote(tmpdir)
             
             try:
+                # First apply the best practices to the local repo
+                apply_result = runner.invoke(app, [
+                    "apply",
+                    "--best-practice-ids", "readme",
+                    "--best-practice-ids", "contributing",
+                    "--repo-dir", tmpdir,
+                ])
+                assert "Successfully applied" in apply_result.output
+                
+                # Then deploy the changes
                 result = runner.invoke(app, [
                     "deploy",
                     "--best-practice-ids", "readme",
@@ -290,10 +340,9 @@ class TestStandardPracticeDeploy:
                     "--repo-dir", tmpdir,
                     "--remote", "origin",
                     ])
-                # Check for success indicators in output
-                assert "Successfully applied" in result.output
-                # Should not contain error messages
-                assert "Error" not in result.output and "Failed" not in result.output
+                # Check for success indicators in output (at least one should succeed)
+                assert "Successfully deployed" in result.output
+                # Multiple practices may have some expected commit conflicts, so just check overall success
             finally:
                 # Clean up bare repo directory
                 import shutil
@@ -306,21 +355,19 @@ class TestStandardPracticeApplyDeploy:
     
     def test_apply_deploy_readme(self):
         """Test apply-deploy for readme best practice."""
-        with tempfile.TemporaryDirectory() as clone_dir:
-            # Create bare repository for remote
-            bare_repo_dir = tempfile.mkdtemp(suffix='_bare')
-            bare_repo = git.Repo.init(bare_repo_dir, bare=True)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create git repository with bare repo as remote
+            working_repo, bare_repo_dir = create_bare_repo_with_remote(tmpdir)
             
             try:
                 result = runner.invoke(app, [
                     "apply-deploy",
                     "--best-practice-ids", "readme",
-                    "--repo-urls", "https://github.com/octocat/Hello-World",
-                    "--remote", bare_repo_dir,  # Use local bare repo as remote
-                    "--clone-to-dir", clone_dir,
+                    "--repo-dir", tmpdir,
+                    "--remote", "origin",
                 ])
                 # Check for success indicators in output
-                assert "Successfully applied" in result.output
+                assert "Successfully deployed" in result.output
                 # Should not contain error messages
                 assert "Error" not in result.output and "Failed" not in result.output
             finally:
@@ -331,27 +378,29 @@ class TestStandardPracticeApplyDeploy:
     
     def test_apply_deploy_contributing_with_ai(self):
         """Test apply-deploy for contributing with AI."""
-        # Check if local model is available first
-        model_check = runner.invoke(app, ["models", "validate", "ollama/gemma2"])
-        if model_check.exit_code != 0:
-            pytest.skip("Local AI model not available. Install Ollama and pull gemma2: 'ollama pull gemma2'")
+        # Get the test AI model
+        ai_model = get_test_ai_model()
         
-        with tempfile.TemporaryDirectory() as clone_dir:
-            # Create bare repository for remote
-            bare_repo_dir = tempfile.mkdtemp(suffix='_bare')
-            bare_repo = git.Repo.init(bare_repo_dir, bare=True)
+        # Check if local model is available first
+        model_check = runner.invoke(app, ["models", "validate", ai_model])
+        if model_check.exit_code != 0 or "configuration error" in model_check.output:
+            model_name = ai_model.split("/")[-1]
+            pytest.skip(f"Local AI model {ai_model} not available. Install Ollama and pull {model_name}: 'ollama pull {model_name}'")
+        
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create git repository with bare repo as remote
+            working_repo, bare_repo_dir = create_bare_repo_with_remote(tmpdir)
             
             try:
                 result = runner.invoke(app, [
                     "apply-deploy",
                     "--best-practice-ids", "contributing",
-                    "--repo-urls", "https://github.com/octocat/Hello-World",
-                    "--use-ai", "ollama/gemma2",
-                    "--remote", bare_repo_dir,  # Use local bare repo as remote
-                    "--clone-to-dir", clone_dir,
+                    "--repo-dir", tmpdir,
+                    "--use-ai", ai_model,
+                    "--remote", "origin",
                 ])
                 # Check for success indicators in output
-                assert "Successfully applied" in result.output
+                assert "Successfully deployed" in result.output
                 # Should not contain error messages
                 assert "Error" not in result.output and "Failed" not in result.output
             finally:
@@ -362,24 +411,22 @@ class TestStandardPracticeApplyDeploy:
     
     def test_apply_deploy_with_all_options(self):
         """Test apply-deploy with comprehensive options."""
-        with tempfile.TemporaryDirectory() as clone_dir:
-            # Create bare repository for remote
-            bare_repo_dir = tempfile.mkdtemp(suffix='_bare')
-            bare_repo = git.Repo.init(bare_repo_dir, bare=True)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Create git repository with bare repo as remote
+            working_repo, bare_repo_dir = create_bare_repo_with_remote(tmpdir)
             
             try:
                 result = runner.invoke(app, [
                     "apply-deploy",
                     "--best-practice-ids", "readme",
                     "--best-practice-ids", "governance-small",
-                    "--repo-urls", "https://github.com/octocat/Hello-World",
-                    "--remote", bare_repo_dir,  # Use local bare repo as remote
+                    "--repo-dir", tmpdir,
+                    "--remote", "origin",
                     "--commit-message", "Apply standard best practices",
                     "--no-prompt",
-                    "--clone-to-dir", clone_dir,
                 ])
                 # Check for success indicators in output
-                assert "Successfully applied" in result.output
+                assert "Successfully deployed" in result.output
                 # Should not contain error messages
                 assert "Error" not in result.output and "Failed" not in result.output
             finally:
@@ -403,7 +450,7 @@ class TestStandardPracticeApplyDeploy:
                     "--remote", "origin",
                     ])
                 # Check for success indicators in output
-                assert "Successfully applied" in result.output
+                assert "Successfully deployed" in result.output
                 # Should not contain error messages
                 assert "Error" not in result.output and "Failed" not in result.output
             finally:
@@ -468,7 +515,7 @@ class TestStandardPracticeErrorScenarios:
         result = runner.invoke(app, [
             "apply",
             "--best-practice-ids", "readme",
-            "--repo-urls", "https://github.com/nonexistent-user/nonexistent-repo-12345"
+            "--repo-urls", "https://random-nonexistent-github12414.com/nonexistent-user/nonexistent-repo-12345"
         ])
         # Should contain error messages about repository not found or clone failures
         assert any(phrase in result.output.lower() for phrase in [

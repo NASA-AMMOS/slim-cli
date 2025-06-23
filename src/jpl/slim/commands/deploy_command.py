@@ -229,6 +229,14 @@ def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message
             repo.git.push(remote_name, branch_name)
             logging.debug(f"Pushed changes to remote {remote_name} on branch {branch_name}")
             logging.info(f"Deployed best practice id '{best_practice_id}' to remote '{remote_name}' on branch '{branch_name}'")
+            
+            # Print success message to user
+            print(f"✅ Successfully deployed best practice '{best_practice_id}' to repository")
+            print(f"   📁 Repository: {repo.working_dir}")
+            print(f"   🌿 Branch: {branch_name}")
+            print(f"   💬 Commit: {commit_message}")
+            print(f"   🚀 Deployed to: {remote_name}")
+            
         except git.exc.GitCommandError as push_error:
             logging.error(f"Failed to push to remote '{remote_name}': {str(push_error)}")
             raise  # Re-raise to be caught by the outer exception handler
