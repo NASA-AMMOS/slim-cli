@@ -319,6 +319,10 @@ class SlimDocGenerator:
             all_files = priority_files + regular_files
             linter = MarkdownLinter(self.logger)
             
+            # Track success/failure statistics
+            successful_files = []
+            failed_files = []
+            
             for i, file_path in enumerate(all_files):
                 file_name = os.path.basename(file_path)
                 relative_path = os.path.relpath(file_path, self.output_dir)
@@ -338,8 +342,11 @@ class SlimDocGenerator:
                     for attempt in range(1, max_attempts + 1):
                         print(f"  📝 Generating {relative_path} (attempt {attempt}/{max_attempts})...")
                         
-                        # Generate content for this file
-                        enhanced_content = self._ai_enhance_single_file(content, file_path, repo_info)
+                        # Use increasing temperature for each retry to get varied responses
+                        temperature = min(0.7 + (attempt - 1) * 0.1, 1.3)  # 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3
+                        
+                        # Generate content for this file with temperature
+                        enhanced_content = self._ai_enhance_single_file(content, file_path, repo_info, temperature=temperature)
                         
                         if not enhanced_content or enhanced_content == content:
                             self.logger.warning(f"AI failed to enhance {file_name} on attempt {attempt}")
@@ -367,6 +374,7 @@ class SlimDocGenerator:
                             with open(file_path, 'w', encoding='utf-8') as f:
                                 f.write(enhanced_content)
                             self.logger.debug(f"Successfully enhanced {file_name} on attempt {attempt}")
+                            successful_files.append(relative_path)
                             success = True
                             break
                         else:
@@ -379,6 +387,16 @@ class SlimDocGenerator:
                     
                     if not success:
                         print(f"❌ Failed to generate clean content for {file_name} after {max_attempts} attempts")
+                        
+                        # For index files, add minimal fallback content rather than leaving empty
+                        if file_name == 'index.md' and '[INSERT_CONTENT]' in content:
+                            fallback_content = self._generate_fallback_index_content(file_path, repo_info)
+                            enhanced_content = content.replace('[INSERT_CONTENT]', fallback_content)
+                            with open(file_path, 'w', encoding='utf-8') as f:
+                                f.write(enhanced_content)
+                            print(f"   ℹ️  Added fallback content for {file_name}")
+                            successful_files.append(relative_path)
+                            continue
                         
                         # Show detailed error information
                         if 'enhanced_content' in locals():
@@ -397,27 +415,55 @@ class SlimDocGenerator:
                             if final_critical_errors:
                                 print(f"   🔍 Critical lint errors ({len(final_critical_errors)}):")
                                 for error in final_critical_errors[:3]:  # Show first 3 errors
-                                    print(f"      - {error.error_type}: {error.description}")
+                                    print(f"      - {error.error_type}: {error.message}")
                                 if len(final_critical_errors) > 3:
                                     print(f"      ... and {len(final_critical_errors) - 3} more errors")
                         
+                        failed_files.append({
+                            'path': relative_path,
+                            'has_project_name': '{{PROJECT_NAME}}' in enhanced_content if 'enhanced_content' in locals() else False,
+                            'has_insert_content': '[INSERT_CONTENT]' in enhanced_content if 'enhanced_content' in locals() else False,
+                            'lint_errors': len(final_critical_errors) if 'final_critical_errors' in locals() else 0
+                        })
                         self.logger.warning(f"Failed to generate clean content for {file_name} after {max_attempts} attempts")
-                        if self.strict_ai:
-                            return False
+                        # Continue processing other files instead of exiting
                 
                 except Exception as e:
                     self.logger.warning(f"Error processing file {file_name}: {str(e)}")
-                    if self.strict_ai:
-                        return False
+                    failed_files.append({
+                        'path': relative_path,
+                        'error': str(e)
+                    })
+                    # Continue processing other files
                     continue
             
-            return True
+            # Print summary of results
+            print(f"\n📊 AI Enhancement Summary:")
+            print(f"   ✅ Successfully generated: {len(successful_files)} files")
+            if failed_files:
+                print(f"   ❌ Failed to generate: {len(failed_files)} files")
+                print(f"\n   📋 Files requiring manual attention:")
+                for failed in failed_files[:5]:  # Show first 5
+                    print(f"      - {failed['path']}")
+                    if failed.get('has_project_name'):
+                        print(f"        ⚠️  Contains {{{{PROJECT_NAME}}}} placeholder")
+                    if failed.get('has_insert_content'):
+                        print(f"        ⚠️  Contains [INSERT_CONTENT] marker")
+                    if failed.get('lint_errors'):
+                        print(f"        ⚠️  Has {failed['lint_errors']} MDX syntax errors")
+                    if failed.get('error'):
+                        print(f"        ⚠️  Error: {failed['error']}")
+                if len(failed_files) > 5:
+                    print(f"      ... and {len(failed_files) - 5} more files")
+            
+            # Return True if at least some files were successful
+            return len(successful_files) > 0
             
         except Exception as e:
             self.logger.error(f"Error during AI content enhancement: {str(e)}")
             return False
     
-    def _ai_enhance_single_file(self, content: str, file_path: str, repo_info: Dict) -> str:
+    def _ai_enhance_single_file(self, content: str, file_path: str, repo_info: Dict, temperature: float = 0.7) -> str:
         """Use AI to generate content for [INSERT_CONTENT] markers only."""
         try:
             # Find all [INSERT_CONTENT] markers in the file
@@ -449,8 +495,8 @@ class SlimDocGenerator:
                 languages=languages
             )
             
-            # Generate the content
-            generated_content = generate_ai_content(formatted_prompt, self.use_ai)
+            # Generate the content with temperature
+            generated_content = generate_ai_content(formatted_prompt, self.use_ai, temperature=temperature)
             
             if generated_content:
                 # Replace the [INSERT_CONTENT] marker with the generated content
@@ -515,6 +561,64 @@ class SlimDocGenerator:
         except Exception as e:
             self.logger.error(f"Error loading prompt template: {str(e)}")
             return ''
+    
+    def _generate_fallback_index_content(self, file_path: str, repo_info: Dict) -> str:
+        """Generate minimal fallback content for index.md files that fail AI generation."""
+        project_name = repo_info.get('project_name', 'this project')
+        
+        # Determine section type based on parent directory
+        parent_dir = os.path.basename(os.path.dirname(file_path))
+        
+        if parent_dir == 'user':
+            return f"""## Documentation Overview
+
+This section contains user documentation for {project_name}.
+
+### Available Resources
+
+- **[Installation Guide](./installation)** - Step-by-step installation instructions
+- **[Quick Start](./quick-start)** - Get started quickly with {project_name}
+- **[Features](./features)** - Comprehensive feature documentation
+- **[Tutorials](./tutorials)** - Hands-on tutorials and examples
+- **[Troubleshooting](./troubleshooting)** - Common issues and solutions
+- **[Advanced Usage](./advanced-usage)** - Advanced features and configurations
+
+### Getting Help
+
+If you need assistance, please check our troubleshooting guide or reach out to the community."""
+        
+        elif parent_dir == 'developer':
+            return f"""## Developer Documentation
+
+This section contains developer documentation for {project_name}.
+
+### Development Resources
+
+- **[Getting Started](./getting-started-dev)** - Development environment setup
+- **[API Reference](./api)** - Complete API documentation
+- **[Project Structure](./project-structure)** - Codebase organization
+- **[Testing Guide](./testing)** - Testing strategies and procedures
+- **[Tutorials](./tutorials)** - Developer tutorials and examples
+
+### Contributing
+
+Please see our [Contributing Guide](/docs/contributing) for information on how to contribute to {project_name}."""
+        
+        else:
+            return f"""## Documentation
+
+This section contains documentation for {project_name}.
+
+### Quick Links
+
+- [User Documentation](./user/)
+- [Developer Documentation](./developer/)
+- [API Reference](./developer/api)
+- [Contributing Guide](./contributing)
+
+### Getting Started
+
+Browse the documentation sections above to find the information you need."""
     
     def _has_empty_sections(self, content: str) -> bool:
         """Check if content has empty sections (headers with no content)."""

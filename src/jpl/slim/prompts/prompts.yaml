@@ -117,6 +117,9 @@ docs-website:
       6. NEVER use loose comparison operators < or > in text
       7. ALWAYS wrap code in triple backticks with language tags
       8. NEVER use malformed links or incomplete brackets
+      9. In code examples, when showing method signatures like getMissionData(String missionId), ensure the content is within a code block
+      10. For path parameters like /missions/{missionId}, either put them in code blocks or escape as `/missions/\{missionId\}`
+      11. NEVER leave unescaped JavaScript variable names in regular text - they must be in code blocks or backticks
       
       CONTENT INSTRUCTIONS:
       1. Generate ONLY the content that should replace the [INSERT_CONTENT] marker
@@ -134,6 +137,13 @@ docs-website:
       - Section context: {section_context}
       - Project type: {project_type}
       - Languages: {languages}
+      
+      SPECIAL INSTRUCTIONS FOR INDEX FILES:
+      If this is an index.md file, generate content that:
+      - Provides an overview of what's in this documentation section
+      - Lists and briefly describes the subsections/pages available
+      - Helps users navigate to the right content
+      - Includes links to key pages in the section
       
       OUTPUT FORMAT: Return only the markdown content that should replace the [INSERT_CONTENT] marker. Start immediately with the content - no preamble, no explanation.
   
