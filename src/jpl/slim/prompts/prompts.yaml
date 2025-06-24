@@ -118,7 +118,7 @@ docs-website:
       7. ALWAYS wrap code in triple backticks with language tags
       8. NEVER use malformed links or incomplete brackets
       9. In code examples, when showing method signatures like getMissionData(String missionId), ensure the content is within a code block
-      10. For path parameters like /missions/{missionId}, either put them in code blocks or escape as `/missions/\{missionId\}`
+      10. For path parameters like /missions/{{missionId}}, either put them in code blocks or escape as `/missions/\{{missionId}}\`
       11. NEVER leave unescaped JavaScript variable names in regular text - they must be in code blocks or backticks
       
       CONTENT INSTRUCTIONS:
