@@ -165,10 +165,15 @@ class SlimDocGenerator:
             
             # Extract basic project information
             project_name = repo_info.get('project_name', 'Documentation Site')
-            project_description = repo_info.get('description', 'A software project documentation site')
+            default_description = f"A comprehensive {project_name.lower()} documentation and resource hub"
+            project_description = repo_info.get('description', default_description)
             project_overview = repo_info.get('overview', project_description)
             github_org = repo_info.get('github_org', 'your-org')
             github_repo = repo_info.get('github_repo', 'your-repo')
+            
+            # Generate smart highlight section based on project type
+            project_type = self._determine_project_type(repo_info)
+            highlight_title, highlight_description, stats = self._generate_highlight_content(project_name, project_type, repo_info)
             
             # Define placeholder mappings (simplified set)
             placeholders = {
@@ -177,6 +182,17 @@ class SlimDocGenerator:
                 '{{PROJECT_OVERVIEW}}': project_overview,
                 '{{GITHUB_ORG}}': github_org,
                 '{{GITHUB_REPO}}': github_repo,
+                '{{GITHUB_URL}}': f"https://github.com/{github_org}/{github_repo}",
+                '{{HERO_IMAGE_URL}}': "/img/logo.svg",
+                '{{HIGHLIGHT_TITLE}}': highlight_title,
+                '{{HIGHLIGHT_DESCRIPTION}}': highlight_description,
+                '{{STAT_1_NUMBER}}': stats[0]['number'],
+                '{{STAT_1_LABEL}}': stats[0]['label'],
+                '{{STAT_2_NUMBER}}': stats[1]['number'],
+                '{{STAT_2_LABEL}}': stats[1]['label'],
+                '{{STAT_3_NUMBER}}': stats[2]['number'],
+                '{{STAT_3_LABEL}}': stats[2]['label'],
+                '{{COMMUNITY_CHAT_URL}}': f"https://github.com/{github_org}/{github_repo}/discussions",
             }
             
             # Extract and add feature placeholders
@@ -222,29 +238,108 @@ class SlimDocGenerator:
                             'description': feature_text
                         })
         
-        # If no features found, generate generic ones based on project type
+        # If no features found, generate smart ones based on project type
         if not features:
+            project_type = self._determine_project_type(repo_info)
             languages = repo_info.get('languages', [])
-            if 'Python' in languages:
-                features.extend([
-                    {'title': 'Python-Based', 'description': 'Built with Python for reliability and ease of use'},
-                    {'title': 'Easy Installation', 'description': 'Simple pip install process'},
-                ])
-            if 'JavaScript' in languages:
-                features.extend([
-                    {'title': 'Modern JavaScript', 'description': 'Built with modern JavaScript frameworks'},
-                    {'title': 'NPM Package', 'description': 'Easy installation via npm'},
-                ])
             
-            # Add generic features
+            if 'Python' in languages:
+                if 'CLI tool' in project_type:
+                    features.extend([
+                        {'title': 'Command Line Interface', 'description': 'Powerful CLI with intuitive commands and options'},
+                        {'title': 'Python Powered', 'description': 'Built with Python for reliability and cross-platform support'},
+                        {'title': 'Easy Installation', 'description': 'Simple pip install process with minimal dependencies'},
+                    ])
+                elif 'web API' in project_type:
+                    features.extend([
+                        {'title': 'RESTful API', 'description': 'Well-designed REST endpoints with comprehensive documentation'},
+                        {'title': 'High Performance', 'description': 'Optimized for speed and scalability'},
+                        {'title': 'Secure by Default', 'description': 'Built-in security features and best practices'},
+                    ])
+                else:
+                    features.extend([
+                        {'title': 'Python Library', 'description': 'Clean, Pythonic API that\'s easy to integrate'},
+                        {'title': 'Well Tested', 'description': 'Comprehensive test suite ensuring reliability'},
+                        {'title': 'Type Hints', 'description': 'Full type annotations for better IDE support'},
+                    ])
+            
+            elif 'JavaScript' in languages:
+                if 'React' in project_type:
+                    features.extend([
+                        {'title': 'Modern React', 'description': 'Built with the latest React features and hooks'},
+                        {'title': 'Responsive Design', 'description': 'Mobile-first design that works on all devices'},
+                        {'title': 'Component Library', 'description': 'Reusable components with consistent styling'},
+                    ])
+                else:
+                    features.extend([
+                        {'title': 'Modern JavaScript', 'description': 'ES6+ features with TypeScript support'},
+                        {'title': 'NPM Package', 'description': 'Easy installation and dependency management'},
+                        {'title': 'Zero Dependencies', 'description': 'Lightweight with minimal external dependencies'},
+                    ])
+            
+            # Add universal features
             features.extend([
-                {'title': 'Open Source', 'description': 'Open source project with community contributions'},
-                {'title': 'Well Documented', 'description': 'Comprehensive documentation and examples'},
-                {'title': 'Actively Maintained', 'description': 'Regular updates and bug fixes'},
-                {'title': 'Cross Platform', 'description': 'Works on multiple operating systems'},
+                {'title': 'Open Source', 'description': 'MIT licensed with active community contributions'},
+                {'title': 'Comprehensive Docs', 'description': 'Complete documentation with examples and tutorials'},
+                {'title': 'Actively Maintained', 'description': 'Regular updates, bug fixes, and feature enhancements'},
             ])
         
         return features[:6]  # Return max 6 features
+    
+    def _generate_highlight_content(self, project_name: str, project_type: str, repo_info: Dict) -> Tuple[str, str, List[Dict]]:
+        """Generate smart highlight section content based on project type."""
+        languages = repo_info.get('languages', [])
+        
+        if 'CLI tool' in project_type:
+            title = f"Powerful Command Line Interface"
+            description = f"{project_name} provides an intuitive command-line interface designed for developers and power users, with comprehensive features and excellent performance."
+            stats = [
+                {'number': '⚡', 'label': 'Fast Execution'},
+                {'number': '🔧', 'label': 'Easy to Use'},
+                {'number': '🌍', 'label': 'Cross Platform'}
+            ]
+        elif 'web API' in project_type or 'API' in project_type:
+            title = f"Robust API Solutions"
+            description = f"{project_name} delivers high-performance API endpoints with comprehensive documentation, built for scalability and developer experience."
+            stats = [
+                {'number': '99.9%', 'label': 'Uptime'},
+                {'number': '<100ms', 'label': 'Response Time'},
+                {'number': '∞', 'label': 'Scalability'}
+            ]
+        elif 'React' in project_type or 'web application' in project_type:
+            title = f"Modern Web Experience"
+            description = f"{project_name} offers a cutting-edge web application built with modern technologies, providing users with an intuitive and responsive interface."
+            stats = [
+                {'number': '📱', 'label': 'Mobile Ready'},
+                {'number': '⚡', 'label': 'Fast Loading'},
+                {'number': '🎨', 'label': 'Beautiful UI'}
+            ]
+        elif 'Python' in languages:
+            title = f"Reliable Python Solution"
+            description = f"{project_name} provides a robust Python-based solution with clean APIs, comprehensive testing, and excellent documentation for developers."
+            stats = [
+                {'number': '🐍', 'label': 'Python Powered'},
+                {'number': '✅', 'label': 'Well Tested'},
+                {'number': '📚', 'label': 'Great Docs'}
+            ]
+        elif 'JavaScript' in languages:
+            title = f"Modern JavaScript Framework"
+            description = f"{project_name} leverages the latest JavaScript technologies to deliver performant, maintainable, and scalable solutions."
+            stats = [
+                {'number': '🚀', 'label': 'High Performance'},
+                {'number': '🔄', 'label': 'Modern Stack'},
+                {'number': '🧩', 'label': 'Modular Design'}
+            ]
+        else:
+            title = f"Powerful {project_name} Features"
+            description = f"{project_name} provides comprehensive functionality designed to meet your needs with reliability, performance, and ease of use."
+            stats = [
+                {'number': '100%', 'label': 'Open Source'},
+                {'number': '24/7', 'label': 'Available'},
+                {'number': '∞', 'label': 'Possibilities'}
+            ]
+        
+        return title, description, stats
     
     def _replace_placeholders_in_files(self, placeholders: Dict[str, str]) -> bool:
         """Replace placeholders in all template files."""
