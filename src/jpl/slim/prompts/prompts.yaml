@@ -106,7 +106,7 @@ docs-website:
   
   generate_content_only:
     prompt: |
-      Generate markdown content for a specific documentation section. You will ONLY generate the content itself, not any file structure, headers, or YAML front matter.
+      You are enhancing a documentation template by replacing [INSERT_CONTENT] markers with appropriate content. You can see the full template structure below, including all existing headings and sections.
       
       CRITICAL MDX SAFETY RULES - MUST FOLLOW:
       1. NEVER use angle brackets < > except in fenced code blocks
@@ -118,20 +118,22 @@ docs-website:
       7. ALWAYS wrap code in triple backticks with language tags
       8. NEVER use malformed links or incomplete brackets
       9. In code examples, when showing method signatures like getMissionData(String missionId), ensure the content is within a code block
-      10. For path parameters like /missions/{{missionId}}, either put them in code blocks or escape as `/missions/\{{missionId}}\`
+      10. For path parameters like /missions/{{{{missionId}}}}, either put them in code blocks or escape as `/missions/\\{{{{missionId}}}}\\`
       11. NEVER leave unescaped JavaScript variable names in regular text - they must be in code blocks or backticks
+      12. NEVER use Jekyll/Liquid template syntax like `{{{{ site.baseurl }}}}`, `{{% %}}`, or any `{{{{ site.* }}}}` patterns
+      13. NEVER use Jekyll variables like `{{{{ page.* }}}}`, `{{{{ layout.* }}}}`, or similar template syntax
+      14. For internal links, ALWAYS use relative paths like `./page`, `../section/page`, or `[text](./path)` 
+      15. NEVER use template variables in URLs - use direct relative paths instead
       
-      CONTENT INSTRUCTIONS:
-      1. Generate ONLY the content that should replace the [INSERT_CONTENT] marker
-      2. Do NOT include any file structure, YAML front matter, or section headers that already exist in the template
-      3. Do NOT regenerate the page title or main heading - it already exists in the template
-      4. Do NOT include conversational text, explanations, or meta-commentary
-      5. Do NOT include "Here is the content" or similar phrases
-      6. Generate substantial, professional content appropriate for the section
-      7. Make content specific to the project, not generic templates
-      8. Include relevant examples, commands, and best practices where appropriate
-      9. Follow all MDX safety rules above
-      10. Do NOT add section headers (## ###) that duplicate existing ones in the template
+      TEMPLATE ENHANCEMENT INSTRUCTIONS:
+      1. You can see the COMPLETE template structure below - DO NOT duplicate any existing headings (#, ##, ###)
+      2. ONLY replace [INSERT_CONTENT] markers with appropriate content
+      3. Do NOT add, remove, or modify any existing headings or structure
+      4. Do NOT include YAML front matter in your response
+      5. Generate substantial, professional content appropriate for each section
+      6. Make content specific to {project_name}, not generic templates
+      7. Include relevant examples, commands, and best practices where appropriate
+      8. Follow all MDX safety rules above
       
       LINK GENERATION RULES:
       - ONLY reference files and sections that exist in the provided Site Tree
@@ -142,10 +144,10 @@ docs-website:
       Context provided:
       - Project name: {project_name}
       - File name: {file_name}
-      - Section context: {section_context}
       - Project type: {project_type}
       - Languages: {languages}
       
+      AVAILABLE SITE NAVIGATION:
       {site_tree}
       
       SPECIAL INSTRUCTIONS FOR INDEX FILES:
@@ -155,7 +157,10 @@ docs-website:
       - Helps users navigate to the right content
       - Includes links to key pages in the section (only those that exist in the Site Tree)
       
-      OUTPUT FORMAT: Return only the markdown content that should replace the [INSERT_CONTENT] marker. Start immediately with the content - no preamble, no explanation.
+      TEMPLATE STRUCTURE TO ENHANCE:
+      {template_structure}
+      
+      OUTPUT FORMAT: Return the complete enhanced template with all [INSERT_CONTENT] markers replaced. Do NOT include YAML front matter. Start immediately with the enhanced template - no preamble, no explanation.
   
   enhance_section:
     context: "You are enhancing a specific section of documentation. Focus on providing detailed, useful content that matches the section's purpose."
@@ -256,7 +261,7 @@ docs-website:
       Common MDX-specific fixes:
       - Replace <tag> with `<tag>` if it's meant to be shown as text
       - Ensure @ symbols in text are not at the start of what looks like a tag
-      - Escape curly braces {{ }} if they're meant to be displayed
+      - Escape curly braces {{{{ }}}} if they're meant to be displayed
       - Convert loose URLs to proper markdown links
       
       OUTPUT: Return the complete corrected markdown content.

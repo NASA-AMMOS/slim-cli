@@ -48,6 +48,13 @@ class MarkdownLinter:
             (r'<@[^>]*>', 'at_in_tag', '@ symbol in tag-like structure'),
             # Comparison operators not in code blocks
             (r'(?<!`)[<>]=?(?!`)', 'comparison_operator', 'Comparison operator outside code block'),
+            # Jekyll/Liquid template syntax - critical for MDX
+            (r'\{\{\s*site\.[^}]*\}\}', 'jekyll_site_syntax', 'Jekyll site template syntax not valid in MDX'),
+            (r'\{\{\s*page\.[^}]*\}\}', 'jekyll_page_syntax', 'Jekyll page template syntax not valid in MDX'),
+            (r'\{\{\s*layout\.[^}]*\}\}', 'jekyll_layout_syntax', 'Jekyll layout template syntax not valid in MDX'),
+            (r'\{%[^%]*%\}', 'liquid_tag_syntax', 'Liquid tag syntax not valid in MDX'),
+            # Generic Jekyll/Liquid patterns not in code blocks
+            (r'(?<!`)\{\{(?!\s*PROJECT_NAME)[^}]*\}\}(?!`)', 'generic_liquid_syntax', 'Liquid template syntax not valid in MDX (use relative links)'),
             # Unclosed markdown links
             (r'\[[^\]]+\](?!\()', 'unclosed_link', 'Markdown link missing URL'),
             # Malformed markdown links

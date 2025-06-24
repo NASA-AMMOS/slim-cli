@@ -359,7 +359,9 @@ class SlimDocGenerator:
                         critical_errors = [
                             error for error in lint_errors 
                             if error.error_type in ['unclosed_tag', 'email_as_jsx', 'url_as_jsx', 
-                                                   'loose_angle_bracket', 'at_in_tag']
+                                                   'loose_angle_bracket', 'at_in_tag', 'jekyll_site_syntax',
+                                                   'jekyll_page_syntax', 'jekyll_layout_syntax', 
+                                                   'liquid_tag_syntax', 'generic_liquid_syntax']
                         ]
                         
                         # Check for remaining placeholders
@@ -404,7 +406,9 @@ class SlimDocGenerator:
                             final_critical_errors = [
                                 error for error in final_lint_errors 
                                 if error.error_type in ['unclosed_tag', 'email_as_jsx', 'url_as_jsx', 
-                                                       'loose_angle_bracket', 'at_in_tag']
+                                                       'loose_angle_bracket', 'at_in_tag', 'jekyll_site_syntax',
+                                                       'jekyll_page_syntax', 'jekyll_layout_syntax', 
+                                                       'liquid_tag_syntax', 'generic_liquid_syntax']
                             ]
                             
                             print(f"   📋 Final validation status for {file_name}:")
@@ -464,7 +468,7 @@ class SlimDocGenerator:
             return False
     
     def _ai_enhance_single_file(self, content: str, file_path: str, repo_info: Dict, temperature: float = 0.7) -> str:
-        """Use AI to generate content for [INSERT_CONTENT] markers only."""
+        """Use AI to enhance template by sending full structure and replacing [INSERT_CONTENT] markers."""
         try:
             # Find all [INSERT_CONTENT] markers in the file
             if '[INSERT_CONTENT]' not in content:
@@ -475,11 +479,15 @@ class SlimDocGenerator:
             languages = ', '.join(repo_info.get('languages', []))
             project_type = self._determine_project_type(repo_info)
             
-            # Extract section context (heading before the marker)
-            section_context = self._extract_section_context(content, file_name)
+            # Split content into YAML front matter and markdown body
+            yaml_front_matter, markdown_body = self._split_yaml_and_markdown(content)
             
             # Generate site tree for link context
-            site_tree = self._generate_site_tree_from_template()
+            try:
+                site_tree = self._generate_site_tree_from_template()
+            except Exception as e:
+                self.logger.warning(f"Error generating site tree: {str(e)}")
+                site_tree = "Site tree generation failed - use relative links like ./page or ../section/page"
             
             # Generate content for the INSERT_CONTENT marker
             from jpl.slim.utils.ai_utils import generate_ai_content
@@ -489,22 +497,36 @@ class SlimDocGenerator:
                 self.logger.error("Could not find generate_content_only prompt template")
                 return content
             
-            # Format the prompt with context including site tree
-            formatted_prompt = prompt_template.format(
-                project_name=project_name,
-                file_name=file_name,
-                section_context=section_context,
-                project_type=project_type,
-                languages=languages,
-                site_tree=site_tree
-            )
+            # Format the prompt with full template structure - add error handling
+            try:
+                formatted_prompt = prompt_template.format(
+                    project_name=project_name,
+                    file_name=file_name,
+                    template_structure=markdown_body,
+                    project_type=project_type,
+                    languages=languages,
+                    site_tree=site_tree
+                )
+            except Exception as e:
+                self.logger.error(f"Error formatting prompt template: {str(e)}")
+                return content
             
-            # Generate the content with temperature
+            # Generate the enhanced template with temperature
             generated_content = generate_ai_content(formatted_prompt, self.use_ai, temperature=temperature)
             
             if generated_content:
-                # Replace the [INSERT_CONTENT] marker with the generated content
-                enhanced_content = content.replace('[INSERT_CONTENT]', generated_content.strip())
+                # Clean up the generated content and recombine with YAML front matter
+                enhanced_markdown = generated_content.strip()
+                
+                # Ensure the enhanced content starts with markdown content, not YAML
+                if enhanced_markdown.startswith('---'):
+                    # If AI returned YAML, extract just the markdown part
+                    if enhanced_markdown.count('---') >= 2:
+                        parts = enhanced_markdown.split('---', 2)
+                        enhanced_markdown = parts[2].strip() if len(parts) > 2 else enhanced_markdown
+                
+                # Recombine YAML front matter with enhanced markdown
+                enhanced_content = yaml_front_matter + enhanced_markdown
                 return enhanced_content
             else:
                 self.logger.warning(f"AI failed to generate content for {file_name}")
@@ -514,6 +536,24 @@ class SlimDocGenerator:
             self.logger.warning(f"Error enhancing file '{file_path}': {str(e)}")
             return content
     
+    def _split_yaml_and_markdown(self, content: str) -> tuple[str, str]:
+        """Split content into YAML front matter and markdown body."""
+        if content.startswith('---'):
+            # Find the end of YAML front matter
+            end_index = content.find('---', 3)
+            if end_index != -1:
+                # Include the closing --- and following newlines
+                yaml_end = end_index + 3
+                while yaml_end < len(content) and content[yaml_end] in '\n\r':
+                    yaml_end += 1
+                
+                yaml_front_matter = content[:yaml_end]
+                markdown_body = content[yaml_end:]
+                return yaml_front_matter, markdown_body
+        
+        # No YAML front matter found, return empty YAML and full content as markdown
+        return "", content
+
     def _extract_section_context(self, content: str, file_name: str) -> str:
         """Extract context around [INSERT_CONTENT] marker for AI prompt."""
         lines = content.split('\n')
