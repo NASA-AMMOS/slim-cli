@@ -193,6 +193,14 @@ class SlimDocGenerator:
                 '[STAT_3_NUMBER]': stats[2]['number'],
                 '[STAT_3_LABEL]': stats[2]['label'],
                 '[COMMUNITY_CHAT_URL]': f"https://github.com/{github_org}/{github_repo}/discussions",
+                # Contact placeholders with generic fallbacks
+                '[CONTACT_EMAIL]': "contact@example.com",
+                '[SLACK_URL]': "https://slack.example.com",
+                '[TWITTER_URL]': "https://twitter.com/example",
+                '[MAILING_LIST_URL]': "mailto:subscribe@example.com",
+                # Contributor placeholders (will be filled with git data if available)
+                '[TOP_CONTRIBUTORS]': '<div class="contributor-placeholder">Top contributors will be listed here</div>',
+                '[ALL_CONTRIBUTORS]': '<div class="contributor-placeholder">All contributors will be listed here</div>',
             }
             
             # Extract and add feature placeholders - using safe bracket syntax
