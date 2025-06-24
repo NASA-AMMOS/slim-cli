@@ -106,7 +106,6 @@ class SlimDocGenerator:
             repo_info = self._analyze_repository() if self.target_repo_path else {}
             
             # Step 3: Replace universal placeholders (PROJECT_NAME, etc.)
-            print("🔄 Replacing placeholders...")
             if not self._replace_basic_placeholders(repo_info):
                 print("❌ Placeholder replacement failed")
                 return False
@@ -171,8 +170,6 @@ class SlimDocGenerator:
             github_org = repo_info.get('github_org', 'your-org')
             github_repo = repo_info.get('github_repo', 'your-repo')
             
-            print(f"  🔧 Replacing PROJECT_NAME with: {project_name}")
-            
             # Define placeholder mappings (simplified set)
             placeholders = {
                 '{{PROJECT_NAME}}': project_name,
@@ -194,7 +191,10 @@ class SlimDocGenerator:
                 placeholders[f'{{{{FEATURE_{i}_DESCRIPTION}}}}'] = f'Description for feature {i}'
             
             # Replace placeholders in all files
-            return self._replace_placeholders_in_files(placeholders)
+            success = self._replace_placeholders_in_files(placeholders)
+            if success:
+                print("✅ Updated template placeholders")
+            return success
             
         except Exception as e:
             self.logger.error(f"Error replacing basic placeholders: {str(e)}")
@@ -265,7 +265,6 @@ class SlimDocGenerator:
                     modified = False
                     for placeholder, replacement in placeholders.items():
                         if placeholder in content:
-                            print(f"    🔍 Found {placeholder} in {os.path.basename(file_path)}, replacing with: {replacement}")
                             content = content.replace(placeholder, replacement)
                             modified = True
                     
@@ -273,7 +272,6 @@ class SlimDocGenerator:
                     if modified:
                         with open(file_path, 'w', encoding='utf-8') as f:
                             f.write(content)
-                        print(f"    ✅ Updated placeholders in {os.path.basename(file_path)}")
                         self.logger.debug(f"Updated placeholders in {file_path}")
                 
                 except Exception as e:
