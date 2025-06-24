@@ -183,7 +183,7 @@ class SlimDocGenerator:
                 '[GITHUB_ORG]': github_org,
                 '[GITHUB_REPO]': github_repo,
                 '[GITHUB_URL]': f"https://github.com/{github_org}/{github_repo}",
-                '[HERO_IMAGE_URL]': "/img/logo.svg",
+                '[HERO_IMAGE_URL]': "/img/600x400.png",
                 '[HIGHLIGHT_TITLE]': highlight_title,
                 '[HIGHLIGHT_DESCRIPTION]': highlight_description,
                 '[STAT_1_NUMBER]': stats[0]['number'],
@@ -949,4 +949,3 @@ Browse the documentation sections above to find the information you need."""
         except Exception as e:
             self.logger.error(f"Error during content validation: {str(e)}")
             return False
-    
