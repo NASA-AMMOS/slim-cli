@@ -175,36 +175,36 @@ class SlimDocGenerator:
             project_type = self._determine_project_type(repo_info)
             highlight_title, highlight_description, stats = self._generate_highlight_content(project_name, project_type, repo_info)
             
-            # Define placeholder mappings (simplified set)
+            # Define placeholder mappings (simplified set) - using safe bracket syntax
             placeholders = {
-                '{{PROJECT_NAME}}': project_name,
-                '{{PROJECT_DESCRIPTION}}': project_description,
-                '{{PROJECT_OVERVIEW}}': project_overview,
-                '{{GITHUB_ORG}}': github_org,
-                '{{GITHUB_REPO}}': github_repo,
-                '{{GITHUB_URL}}': f"https://github.com/{github_org}/{github_repo}",
-                '{{HERO_IMAGE_URL}}': "/img/logo.svg",
-                '{{HIGHLIGHT_TITLE}}': highlight_title,
-                '{{HIGHLIGHT_DESCRIPTION}}': highlight_description,
-                '{{STAT_1_NUMBER}}': stats[0]['number'],
-                '{{STAT_1_LABEL}}': stats[0]['label'],
-                '{{STAT_2_NUMBER}}': stats[1]['number'],
-                '{{STAT_2_LABEL}}': stats[1]['label'],
-                '{{STAT_3_NUMBER}}': stats[2]['number'],
-                '{{STAT_3_LABEL}}': stats[2]['label'],
-                '{{COMMUNITY_CHAT_URL}}': f"https://github.com/{github_org}/{github_repo}/discussions",
+                '[PROJECT_NAME]': project_name,
+                '[PROJECT_DESCRIPTION]': project_description,
+                '[PROJECT_OVERVIEW]': project_overview,
+                '[GITHUB_ORG]': github_org,
+                '[GITHUB_REPO]': github_repo,
+                '[GITHUB_URL]': f"https://github.com/{github_org}/{github_repo}",
+                '[HERO_IMAGE_URL]': "/img/logo.svg",
+                '[HIGHLIGHT_TITLE]': highlight_title,
+                '[HIGHLIGHT_DESCRIPTION]': highlight_description,
+                '[STAT_1_NUMBER]': stats[0]['number'],
+                '[STAT_1_LABEL]': stats[0]['label'],
+                '[STAT_2_NUMBER]': stats[1]['number'],
+                '[STAT_2_LABEL]': stats[1]['label'],
+                '[STAT_3_NUMBER]': stats[2]['number'],
+                '[STAT_3_LABEL]': stats[2]['label'],
+                '[COMMUNITY_CHAT_URL]': f"https://github.com/{github_org}/{github_repo}/discussions",
             }
             
-            # Extract and add feature placeholders
+            # Extract and add feature placeholders - using safe bracket syntax
             features = self._extract_features(repo_info)
             for i, feature in enumerate(features[:6], 1):  # Limit to 6 features
-                placeholders[f'{{{{FEATURE_{i}_TITLE}}}}'] = feature.get('title', f'Feature {i}')
-                placeholders[f'{{{{FEATURE_{i}_DESCRIPTION}}}}'] = feature.get('description', f'Description for feature {i}')
+                placeholders[f'[FEATURE_{i}_TITLE]'] = feature.get('title', f'Feature {i}')
+                placeholders[f'[FEATURE_{i}_DESCRIPTION]'] = feature.get('description', f'Description for feature {i}')
             
             # Fill remaining feature slots if needed
             for i in range(len(features) + 1, 7):
-                placeholders[f'{{{{FEATURE_{i}_TITLE}}}}'] = f'Feature {i}'
-                placeholders[f'{{{{FEATURE_{i}_DESCRIPTION}}}}'] = f'Description for feature {i}'
+                placeholders[f'[FEATURE_{i}_TITLE]'] = f'Feature {i}'
+                placeholders[f'[FEATURE_{i}_DESCRIPTION]'] = f'Description for feature {i}'
             
             # Replace placeholders in all files
             success = self._replace_placeholders_in_files(placeholders)
@@ -454,13 +454,13 @@ class SlimDocGenerator:
                             if error.error_type in ['unclosed_tag', 'email_as_jsx', 'url_as_jsx', 
                                                    'loose_angle_bracket', 'at_in_tag', 'jekyll_site_syntax',
                                                    'jekyll_page_syntax', 'jekyll_layout_syntax', 
-                                                   'liquid_tag_syntax', 'generic_liquid_syntax']
+                                                   'liquid_tag_syntax', 'generic_liquid_syntax', 'unescaped_variable']
                         ]
                         
                         # Check for remaining placeholders
                         validation_errors = []
-                        if '{{PROJECT_NAME}}' in enhanced_content:
-                            validation_errors.append("Contains unreplaced {{PROJECT_NAME}} placeholder")
+                        if '[PROJECT_NAME]' in enhanced_content:
+                            validation_errors.append("Contains unreplaced [PROJECT_NAME] placeholder")
                         if '[INSERT_CONTENT]' in enhanced_content:
                             validation_errors.append("Contains unreplaced [INSERT_CONTENT] marker")
                         
@@ -501,12 +501,12 @@ class SlimDocGenerator:
                                 if error.error_type in ['unclosed_tag', 'email_as_jsx', 'url_as_jsx', 
                                                        'loose_angle_bracket', 'at_in_tag', 'jekyll_site_syntax',
                                                        'jekyll_page_syntax', 'jekyll_layout_syntax', 
-                                                       'liquid_tag_syntax', 'generic_liquid_syntax']
+                                                       'liquid_tag_syntax', 'generic_liquid_syntax', 'unescaped_variable']
                             ]
                             
                             print(f"   📋 Final validation status for {file_name}:")
-                            if '{{PROJECT_NAME}}' in enhanced_content:
-                                print(f"   ⚠️  Contains unreplaced {{{{PROJECT_NAME}}}} placeholder")
+                            if '[PROJECT_NAME]' in enhanced_content:
+                                print(f"   ⚠️  Contains unreplaced [PROJECT_NAME] placeholder")
                             if '[INSERT_CONTENT]' in enhanced_content:
                                 print(f"   ⚠️  Contains unreplaced [INSERT_CONTENT] marker")
                             if final_critical_errors:
@@ -518,7 +518,7 @@ class SlimDocGenerator:
                         
                         failed_files.append({
                             'path': relative_path,
-                            'has_project_name': '{{PROJECT_NAME}}' in enhanced_content if 'enhanced_content' in locals() else False,
+                            'has_project_name': '[PROJECT_NAME]' in enhanced_content if 'enhanced_content' in locals() else False,
                             'has_insert_content': '[INSERT_CONTENT]' in enhanced_content if 'enhanced_content' in locals() else False,
                             'lint_errors': len(final_critical_errors) if 'final_critical_errors' in locals() else 0
                         })
@@ -543,7 +543,7 @@ class SlimDocGenerator:
                 for failed in failed_files[:5]:  # Show first 5
                     print(f"      - {failed['path']}")
                     if failed.get('has_project_name'):
-                        print(f"        ⚠️  Contains {{{{PROJECT_NAME}}}} placeholder")
+                        print(f"        ⚠️  Contains [PROJECT_NAME] placeholder")
                     if failed.get('has_insert_content'):
                         print(f"        ⚠️  Contains [INSERT_CONTENT] marker")
                     if failed.get('lint_errors'):

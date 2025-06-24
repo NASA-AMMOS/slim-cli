@@ -55,6 +55,8 @@ class MarkdownLinter:
             (r'\{%[^%]*%\}', 'liquid_tag_syntax', 'Liquid tag syntax not valid in MDX'),
             # Generic Jekyll/Liquid patterns not in code blocks
             (r'(?<!`)\{\{(?!\s*PROJECT_NAME)[^}]*\}\}(?!`)', 'generic_liquid_syntax', 'Liquid template syntax not valid in MDX (use relative links)'),
+            # Unescaped JavaScript-like variables outside code blocks - critical for MDX
+            (r'(?<!`)\{[a-zA-Z][a-zA-Z0-9_]*\}(?!`)', 'unescaped_variable', 'JavaScript-like variable outside code block causes MDX runtime error'),
             # Unclosed markdown links
             (r'\[[^\]]+\](?!\()', 'unclosed_link', 'Markdown link missing URL'),
             # Malformed markdown links

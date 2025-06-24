@@ -118,8 +118,8 @@ docs-website:
       7. ALWAYS wrap code in triple backticks with language tags
       8. NEVER use malformed links or incomplete brackets
       9. In code examples, when showing method signatures like getMissionData(String missionId), ensure the content is within a code block
-      10. For path parameters like /missions/{{{{missionId}}}}, either put them in code blocks or escape as `/missions/\\{{{{missionId}}}}\\`
-      11. NEVER leave unescaped JavaScript variable names in regular text - they must be in code blocks or backticks
+      10. For API path parameters, use placeholder format like `/missions/[MISSION_ID]` or put them in code blocks like `/missions/{{missionId}}`
+      11. NEVER leave unescaped JavaScript variable names in regular text - they must be in code blocks or backticks like `{{variableName}}`
       12. NEVER use Jekyll/Liquid template syntax like `{{{{ site.baseurl }}}}`, `{{% %}}`, or any `{{{{ site.* }}}}` patterns
       13. NEVER use Jekyll variables like `{{{{ page.* }}}}`, `{{{{ layout.* }}}}`, or similar template syntax
       14. For internal links, ALWAYS use relative paths like `./page`, `../section/page`, or `[text](./path)` 
@@ -134,6 +134,7 @@ docs-website:
       6. Make content specific to {project_name}, not generic templates
       7. Include relevant examples, commands, and best practices where appropriate
       8. Follow all MDX safety rules above
+      9. When showing variable examples, use [ALL_CAPS] format (e.g., [DATASET_ID], [USER_ID]) or put JavaScript variables in code blocks
       
       LINK GENERATION RULES:
       - ONLY reference files and sections that exist in the provided Site Tree
