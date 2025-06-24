@@ -478,6 +478,9 @@ class SlimDocGenerator:
             # Extract section context (heading before the marker)
             section_context = self._extract_section_context(content, file_name)
             
+            # Generate site tree for link context
+            site_tree = self._generate_site_tree_from_template()
+            
             # Generate content for the INSERT_CONTENT marker
             from jpl.slim.utils.ai_utils import generate_ai_content
             
@@ -486,13 +489,14 @@ class SlimDocGenerator:
                 self.logger.error("Could not find generate_content_only prompt template")
                 return content
             
-            # Format the prompt with context
+            # Format the prompt with context including site tree
             formatted_prompt = prompt_template.format(
                 project_name=project_name,
                 file_name=file_name,
                 section_context=section_context,
                 project_type=project_type,
-                languages=languages
+                languages=languages,
+                site_tree=site_tree
             )
             
             # Generate the content with temperature
@@ -562,6 +566,106 @@ class SlimDocGenerator:
             self.logger.error(f"Error loading prompt template: {str(e)}")
             return ''
     
+    def _generate_site_tree_from_template(self) -> str:
+        """Generate comprehensive site tree from template including sub-sections."""
+        try:
+            template_docs_dir = Path(self.template_repo) / "docs"
+            if not template_docs_dir.exists():
+                self.logger.warning("Template docs directory not found")
+                return "No site tree available"
+            
+            site_tree = []
+            site_tree.append("# Site Tree (Available Pages and Sections)")
+            site_tree.append("")
+            
+            # Walk through all markdown files in the template
+            for root, dirs, files in os.walk(template_docs_dir):
+                # Sort directories and files for consistent output
+                dirs.sort()
+                files.sort()
+                
+                for file in files:
+                    if file.endswith('.md'):
+                        file_path = Path(root) / file
+                        relative_path = file_path.relative_to(template_docs_dir)
+                        
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                            
+                            # Extract YAML front matter
+                            yaml_info = self._extract_yaml_frontmatter(content)
+                            
+                            # Extract section headings
+                            headings = self._extract_markdown_headings(content)
+                            
+                            # Build tree entry
+                            indent = "  " * (len(relative_path.parts) - 1)
+                            file_title = yaml_info.get('title', file.replace('.md', ''))
+                            file_id = yaml_info.get('id', file.replace('.md', ''))
+                            
+                            site_tree.append(f"{indent}- **{relative_path}** ({file_title})")
+                            if file_id != file.replace('.md', ''):
+                                site_tree.append(f"{indent}  - ID: `{file_id}`")
+                            
+                            # Add headings as sub-items
+                            for heading in headings:
+                                level = heading['level']
+                                text = heading['text']
+                                anchor = text.lower().replace(' ', '-').replace('&', 'and')
+                                anchor = ''.join(c for c in anchor if c.isalnum() or c in '-_')
+                                site_tree.append(f"{indent}  {'  ' * (level - 2)}- {text} (`#{anchor}`)")
+                            
+                            site_tree.append("")
+                            
+                        except Exception as e:
+                            self.logger.warning(f"Error processing {file_path}: {str(e)}")
+                            continue
+            
+            return "\n".join(site_tree)
+            
+        except Exception as e:
+            self.logger.error(f"Error generating site tree: {str(e)}")
+            return "Error generating site tree"
+    
+    def _extract_yaml_frontmatter(self, content: str) -> Dict:
+        """Extract YAML front matter from markdown content."""
+        yaml_info = {}
+        if content.startswith('---'):
+            try:
+                end_index = content.find('---', 3)
+                if end_index != -1:
+                    yaml_block = content[3:end_index].strip()
+                    for line in yaml_block.split('\n'):
+                        if ':' in line:
+                            key, value = line.split(':', 1)
+                            key = key.strip()
+                            value = value.strip().strip('"\'')
+                            yaml_info[key] = value
+            except Exception:
+                pass
+        return yaml_info
+    
+    def _extract_markdown_headings(self, content: str) -> List[Dict]:
+        """Extract markdown headings (## and ###) from content."""
+        headings = []
+        lines = content.split('\n')
+        
+        for line in lines:
+            line = line.strip()
+            if line.startswith('## ') and not line.startswith('### '):
+                headings.append({
+                    'level': 2,
+                    'text': line[3:].strip()
+                })
+            elif line.startswith('### '):
+                headings.append({
+                    'level': 3,
+                    'text': line[4:].strip()
+                })
+        
+        return headings
+
     def _generate_fallback_index_content(self, file_path: str, repo_info: Dict) -> str:
         """Generate minimal fallback content for index.md files that fail AI generation."""
         project_name = repo_info.get('project_name', 'this project')

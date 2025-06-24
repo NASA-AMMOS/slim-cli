@@ -123,13 +123,21 @@ docs-website:
       
       CONTENT INSTRUCTIONS:
       1. Generate ONLY the content that should replace the [INSERT_CONTENT] marker
-      2. Do NOT include any file structure, YAML front matter, or section headers
-      3. Do NOT include conversational text, explanations, or meta-commentary
-      4. Do NOT include "Here is the content" or similar phrases
-      5. Generate substantial, professional content appropriate for the section
-      6. Make content specific to the project, not generic templates
-      7. Include relevant examples, commands, and best practices where appropriate
-      8. Follow all MDX safety rules above
+      2. Do NOT include any file structure, YAML front matter, or section headers that already exist in the template
+      3. Do NOT regenerate the page title or main heading - it already exists in the template
+      4. Do NOT include conversational text, explanations, or meta-commentary
+      5. Do NOT include "Here is the content" or similar phrases
+      6. Generate substantial, professional content appropriate for the section
+      7. Make content specific to the project, not generic templates
+      8. Include relevant examples, commands, and best practices where appropriate
+      9. Follow all MDX safety rules above
+      10. Do NOT add section headers (## ###) that duplicate existing ones in the template
+      
+      LINK GENERATION RULES:
+      - ONLY reference files and sections that exist in the provided Site Tree
+      - Use relative links for internal pages (e.g., [Installation](./installation) or [API](../developer/api))
+      - For section links within pages, use anchors (e.g., [Prerequisites](./installation#prerequisites))
+      - Never create links to pages or sections not listed in the Site Tree
       
       Context provided:
       - Project name: {project_name}
@@ -138,12 +146,14 @@ docs-website:
       - Project type: {project_type}
       - Languages: {languages}
       
+      {site_tree}
+      
       SPECIAL INSTRUCTIONS FOR INDEX FILES:
       If this is an index.md file, generate content that:
       - Provides an overview of what's in this documentation section
-      - Lists and briefly describes the subsections/pages available
+      - Lists and briefly describes the subsections/pages available from the Site Tree
       - Helps users navigate to the right content
-      - Includes links to key pages in the section
+      - Includes links to key pages in the section (only those that exist in the Site Tree)
       
       OUTPUT FORMAT: Return only the markdown content that should replace the [INSERT_CONTENT] marker. Start immediately with the content - no preamble, no explanation.
   
