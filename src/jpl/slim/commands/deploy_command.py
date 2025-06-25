@@ -167,7 +167,7 @@ def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message
     """
     # In test mode, simulate success without making actual changes
     if os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't'):
-        logging.info(f"TEST MODE: Simulating deployment of best practice {best_practice_id}")
+        logging.debug(f"TEST MODE: Simulating deployment of best practice {best_practice_id}")
         return True
 
     logging.debug(f"deploy_best_practice called for: {best_practice_id}")
@@ -249,7 +249,7 @@ def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message
                 else:
                     logging.debug(f"Local branch {branch_name} is up-to-date with remote {remote_name}. No pull needed.")
             else:
-                logging.info(f"Branch {branch_name} does not exist on remote {remote_name}. No pull performed.")
+                logging.debug(f"Branch {branch_name} does not exist on remote {remote_name}. No pull performed.")
         except git.exc.GitCommandError as ls_error:
             logging.warning(f"Failed to check if branch exists on remote: {str(ls_error)}")
             logging.warning("Continuing with local changes only.")
@@ -265,7 +265,7 @@ def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message
         try:
             repo.git.push(remote_name, branch_name)
             logging.debug(f"Pushed changes to remote {remote_name} on branch {branch_name}")
-            logging.info(f"Deployed best practice id '{best_practice_id}' to remote '{remote_name}' on branch '{branch_name}'")
+            logging.debug(f"Deployed best practice id '{best_practice_id}' to remote '{remote_name}' on branch '{branch_name}'")
             
             # Print success message to user
             console.print(f"✅ Successfully deployed best practice '{best_practice_id}' to repository")

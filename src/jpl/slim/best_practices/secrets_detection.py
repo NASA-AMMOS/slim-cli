@@ -48,7 +48,7 @@ class SecretsDetection(StandardPractice):
 
         # In test mode, we can use the parent's fast path for tests with local repos
         if SLIM_TEST_MODE and not repo_url:
-            logging.info(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
+            logging.debug(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
             return super().apply(repo_path, use_ai, model, repo_url, target_dir_to_clone_to, branch, no_prompt)
 
         # Setup repository using the parent class method
@@ -66,7 +66,7 @@ class SecretsDetection(StandardPractice):
             applied_file_path = download_and_place_file(git_repo, self.uri, '.github/workflows/detect-secrets.yaml')
 
             if applied_file_path:
-                logging.info(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
+                logging.debug(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
 
                 # Install detect-secrets if not in test mode
                 if not SLIM_TEST_MODE:
@@ -130,7 +130,7 @@ class SecretsDetection(StandardPractice):
             applied_file_path = download_and_place_file(git_repo, self.uri, '.pre-commit-config.yaml')
 
             if applied_file_path:
-                logging.info(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
+                logging.debug(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
 
                 # Initialize pre-commit hooks if not in test mode
                 if not SLIM_TEST_MODE:
@@ -141,7 +141,7 @@ class SecretsDetection(StandardPractice):
                         # Check if .secrets.baseline file exists and run detect-secrets scan if it doesn't
                         baseline_file = os.path.join(git_repo.working_dir, '.secrets.baseline')
                         if not os.path.exists(baseline_file):
-                            logging.info("No existing .secrets.baseline file found. Running detect-secrets scan...")
+                            logging.debug("No existing .secrets.baseline file found. Running detect-secrets scan...")
                             if not self._run_detect_secrets_scan(git_repo):
                                 logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
                                 return None
@@ -211,7 +211,7 @@ class SecretsDetection(StandardPractice):
                 success, error_message = self._handle_commit_and_push(repo, remote, commit_message)
                 
                 if success:
-                    logging.info(f"Successfully deployed best practice {self.best_practice_id}")
+                    logging.debug(f"Successfully deployed best practice {self.best_practice_id}")
                     return True
                 else:
                     # Check if the error is related to pre-commit hooks
@@ -276,7 +276,7 @@ class SecretsDetection(StandardPractice):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE
             )
-            logging.info("Successfully installed pre-commit hooks")
+            logging.debug("Successfully installed pre-commit hooks")
             return True
         except subprocess.CalledProcessError as e:
             logging.error(f"Failed to install pre-commit hooks: {e}")

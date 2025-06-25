@@ -363,7 +363,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url=None, exi
 
     # In test mode, simulate success without making actual API calls
     if SLIM_TEST_MODE:
-        logging.info(f"TEST MODE: Simulating applying best practice {best_practice_id}")
+        logging.debug(f"TEST MODE: Simulating applying best practice {best_practice_id}")
         # Create a mock repo object for testing
         mock_repo = git.Repo.init(target_dir_to_clone_to or tempfile.mkdtemp())
         # Create a mock branch
@@ -371,7 +371,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url=None, exi
         if not hasattr(mock_repo.heads, branch_name):
             mock_repo.create_head(branch_name)
         mock_repo.head.reference = getattr(mock_repo.heads, branch_name)
-        logging.info(f"TEST MODE: Successfully applied best practice {best_practice_id} to mock repository")
+        logging.debug(f"TEST MODE: Successfully applied best practice {best_practice_id} to mock repository")
         return mock_repo
 
     # Fetch best practices information

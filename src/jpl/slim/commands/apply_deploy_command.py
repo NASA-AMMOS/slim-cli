@@ -428,7 +428,7 @@ def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote=
             progress.update(task, description=f"Completed deploying {best_practice_id}")
         
         if result:
-            logging.info(LOG_SUCCESS_APPLY_DEPLOY.format(best_practice_id))
+            logging.debug(LOG_SUCCESS_APPLY_DEPLOY.format(best_practice_id))
             
             # Print success message to user  
             console.print(f"✅ Successfully applied and deployed best practice '{best_practice_id}' to repository")

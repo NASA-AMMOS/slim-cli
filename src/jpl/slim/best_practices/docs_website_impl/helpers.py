@@ -326,7 +326,7 @@ def clean_api_doc(api_doc_path: str) -> None:
         with open(api_doc_path, 'w', encoding='utf-8') as f:
             f.write(content)
             
-        logging.info(f"Cleaned API documentation for MDX compatibility")
+        logging.debug(f"Cleaned API documentation for MDX compatibility")
             
     except Exception as e:
         logging.error(f"Error cleaning API documentation: {str(e)}")

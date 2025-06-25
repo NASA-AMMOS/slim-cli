@@ -53,7 +53,7 @@ class StandardPractice(BestPractice):
 
         # In test mode, simulate success without making actual API calls
         if SLIM_TEST_MODE:
-            logging.info(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
+            logging.debug(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
             # Create a mock repo object for testing
             mock_repo = git.Repo.init(target_dir_to_clone_to or tempfile.mkdtemp())
             # Create a mock branch
@@ -61,7 +61,7 @@ class StandardPractice(BestPractice):
             if not hasattr(mock_repo.heads, branch_name):
                 mock_repo.create_head(branch_name)
             mock_repo.head.reference = getattr(mock_repo.heads, branch_name)
-            logging.info(f"TEST MODE: Successfully applied best practice {self.best_practice_id} to mock repository")
+            logging.debug(f"TEST MODE: Successfully applied best practice {self.best_practice_id} to mock repository")
             return mock_repo, mock_repo.head.reference, mock_repo.working_dir
 
         try:
@@ -170,7 +170,7 @@ class StandardPractice(BestPractice):
 
         # In test mode with direct return path
         if SLIM_TEST_MODE and not repo_url:  # Special fast path for tests with local repos
-            logging.info(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
+            logging.debug(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
             # Create a mock repo object for testing
             mock_repo = git.Repo.init(target_dir_to_clone_to or tempfile.mkdtemp())
             # Create a mock branch
@@ -178,7 +178,7 @@ class StandardPractice(BestPractice):
             if not hasattr(mock_repo.heads, branch_name):
                 mock_repo.create_head(branch_name)
             mock_repo.head.reference = getattr(mock_repo.heads, branch_name)
-            logging.info(f"TEST MODE: Successfully applied best practice {self.best_practice_id} to mock repository")
+            logging.debug(f"TEST MODE: Successfully applied best practice {self.best_practice_id} to mock repository")
             return mock_repo
 
         applied_file_path = None  # default return value is invalid applied best practice
@@ -201,7 +201,7 @@ class StandardPractice(BestPractice):
             self._apply_ai_customization(git_repo, applied_file_path, model)
 
         if applied_file_path:
-            logging.info(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
+            logging.debug(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
             print(f"✅ Successfully applied best practice '{self.best_practice_id}' to repository")
             print(f"   📁 Repository: {git_repo.working_tree_dir}")
             print(f"   🌿 Branch: {git_branch.name}")
@@ -260,7 +260,7 @@ class StandardPractice(BestPractice):
             if ai_content:
                 with open(file_path, 'w') as f:
                     f.write(ai_content)
-                logging.info(f"Applied AI-generated content to {file_path}")
+                logging.debug(f"Applied AI-generated content to {file_path}")
                 return True
             else:
                 logging.warning(f"AI generation failed for best practice {self.best_practice_id}")
@@ -327,7 +327,7 @@ class StandardPractice(BestPractice):
             success, error_message = self._handle_commit_and_push(repo, remote, commit_message)
             
             if success:
-                logging.info(f"Successfully deployed best practice {self.best_practice_id}")
+                logging.debug(f"Successfully deployed best practice {self.best_practice_id}")
                 return True
             else:
                 logging.error(error_message)
