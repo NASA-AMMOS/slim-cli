@@ -178,6 +178,9 @@ def enhance_content(content: str, practice_type: str, section_name: str,
     Returns:
         Enhanced content, or original content if enhancement fails
     """
+    logging.debug(f"Enhancing content for {practice_type}.{section_name} using model {model}")
+    logging.debug(f"Original content length: {len(content)} characters")
+    
     try:
         # Get prompt with hierarchical context
         enhancement_prompt = get_prompt_with_context(practice_type, section_name, additional_context)
@@ -216,12 +219,16 @@ def generate_ai_content(prompt: str, model: str, **kwargs) -> Optional[str]:
     Returns:
         str: Generated content, or None if an error occurs
     """
+    logging.debug(f"Generating AI content with model: {model}")
+    logging.debug(f"Prompt length: {len(prompt)} characters")
+    
     # Validate model format
     if '/' not in model:
         logging.error(f"Invalid model format: {model}. Expected format: 'provider/model'")
         return None
         
     provider, model_name = model.split('/', 1)
+    logging.debug(f"Provider: {provider}, Model: {model_name}")
     
     # Use LiteLLM as the primary interface
     try:

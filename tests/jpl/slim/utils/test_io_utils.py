@@ -70,7 +70,7 @@ class TestIOUtils:
 
     @patch('jpl.slim.utils.io_utils.requests.get')
     def test_fetch_best_practices_invalid_json(self, mock_get):
-        """Test fetching best practices when JSON parsing fails."""
+        """Test fetching best practices when JSON parsing fails - should return empty list."""
         # Arrange
         mock_response = MagicMock()
         mock_response.json.side_effect = json.JSONDecodeError("Invalid JSON", "", 0)
@@ -78,9 +78,11 @@ class TestIOUtils:
         
         url = 'https://example.com/practices.json'
         
-        # Act & Assert
-        with pytest.raises(json.JSONDecodeError):
-            fetch_best_practices(url)
+        # Act
+        result = fetch_best_practices(url)
+        
+        # Assert
+        assert result == []
 
     def test_fetch_best_practices_from_file(self):
         """Test fetching best practices from a file with realistic SLIM registry structure."""

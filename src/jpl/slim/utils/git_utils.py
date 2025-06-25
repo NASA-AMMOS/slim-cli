@@ -41,12 +41,18 @@ def generate_git_branch_name(best_practice_ids):
     Returns:
         str: Branch name, or None if no best practice IDs are provided
     """
+    logging.debug(f"Generating git branch name for best_practice_ids: {best_practice_ids}")
     # Use shared branch name if multiple best_practice_ids else use default branch name
     if len(best_practice_ids) > 1:
-        return GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS
+        branch_name = GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS
+        logging.debug(f"Multiple best practices detected, using shared branch: {branch_name}")
+        return branch_name
     elif len(best_practice_ids) == 1:
-        return best_practice_ids[0]
+        branch_name = best_practice_ids[0]
+        logging.debug(f"Single best practice, using branch: {branch_name}")
+        return branch_name
     else:
+        logging.debug("No best practice IDs provided, returning None")
         return None
 
 
@@ -62,11 +68,13 @@ def clone_repository(repo_url, target_dir=None):
     Returns:
         git.Repo: Cloned repository object, or None if cloning failed
     """
+    logging.debug(f"Cloning repository from URL: {repo_url}")
     try:
         # Parse the repository URL to get the repository name
         parsed_url = urllib.parse.urlparse(repo_url)
         repo_name = os.path.basename(parsed_url.path)
         repo_name = repo_name[:-4] if repo_name.endswith('.git') else repo_name  # Remove '.git' from repo name if present
+        logging.debug(f"Parsed repository name: {repo_name}")
         
         # Determine the target directory
         if target_dir:
@@ -100,6 +108,7 @@ def create_branch(repo, branch_name):
     Returns:
         git.Head: Branch object, or None if creation failed
     """
+    logging.debug(f"Creating branch: {branch_name}")
     try:
         if repo.head.is_valid():
             if branch_name in repo.heads:

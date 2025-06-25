@@ -9,6 +9,7 @@ through LiteLLM integration.
 import logging
 import os
 from typing import Dict, List, Any, Tuple
+import typer
 
 # Constants
 SLIM_REGISTRY_URI = "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/data/slim-registry.json"
@@ -382,7 +383,42 @@ def setup_logging(logging_level):
     Args:
         logging_level: Logging level to use
     """
-    logging.basicConfig(level=logging_level, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(
+        level=logging_level, 
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+        force=True  # Force reconfiguration if already configured
+    )
+
+
+def configure_logging(command_logging: str = None, state=None):
+    """
+    Configure logging based on command-level or global-level logging option.
+    
+    Args:
+        command_logging: Command-specific logging level (takes precedence)
+        state: Global state object with logging_level attribute
+        
+    Returns:
+        The configured logging level
+    """
+    # Command-level logging takes precedence over global
+    if command_logging:
+        log_level = getattr(logging, command_logging.upper(), None)
+        if log_level is None:
+            from rich.console import Console
+            console = Console()
+            console.print("❌ Invalid logging level provided. Choose from DEBUG, INFO, WARNING, ERROR, CRITICAL.", style="red")
+            raise typer.Exit(1)
+        setup_logging(log_level)
+        return log_level
+    
+    # Use global logging level if set
+    if state and hasattr(state, 'logging_level') and state.logging_level:
+        return state.logging_level
+    
+    # Default to INFO
+    return logging.INFO
 
 
 def get_provider_setup_instructions(provider: str) -> str:

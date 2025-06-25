@@ -52,9 +52,17 @@ def models_main(ctx: typer.Context):
 def models_list(
     provider: Optional[str] = typer.Option(None, help="Filter by provider"),
     tier: Optional[Tier] = typer.Option(None, help="Filter by quality tier"),
-    dry_run: bool = typer.Option(False, "--dry-run", "-d", help="Show what would be executed without making changes")
+    dry_run: bool = typer.Option(False, "--dry-run", "-d", help="Show what would be executed without making changes"),
+    logging_level: str = typer.Option(None, "--logging", "-l", help="Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL")
 ):
     """List all available AI models."""
+    # Configure logging
+    from jpl.slim.commands.common import configure_logging
+    configure_logging(logging_level, state)
+    
+    logging.debug("Starting models list command")
+    logging.debug(f"Filters: provider={provider}, tier={tier}")
+    
     if state.dry_run or dry_run:
         if handle_dry_run_for_command("models list", provider=provider, tier=tier, dry_run=True):
             return
@@ -68,14 +76,19 @@ def models_list(
         task = progress.add_task("Loading model registry...", total=None)
         
         progress.update(task, description="Fetching available models...")
+        logging.debug("Fetching AI model pairs from registry")
         models = get_ai_model_pairs()
+        logging.debug(f"Found {len(models)} total models")
         
         if provider:
             progress.update(task, description=f"Filtering by provider: {provider}...")
+            logging.debug(f"Applying provider filter: {provider}")
             models = [m for m in models if m.startswith(f"{provider}/")]
+            logging.debug(f"After provider filter: {len(models)} models")
         
         if tier:
             progress.update(task, description=f"Filtering by tier: {tier}...")
+            logging.debug(f"Tier filtering requested for: {tier}")
             # Filter by tier - this would need to be implemented
             # For now, we'll show all models with tier info
             pass
@@ -90,9 +103,16 @@ def models_list(
 def models_recommend(
     task: Task = typer.Option(Task.documentation, "--task", help="Task type"),
     tier: Tier = typer.Option(Tier.balanced, "--tier", help="Quality/cost tier"),
-    dry_run: bool = typer.Option(False, "--dry-run", "-d", help="Show what would be executed without making changes")
+    dry_run: bool = typer.Option(False, "--dry-run", "-d", help="Show what would be executed without making changes"),
+    logging_level: str = typer.Option(None, "--logging", "-l", help="Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL")
 ):
     """Get AI model recommendations for specific tasks."""
+    # Configure logging
+    from jpl.slim.commands.common import configure_logging
+    configure_logging(logging_level, state)
+    
+    logging.debug(f"Getting recommendations for task={task.value}, tier={tier.value}")
+    
     if state.dry_run or dry_run:
         if handle_dry_run_for_command("models recommend", task=task.value, tier=tier.value, dry_run=True):
             return

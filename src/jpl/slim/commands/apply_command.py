@@ -99,6 +99,11 @@ def apply(
         False,
         "--dry-run", "-d",
         help="Show what would be executed without making changes"
+    ),
+    logging_level: str = typer.Option(
+        None,
+        "--logging", "-l",
+        help="Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL"
     )
 ):
     """
@@ -107,6 +112,14 @@ def apply(
     This command applies one or more best practices to specified repositories,
     optionally using AI to customize the content.
     """
+    # Configure logging
+    from jpl.slim.commands.common import configure_logging
+    configure_logging(logging_level, state)
+    
+    logging.debug("Starting apply command execution")
+    logging.debug(f"Best practice IDs: {best_practice_ids}")
+    logging.debug(f"Use AI: {use_ai}")
+    
     # Handle dry-run mode (check both global state and local parameter)
     if state.dry_run or dry_run:
         if handle_dry_run_for_command(
@@ -173,8 +186,12 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
         no_prompt: Skip user confirmation prompts for dependencies installation
         **kwargs: Additional arguments (output_dir, template_only, revise_site, etc.)
     """
+    logging.debug(f"apply_best_practices called with: best_practice_ids={best_practice_ids}, use_ai={use_ai_flag}, model={model}")
+    logging.debug(f"Repository options: repo_urls={repo_urls}, existing_repo_dir={existing_repo_dir}")
+    
     # Handle special case for docs-website best practice
     if len(best_practice_ids) == 1 and best_practice_ids[0] == "docs-website":
+        logging.debug("Detected docs-website best practice - using special handling")
         result = apply_best_practice(
             best_practice_id=best_practice_ids[0],
             use_ai_flag=use_ai_flag,
@@ -358,19 +375,25 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url=None, exi
         return mock_repo
 
     # Fetch best practices information
+    logging.debug("Fetching latest best practices registry")
     practices = fetch_best_practices(SLIM_REGISTRY_URI)
     if not practices:
+        logging.error("No practices found or failed to fetch practices")
         console.print("[red]No practices found or failed to fetch practices.[/red]")
         return None
+    logging.debug(f"Registry fetched successfully with {len(practices)} practices")
 
     # Create a best practices manager to handle the practice
+    logging.debug(f"Creating BestPracticeManager")
     manager = BestPracticeManager(practices)
 
     # Get the best practice
+    logging.debug(f"Looking up best practice: {best_practice_id}")
     practice = manager.get_best_practice(best_practice_id)
     if not practice:
         logging.warning(f"Best practice with ID {best_practice_id} is not supported or not found.")
         return None
+    logging.debug(f"Found best practice: {practice.__class__.__name__}")
 
     # Determine the repository path
     repo_path = existing_repo_dir

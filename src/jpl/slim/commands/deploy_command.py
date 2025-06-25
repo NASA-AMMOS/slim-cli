@@ -54,6 +54,11 @@ def deploy(
         False,
         "--dry-run", "-d",
         help="Show what would be executed without making changes"
+    ),
+    logging_level: str = typer.Option(
+        None,
+        "--logging", "-l",
+        help="Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL"
     )
 ):
     """
@@ -61,6 +66,15 @@ def deploy(
     
     This command adds, commits, and pushes best practice files to a git remote.
     """
+    # Configure logging
+    from jpl.slim.commands.common import configure_logging
+    configure_logging(logging_level, state)
+    
+    logging.debug("Starting deploy command execution")
+    logging.debug(f"Best practice IDs: {best_practice_ids}")
+    logging.debug(f"Repository directory: {repo_dir}")
+    logging.debug(f"Remote: {remote or GIT_DEFAULT_REMOTE_NAME}")
+    
     # Handle dry-run mode
     if state.dry_run or dry_run:
         if handle_dry_run_for_command(
@@ -105,8 +119,12 @@ def deploy_best_practices(best_practice_ids, repo_dir, remote=None, commit_messa
         remote: Remote repository to push to
         commit_message: Commit message to use
     """
+    logging.debug(f"deploy_best_practices called with: best_practice_ids={best_practice_ids}, repo_dir={repo_dir}")
+    logging.debug(f"Remote: {remote}, commit_message: {commit_message}")
+    
     # Use shared branch if multiple best_practice_ids else use default branch name
     branch_name = generate_git_branch_name(best_practice_ids)
+    logging.debug(f"Using branch name: {branch_name}")
 
     success = True
     for best_practice_id in best_practice_ids:
@@ -152,11 +170,15 @@ def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message
         logging.info(f"TEST MODE: Simulating deployment of best practice {best_practice_id}")
         return True
 
+    logging.debug(f"deploy_best_practice called for: {best_practice_id}")
+    logging.debug(f"Repository: {repo_dir}, branch: {branch}, remote: {remote}")
+    
     branch_name = branch if branch else best_practice_id
-    logging.debug(f"Deploying branch: {branch_name}")
+    logging.debug(f"Using branch name: {branch_name}")
 
     try:
         # Assuming repo_dir points to a local git repository directory
+        logging.debug(f"Opening git repository at: {repo_dir}")
         repo = git.Repo(repo_dir)
 
         # Checkout the branch or create it if it doesn't exist

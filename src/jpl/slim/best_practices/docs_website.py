@@ -60,6 +60,8 @@ class DocsWebsiteBestPractice(StandardPractice):
         Returns:
             str: Repository path if successful, None otherwise
         """
+        logging.debug(f"DocsWebsiteBestPractice.apply called with repo_path={repo_path}, use_ai={use_ai}, model={model}")
+        logging.debug(f"Additional kwargs: {kwargs}")
         logging.debug(f"Applying best practice {self.best_practice_id}")
         
         # Early validation - docs-website requires AI

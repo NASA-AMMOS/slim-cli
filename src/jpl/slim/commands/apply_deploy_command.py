@@ -113,6 +113,11 @@ def apply_deploy(
         False,
         "--dry-run", "-d",
         help="Show what would be executed without making changes"
+    ),
+    logging_level: str = typer.Option(
+        None,
+        "--logging", "-l",
+        help="Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL"
     )
 ):
     """
@@ -121,6 +126,14 @@ def apply_deploy(
     This command combines the functionality of 'apply' and 'deploy',
     applying best practices and then pushing them to a git remote.
     """
+    # Configure logging
+    from jpl.slim.commands.common import configure_logging
+    configure_logging(logging_level, state)
+    
+    logging.debug("Starting apply-deploy command execution")
+    logging.debug(f"Best practice IDs: {best_practice_ids}")
+    logging.debug(f"Use AI: {use_ai}")
+    
     # Handle dry-run mode
     if state.dry_run or dry_run:
         if handle_dry_run_for_command(

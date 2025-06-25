@@ -150,6 +150,7 @@ def scan_repository(repo_path: Union[str, Path],
         Dictionary containing repository analysis results
     """
     repo_path = Path(repo_path)
+    logging.debug(f"Scanning repository: {repo_path}")
     
     if not repo_path.exists():
         raise FileNotFoundError(f"Repository path does not exist: {repo_path}")
@@ -158,6 +159,7 @@ def scan_repository(repo_path: Union[str, Path],
     exclude_set = EXCLUDE_DIRECTORIES.copy()
     if exclude_dirs:
         exclude_set.update(exclude_dirs)
+    logging.debug(f"Excluding directories: {exclude_set}")
     
     repo_info = {
         "project_name": repo_path.name,

@@ -77,11 +77,21 @@ def fetch_best_practices(url):
     Returns:
         list: List of best practices
     """
-    # Normal implementation
-    response = requests.get(url)
-    response.raise_for_status()
-
-    return response.json()
+    logging.debug(f"Fetching best practices from URL: {url}")
+    try:
+        response = requests.get(url)
+        logging.debug(f"HTTP response status: {response.status_code}")
+        response.raise_for_status()
+        
+        data = response.json()
+        logging.debug(f"Successfully parsed JSON data with {len(data)} practices")
+        return data
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Failed to fetch best practices: {e}")
+        return []
+    except json.JSONDecodeError as e:
+        logging.error(f"Failed to parse JSON response: {e}")
+        return []
 
 
 def fetch_best_practices_from_file(file_path):
@@ -109,29 +119,38 @@ def create_slim_registry_dictionary(practices):
     Returns:
         dict: Dictionary of best practices keyed by alias
     """
+    logging.debug(f"Creating SLIM registry dictionary from {len(practices)} practices")
     asset_mapping = {}
     
     for i, practice in enumerate(practices, start=1):
         title = practice.get('title', 'N/A')
         description = practice.get('description', 'N/A')
+        logging.debug(f"Processing practice {i}: {title}")
         
         if 'assets' in practice and practice['assets']:
-            for j, asset in enumerate(practice['assets'], start=1):
+            assets = practice['assets']
+            logging.debug(f"Practice has {len(assets)} assets")
+            for j, asset in enumerate(assets, start=1):
                 # Use alias as the key instead of SLIM-X.X format
                 alias = asset.get('alias')
                 if not alias:
                     # Skip assets without aliases for now
+                    logging.debug(f"Skipping asset {j} without alias in practice: {title}")
                     continue
                 
                 asset_name = asset.get('name', 'N/A')
                 asset_uri = asset.get('uri', '')
+                logging.debug(f"Adding asset: {alias} - {asset_name}")
                 asset_mapping[alias] = {
                     'title': title, 
                     'description': description, 
                     'asset_name': asset_name,
                     'asset_uri': asset_uri
                 }
-        # Skip practices without assets - they don't have implementations yet
+        else:
+            logging.debug(f"Skipping practice without assets: {title}")
+    
+    logging.debug(f"Created registry dictionary with {len(asset_mapping)} mapped assets")
     return asset_mapping
 
 
