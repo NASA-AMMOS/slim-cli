@@ -255,6 +255,44 @@ def get_ai_model_pairs(supported_models: Dict[str, Any] = None) -> List[str]:
     return model_pairs
 
 
+def get_dynamic_models_by_provider() -> Dict[str, List[str]]:
+    """
+    Get available models by provider from LiteLLM's dynamic registry.
+    
+    Returns:
+        Dictionary of models by provider, or empty dict if LiteLLM unavailable
+    """
+    try:
+        import litellm
+        return dict(litellm.models_by_provider)
+    except ImportError:
+        logging.error("LiteLLM not available for dynamic model discovery")
+        return {}
+    except Exception as e:
+        logging.error(f"Failed to fetch models from LiteLLM: {str(e)}")
+        return {}
+
+
+def get_dynamic_ai_model_pairs() -> List[str]:
+    """
+    Get a list of AI model pairs in format "provider/model" from LiteLLM's dynamic registry.
+    
+    Returns:
+        List of model pairs, or empty list if unavailable
+    """
+    models_by_provider = get_dynamic_models_by_provider()
+    
+    if not models_by_provider:
+        return []
+    
+    model_pairs = []
+    for provider, models in models_by_provider.items():
+        for model in models:
+            model_pairs.append(f"{provider}/{model}")
+    
+    return model_pairs
+
+
 def get_recommended_models(task: str = "documentation", tier: str = "balanced") -> List[str]:
     """
     Get recommended models for a specific task and quality tier.
@@ -268,6 +306,68 @@ def get_recommended_models(task: str = "documentation", tier: str = "balanced") 
     """
     recommendations = MODEL_RECOMMENDATIONS.get(task, MODEL_RECOMMENDATIONS["documentation"])
     return recommendations.get(tier, recommendations["balanced"])
+
+
+def get_dynamic_recommended_models() -> Dict[str, List[str]]:
+    """
+    Get dynamic model recommendations from LiteLLM's current model registry.
+    
+    Returns:
+        Dictionary with 'premium' and 'local' model categories
+    """
+    models_by_provider = get_dynamic_models_by_provider()
+    
+    if not models_by_provider:
+        # Fallback to basic recommendations if LiteLLM unavailable
+        return {
+            "premium": [
+                "anthropic/claude-3-5-sonnet-20241022",
+                "openai/gpt-4o", 
+                "openai/gpt-4o-mini"
+            ],
+            "local": [
+                "ollama/llama3.1:8b",
+                "ollama/gemma3:12b"
+            ]
+        }
+    
+    recommendations = {"premium": [], "local": []}
+    
+    # Premium cloud models
+    # Claude models (prioritize latest versions)
+    claude_models = models_by_provider.get("anthropic", [])
+    claude_filtered = []
+    for model in claude_models:
+        if "claude-3" in model or "claude-4" in model:
+            if "sonnet" in model or "haiku" in model:
+                claude_filtered.append(f"anthropic/{model}")
+    
+    # Prioritize latest Claude models
+    priority_claude = [m for m in claude_filtered if "20241022" in m or "latest" in m or "claude-4" in m]
+    other_claude = [m for m in claude_filtered if m not in priority_claude]
+    recommendations["premium"].extend(priority_claude[:3])  # Top 3 Claude models
+    
+    # OpenAI GPT-4 models (prioritize common ones)
+    openai_models = models_by_provider.get("openai", [])
+    gpt4_filtered = []
+    for model in openai_models:
+        if "gpt-4" in model and "preview" not in model.lower() and "search" not in model.lower():
+            gpt4_filtered.append(f"openai/{model}")
+    
+    # Prioritize key GPT-4 models
+    priority_gpt4 = [m for m in gpt4_filtered if any(x in m for x in ["gpt-4o", "gpt-4-turbo"])]
+    recommendations["premium"].extend(priority_gpt4[:3])  # Top 3 GPT-4 models
+    
+    # Local models (static list as these are ollama-specific)
+    recommendations["local"] = [
+        "ollama/llama3.1:8b",
+        "ollama/llama3.1:70b", 
+        "ollama/gemma3:12b",
+        "ollama/gemma3:27b",
+        "ollama/llama4:16x17b"
+    ]
+    
+    return recommendations
 
 
 def validate_model_format(model: str) -> Tuple[bool, str, str]:

@@ -17,7 +17,7 @@ from jpl.slim.commands.common import (
     SUPPORTED_MODELS, MODEL_RECOMMENDATIONS,
     get_recommended_models, check_model_availability,
     get_provider_setup_instructions, print_model_recommendations,
-    get_ai_model_pairs
+    get_ai_model_pairs, get_dynamic_ai_model_pairs, get_dynamic_recommended_models
 )
 from jpl.slim.app import app, state, handle_dry_run_for_command
 
@@ -75,9 +75,17 @@ def models_list(
     ) as progress:
         task = progress.add_task("Loading model registry...", total=None)
         
-        progress.update(task, description="Fetching available models...")
-        logging.debug("Fetching AI model pairs from registry")
-        models = get_ai_model_pairs()
+        progress.update(task, description="Fetching available models from LiteLLM...")
+        logging.debug("Fetching AI model pairs from LiteLLM registry")
+        models = get_dynamic_ai_model_pairs()
+        
+        if not models:
+            logging.error("Unable to fetch models from LiteLLM")
+            progress.update(task, description="Failed to fetch models")
+            console.print("[red]Unable to fetch models due to network issues.[/red]")
+            console.print("[yellow]For local models, try: `ollama list`[/yellow]")
+            raise typer.Exit(1)
+            
         logging.debug(f"Found {len(models)} total models")
         
         if provider:
@@ -123,16 +131,28 @@ def models_recommend(
         console=console,
         transient=True
     ) as progress:
-        task_id = progress.add_task(f"Analyzing recommendations for {task.value}...", total=None)
+        task_id = progress.add_task("Fetching current model recommendations...", total=None)
         
-        progress.update(task_id, description=f"Finding {tier.value} models for {task.value}...")
-        recommended = get_recommended_models(task.value, tier.value)
+        progress.update(task_id, description="Getting dynamic model recommendations...")
+        recommendations = get_dynamic_recommended_models()
         
-        progress.update(task_id, description=f"Found {len(recommended)} recommendations")
+        progress.update(task_id, description="Building recommendation list...")
     
-    console.print(f"\n[bold]Recommended {tier.value} models for {task.value}:[/bold]")
-    for model in recommended:
+    console.print("\n[bold]🏆 Premium Cloud Models:[/bold]")
+    for model in recommendations["premium"][:6]:  # Limit to top 6
         console.print(f"  • [cyan]{model}[/cyan]")
+    
+    console.print("\n[bold]🦙 Local Models:[/bold]")
+    for model in recommendations["local"]:
+        console.print(f"  • [green]{model}[/green]")
+    
+    console.print("\n[yellow]💡 Tip: For laptops, use models with 6B - 12B parameters for a balance of speed and performance[/yellow]")
+    
+    console.print("\n[bold]💡 Usage Examples:[/bold]")
+    console.print("  [dim]# Premium documentation generation[/dim]")
+    console.print(f"  slim apply --best-practices docs-website --use-ai {recommendations['premium'][0] if recommendations['premium'] else 'anthropic/claude-3-5-sonnet-20241022'}")
+    console.print("\n  [dim]# Fast local development[/dim]")
+    console.print(f"  slim apply --best-practices docs-website --use-ai {recommendations['local'][0] if recommendations['local'] else 'ollama/llama3.1:8b'}")
 
 @models_app.command(name="setup")
 def models_setup(
