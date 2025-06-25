@@ -25,7 +25,6 @@ from jpl.slim.commands.deploy_command import deploy_best_practice
 from jpl.slim.commands.common import (
     GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS,
     GIT_DEFAULT_COMMIT_MESSAGE,
-    SUPPORTED_MODELS,
     get_ai_model_pairs
 )
 from jpl.slim.app import app, state, handle_dry_run_for_command
@@ -77,7 +76,7 @@ def apply_deploy(
     use_ai: Optional[str] = typer.Option(
         None,
         "--use-ai",
-        help=f"Automatically customize the application of the best practice with the specified AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}"
+        help="Automatically customize the application of the best practice with the specified AI model. Use 'slim models list' to see available models."
     ),
     remote: Optional[str] = typer.Option(
         None,

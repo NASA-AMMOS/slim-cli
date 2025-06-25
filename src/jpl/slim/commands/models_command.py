@@ -14,9 +14,8 @@ from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from jpl.slim.commands.common import (
-    SUPPORTED_MODELS, MODEL_RECOMMENDATIONS,
-    get_recommended_models, check_model_availability,
-    get_provider_setup_instructions, print_model_recommendations,
+    check_model_availability,
+    get_provider_setup_instructions,
     get_ai_model_pairs, get_dynamic_ai_model_pairs, get_dynamic_recommended_models
 )
 from jpl.slim.app import app, state, handle_dry_run_for_command
@@ -46,7 +45,7 @@ def models_main(ctx: typer.Context):
     """
     if ctx.invoked_subcommand is None:
         # No subcommand provided, show recommendations
-        print_model_recommendations()
+        models_recommend(task=Task.documentation, tier=Tier.balanced, dry_run=False, logging_level=None)
 
 @models_app.command(name="list")
 def models_list(

@@ -30,8 +30,7 @@ from jpl.slim.manager.best_practices_manager import BestPracticeManager
 from jpl.slim.commands.common import (
     SLIM_REGISTRY_URI,
     GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS,
-    SUPPORTED_MODELS,
-    get_ai_model_pairs
+    get_ai_model_pairs, get_dynamic_ai_model_pairs
 )
 from jpl.slim.app import app, state, handle_dry_run_for_command
 
@@ -73,7 +72,7 @@ def apply(
     use_ai: Optional[str] = typer.Option(
         None,
         "--use-ai",
-        help=f"Automatically customize the application of the best practice with an AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}"
+        help="Automatically customize the application of the best practice with an AI model. Use 'slim models list' to see available models."
     ),
     no_prompt: bool = typer.Option(
         False,

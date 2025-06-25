@@ -13,7 +13,7 @@ import typer
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
-from jpl.slim.commands.common import SUPPORTED_MODELS, get_ai_model_pairs
+from jpl.slim.commands.common import get_ai_model_pairs
 from jpl.slim.app import app, state, handle_dry_run_for_command
 
 console = Console()
@@ -36,7 +36,7 @@ def generate_tests(
     use_ai: Optional[str] = typer.Option(
         None,
         "--use-ai",
-        help=f"Generate tests using AI model. Supported models: {get_ai_model_pairs(SUPPORTED_MODELS)}"
+        help="Generate tests using AI model. Use 'slim models list' to see available models."
     ),
     dry_run: bool = typer.Option(
         False,
