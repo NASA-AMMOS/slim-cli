@@ -175,6 +175,7 @@ class SlimDocGenerator:
             project_type = self._determine_project_type(repo_info)
             highlight_title, highlight_description, stats = self._generate_highlight_content(project_name, project_type, repo_info)
             
+            
             # Define placeholder mappings (simplified set) - using safe bracket syntax
             placeholders = {
                 '[PROJECT_NAME]': project_name,
@@ -198,9 +199,6 @@ class SlimDocGenerator:
                 '[SLACK_URL]': "https://slack.example.com",
                 '[TWITTER_URL]': "https://twitter.com/example",
                 '[MAILING_LIST_URL]': "mailto:subscribe@example.com",
-                # Contributor placeholders (will be filled with git data if available)
-                '[TOP_CONTRIBUTORS]': '<div class="contributor-placeholder">Top contributors will be listed here</div>',
-                '[ALL_CONTRIBUTORS]': '<div class="contributor-placeholder">All contributors will be listed here</div>',
             }
             
             # Extract and add feature placeholders - using safe bracket syntax
