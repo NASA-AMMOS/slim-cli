@@ -172,7 +172,7 @@ def print_startup_banner():
 # Import app and state from the separate module to avoid circular imports
 from jpl.slim.app import app, state
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main_callback(
     ctx: typer.Context,
     version: bool = typer.Option(False, "--version", "-v", help="Show version and exit"),
@@ -187,6 +187,12 @@ def main_callback(
     if version:
         console = Console()
         console.print(f"SLIM CLI v{VERSION}")
+        raise typer.Exit()
+    
+    # If no command is provided and version wasn't requested, show help
+    if ctx.invoked_subcommand is None:
+        console = Console()
+        console.print(ctx.get_help())
         raise typer.Exit()
     
     # Convert string to logging level
