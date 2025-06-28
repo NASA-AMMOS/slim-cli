@@ -8,7 +8,7 @@
 # repository information is included in AI prompts. Child settings override parent settings.
 
 # Global context for all SLIM practices (optional)
-context: "You are a software best practice assistant helping to improve software projects."
+context: "Do not respond with any AI conversational text, only fulfill the prompt request directly and don't talk to me."
 
 # Global repository context (applies to all unless overridden)
 repository_context:
@@ -19,8 +19,6 @@ repository_context:
 
 # Standard practices using template-based approach
 standard_practices:
-  context: "You are applying best practices to improve software governance and documentation."
-
   # Governance practices
   governance:
     prompt: "Fill out all blanks in the template below that start with INSERT. Use the provided context information to fill the blanks. Return the template with filled out values."
@@ -28,11 +26,12 @@ standard_practices:
   # Documentation practices
   readme:
     context: "You are a technical documentation specialist helping to create a README file. Format using markdown and ensure novice and expert users can read the documentation."
-    prompt: "Fill out ONLY the placeholders that are enclosed in square brackets and contain the word INSERT (e.g., [INSERT YOUR REPO / PROJ NAME HERE]). Use the provided repository context to determine appropriate values. Do NOT modify any other parts of the template, including badges, links, or formatting. Return the complete template with only the INSERT placeholders replaced."
+    prompt: "Fill out ONLY the placeholders that are enclosed in square brackets and contain the word INSERT (e.g., [INSERT YOUR REPO / PROJ NAME HERE]). Use the provided repository context to determine appropriate values. Do NOT modify any other parts of the template, including badges, links, or formatting. Return the complete template with only the INSERT placeholders replaced. Do NOT extrapolate too much meaning from the SLIM badge - ignore that badge in your context."
     repository_context:
       categories: ["documentation", "structure"]
       max_characters: 8000
-      include_patterns: ["README*", "*.md", "package.json", "setup.py", "pyproject.toml"]
+      include_patterns:
+        ["README*", "*.md", "package.json", "setup.py", "pyproject.toml"]
 
   # Testing documentation
   testing-plan:
@@ -103,11 +102,11 @@ docgen:
 # Documentation website generation practices
 docs-website:
   context: "You are creating comprehensive documentation for a software project. Generate professional, detailed content that accurately reflects the project's capabilities and structure."
-  
+
   generate_content_only:
     prompt: |
       You are enhancing a documentation template by replacing [INSERT_CONTENT] markers with appropriate content. You can see the full template structure below, including all existing headings and sections.
-      
+
       CRITICAL MDX SAFETY RULES - MUST FOLLOW:
       1. NEVER use angle brackets < > except in fenced code blocks
       2. NEVER write email addresses in angle brackets (use `email@domain.com` or [email](mailto:email))
@@ -124,7 +123,7 @@ docs-website:
       13. NEVER use Jekyll variables like `{{{{ page.* }}}}`, `{{{{ layout.* }}}}`, or similar template syntax
       14. For internal links, ALWAYS use relative paths like `./page`, `../section/page`, or `[text](./path)` 
       15. NEVER use template variables in URLs - use direct relative paths instead
-      
+
       TEMPLATE ENHANCEMENT INSTRUCTIONS:
       1. You can see the COMPLETE template structure below - DO NOT duplicate any existing headings (#, ##, ###)
       2. ONLY replace [INSERT_CONTENT] markers with appropriate content
@@ -135,34 +134,34 @@ docs-website:
       7. Include relevant examples, commands, and best practices where appropriate
       8. Follow all MDX safety rules above
       9. When showing variable examples, use [ALL_CAPS] format (e.g., [DATASET_ID], [USER_ID]) or put JavaScript variables in code blocks
-      
+
       LINK GENERATION RULES:
       - ONLY reference files and sections that exist in the provided Site Tree
       - Use relative links for internal pages (e.g., [Installation](./installation) or [API](../developer/api))
       - For section links within pages, use anchors (e.g., [Prerequisites](./installation#prerequisites))
       - Never create links to pages or sections not listed in the Site Tree
-      
+
       Context provided:
       - Project name: {project_name}
       - File name: {file_name}
       - Project type: {project_type}
       - Languages: {languages}
-      
+
       AVAILABLE SITE NAVIGATION:
       {site_tree}
-      
+
       SPECIAL INSTRUCTIONS FOR INDEX FILES:
       If this is an index.md file, generate content that:
       - Provides an overview of what's in this documentation section
       - Lists and briefly describes the subsections/pages available from the Site Tree
       - Helps users navigate to the right content
       - Includes links to key pages in the section (only those that exist in the Site Tree)
-      
+
       TEMPLATE STRUCTURE TO ENHANCE:
       {template_structure}
-      
+
       OUTPUT FORMAT: Return the complete enhanced template with all [INSERT_CONTENT] markers replaced. Do NOT include YAML front matter. Start immediately with the enhanced template - no preamble, no explanation.
-  
+
   enhance_section:
     context: "You are enhancing a specific section of documentation. Focus on providing detailed, useful content that matches the section's purpose."
     prompt: |
@@ -195,14 +194,14 @@ docs-website:
       6. DO NOT include conversational text like "Here is the enhanced section"
       7. Focus on providing practical, useful information that matches the section's purpose
       8. Include relevant examples, commands, and best practices where appropriate
-      
+
       For troubleshooting sections: Provide specific, actionable solutions
       For tutorial sections: Include step-by-step instructions with examples
       For API sections: Include detailed parameter descriptions and usage examples
       For installation sections: Provide clear prerequisites and platform-specific instructions
-      
+
       OUTPUT FORMAT: Return only the enhanced section content, ready to be inserted into the documentation.
-  
+
   fill_empty_section:
     context: "You are filling in an empty section of documentation with appropriate content."
     prompt: |
@@ -231,23 +230,23 @@ docs-website:
       4. Includes relevant examples where appropriate
       5. Follows documentation best practices
       6. Follows all MDX safety rules above
-      
+
       Return ONLY the section content (no header, no conversational text).
       Make the content substantial and useful for users of {project_name}.
-  
+
   fix_markdown_lint_errors:
     context: "You are fixing markdown syntax errors to ensure MDX/Docusaurus compilation success."
     prompt: |
       Fix the following markdown syntax errors in this documentation file. The markdown will be compiled by MDX/Docusaurus.
-      
+
       File: {file_name}
-      
+
       Linter Errors Found:
       {lint_errors}
-      
+
       Current Content:
       {content}
-      
+
       CRITICAL INSTRUCTIONS:
       1. Fix ALL linting errors while preserving the intended content and meaning
       2. Ensure all HTML/JSX tags are properly closed or self-closing
@@ -258,13 +257,13 @@ docs-website:
       4. Fix any malformed markdown links - use [text](url) format
       5. Ensure code blocks are properly fenced with triple backticks
       6. Return ONLY the corrected content - no explanations or conversation
-      
+
       Common MDX-specific fixes:
       - Replace <tag> with `<tag>` if it's meant to be shown as text
       - Ensure @ symbols in text are not at the start of what looks like a tag
       - Escape curly braces {{{{ }}}} if they're meant to be displayed
       - Convert loose URLs to proper markdown links
-      
+
       OUTPUT: Return the complete corrected markdown content.
 
 # Security practices

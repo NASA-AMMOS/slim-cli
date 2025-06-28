@@ -258,6 +258,7 @@ class StandardPractice(BestPractice):
                 ai_content = generate_ai_content(full_prompt, model)
             
             if ai_content:
+                logging.debug(f"AI-generated content for {file_path}:\n{ai_content}")
                 with open(file_path, 'w') as f:
                     f.write(ai_content)
                 logging.debug(f"Applied AI-generated content to {file_path}")

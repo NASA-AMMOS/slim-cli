@@ -181,6 +181,7 @@ Return ONLY the complete, updated index.js code.
             updated_content = self.ai_enhancer.enhance(prompt, "index_js_update")
             
             if updated_content:
+                self.logger.debug(f"AI-generated content for index.js:\n{updated_content}")
                 # Remove any markdown code blocks
                 updated_content = self._extract_code_block(updated_content, "javascript")
                 
@@ -257,6 +258,7 @@ Return ONLY the updated component code.
             updated_content = self.ai_enhancer.enhance(prompt, "homepage_features_update")
             
             if updated_content:
+                self.logger.debug(f"AI-generated content for HomepageFeatures:\n{updated_content}")
                 # Remove any markdown code blocks
                 updated_content = self._extract_code_block(updated_content, "javascript")
                 
@@ -326,6 +328,7 @@ Return ONLY the updated configuration code.
             updated_config = self.ai_enhancer.enhance(prompt, "docusaurus_config_update")
             
             if updated_config:
+                self.logger.debug(f"AI-generated content for docusaurus.config.js:\n{updated_config}")
                 # Remove any markdown code blocks
                 updated_config = self._extract_code_block(updated_config, "javascript")
                 

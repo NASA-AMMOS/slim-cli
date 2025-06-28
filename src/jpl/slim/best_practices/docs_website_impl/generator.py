@@ -466,6 +466,7 @@ class SlimDocGenerator:
                         
                         if not critical_errors and not validation_errors:
                             # Success! Write the file
+                            self.logger.debug(f"AI-enhanced content for {file_name}:\n{enhanced_content}")
                             with open(file_path, 'w', encoding='utf-8') as f:
                                 f.write(enhanced_content)
                             self.logger.debug(f"Successfully enhanced {file_name} on attempt {attempt}")
@@ -608,6 +609,7 @@ class SlimDocGenerator:
             generated_content = generate_ai_content(formatted_prompt, self.use_ai, temperature=temperature)
             
             if generated_content:
+                self.logger.debug(f"AI-generated raw content for {file_name}:\n{generated_content}")
                 # Clean up the generated content and recombine with YAML front matter
                 enhanced_markdown = generated_content.strip()
                 
