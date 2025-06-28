@@ -17,11 +17,18 @@ import tempfile
 import git
 import logging
 from jpl.slim.app import app
-from tests.conftest import BestPracticeTestEnvironment, create_temp_git_repo, get_test_ai_model
+from tests.conftest import (
+    BestPracticeTestEnvironment, 
+    create_temp_git_repo, 
+    get_test_ai_model,
+    verify_repository_setup,
+    verify_branch_creation
+)
 
 
 @pytest.mark.slow
 @pytest.mark.integration
+@pytest.mark.ai
 def test_readme_best_practice_for_correct_ai_output(caplog):
     """
         Test README best practice with AI generated content.
@@ -50,17 +57,14 @@ def test_readme_best_practice_for_correct_ai_output(caplog):
         assert "completed template" not in caplog.text, "AI-generated content has chat text"
         
         # Verify repository setup
-        repo_dirs = [d for d in os.listdir(env.target_dir) if os.path.isdir(os.path.join(env.target_dir, d))]
-        assert len(repo_dirs) > 0, "No repository directory found after cloning"
-        repo_path = os.path.join(env.target_dir, repo_dirs[0])
-        assert os.path.exists(os.path.join(repo_path, 'README.md')), "README.md file was not created"
+        repo_path = verify_repository_setup(env.target_dir, 'README.md')
         
-        repo = git.Repo(repo_path)
-        branch_names = [branch.name for branch in repo.branches]
-        assert 'readme' in branch_names, f"Expected 'readme' branch was not created. Found branches: {branch_names}"
+        # Verify branch creation
+        verify_branch_creation(repo_path, 'readme')
 
 @pytest.mark.slow
 @pytest.mark.integration
+@pytest.mark.ai
 def test_contributing_best_practice_for_correct_ai_output(caplog):
     """
         Test CONTRIBUTING best practice with AI generated content.
@@ -89,17 +93,14 @@ def test_contributing_best_practice_for_correct_ai_output(caplog):
         assert "completed template" not in caplog.text, "AI-generated content has chat text"
         
         # Verify repository setup
-        repo_dirs = [d for d in os.listdir(env.target_dir) if os.path.isdir(os.path.join(env.target_dir, d))]
-        assert len(repo_dirs) > 0, "No repository directory found after cloning"
-        repo_path = os.path.join(env.target_dir, repo_dirs[0])
-        assert os.path.exists(os.path.join(repo_path, 'CONTRIBUTING.md')), "CONTRIBUTING.md file was not created"
+        repo_path = verify_repository_setup(env.target_dir, 'CONTRIBUTING.md')
         
-        repo = git.Repo(repo_path)
-        branch_names = [branch.name for branch in repo.branches]
-        assert 'contributing' in branch_names, f"Expected 'contributing' branch was not created. Found branches: {branch_names}"
+        # Verify branch creation
+        verify_branch_creation(repo_path, 'contributing')
 
 @pytest.mark.slow
 @pytest.mark.integration
+@pytest.mark.ai
 def test_testing_plan_best_practice_for_correct_ai_output(caplog):
     """
         Test TESTING PLAN best practice with AI generated content.
@@ -129,11 +130,7 @@ def test_testing_plan_best_practice_for_correct_ai_output(caplog):
         assert "completed template" not in caplog.text, "AI-generated content has chat text"
         
         # Verify repository setup
-        repo_dirs = [d for d in os.listdir(env.target_dir) if os.path.isdir(os.path.join(env.target_dir, d))]
-        assert len(repo_dirs) > 0, "No repository directory found after cloning"
-        repo_path = os.path.join(env.target_dir, repo_dirs[0])
-        assert os.path.exists(os.path.join(repo_path, 'TESTING.md')), "TESTING.md file was not created"
+        repo_path = verify_repository_setup(env.target_dir, 'TESTING.md')
         
-        repo = git.Repo(repo_path)
-        branch_names = [branch.name for branch in repo.branches]
-        assert 'testing-plan' in branch_names, f"Expected 'testing-plan' branch was not created. Found branches: {branch_names}"
+        # Verify branch creation
+        verify_branch_creation(repo_path, 'testing-plan')

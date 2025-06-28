@@ -158,3 +158,40 @@ class BestPracticeTestEnvironment:
     def add_temp_dir(self, temp_dir: str):
         """Track additional temporary directory for cleanup."""
         self.temp_dirs.append(temp_dir)
+
+
+def verify_repository_setup(target_dir: str, expected_file: str) -> str:
+    """
+    Verify that a repository was cloned and contains expected file.
+    
+    Args:
+        target_dir: Directory where repository should be cloned
+        expected_file: File that should exist in the repository (e.g., 'README.md')
+        
+    Returns:
+        str: Path to the cloned repository
+        
+    Raises:
+        AssertionError: If repository or file not found
+    """
+    repo_dirs = [d for d in os.listdir(target_dir) if os.path.isdir(os.path.join(target_dir, d))]
+    assert len(repo_dirs) > 0, "No repository directory found after cloning"
+    repo_path = os.path.join(target_dir, repo_dirs[0])
+    assert os.path.exists(os.path.join(repo_path, expected_file)), f"{expected_file} file was not created"
+    return repo_path
+
+
+def verify_branch_creation(repo_path: str, expected_branch: str) -> None:
+    """
+    Verify that a specific branch was created in the repository.
+    
+    Args:
+        repo_path: Path to the git repository
+        expected_branch: Name of the branch that should exist
+        
+    Raises:
+        AssertionError: If branch not found
+    """
+    repo = git.Repo(repo_path)
+    branch_names = [branch.name for branch in repo.branches]
+    assert expected_branch in branch_names, f"Expected '{expected_branch}' branch was not created. Found branches: {branch_names}"
