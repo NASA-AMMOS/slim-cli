@@ -37,6 +37,17 @@ standard_practices:
   testing-plan:
     context: "Document existing testing practices and coverage accurately based on what actually exists in the repository."
     prompt: "Within the provided testing template, only fill out the sections that plausibly have existing tests to fill out based on the directory listing provided (do not make up tests that do not exist). Return the template with filled out values."
+    repository_context:
+      categories: ["structure"]
+      include_patterns:
+        [
+          "test/**",
+          "tests/**",
+          "testing/**",
+          "testcases/**",
+          "testsuites/**",
+          "testplans/**",
+        ]
 
 # Documentation generation practices
 docgen:

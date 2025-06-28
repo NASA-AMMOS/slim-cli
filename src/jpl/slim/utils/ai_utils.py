@@ -225,6 +225,7 @@ def generate_ai_content(prompt: str, model: str, **kwargs) -> Optional[str]:
     
     # Use LiteLLM as the primary interface
     try:
+        logging.debug(f"Generating with prompt: {prompt}")
         return generate_with_model(prompt, model, **kwargs)
     except Exception as e:
         logging.error(f"LiteLLM generation failed for {model}: {str(e)}")

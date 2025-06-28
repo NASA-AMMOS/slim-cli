@@ -49,7 +49,7 @@ def create_bare_repo_with_remote(working_dir: str, remote_name: str = 'origin') 
 
 def load_test_commands() -> Dict[str, List[str]]:
     """Load test commands from YAML configuration file with support for enabled/disabled toggles."""
-    config_file = Path(__file__).parent.parent.parent.parent / "best_practices_test_commands.yaml"
+    config_file = Path(__file__).parent / "best_practices_test_commands.yaml"
     with open(config_file, 'r') as f:
         raw_config = yaml.safe_load(f)
     
@@ -330,6 +330,8 @@ class CommandTestRunner:
 class TestBestPractices:
     """Unified test class for all best practices using YAML configuration."""
     
+    @pytest.mark.slow
+    @pytest.mark.integration
     @pytest.mark.parametrize("practice_id,command", get_all_test_commands() or [pytest.param(None, None, marks=pytest.mark.skip("No tests enabled"))])
     def test_best_practice_scenarios(self, practice_id: str, command: str):
         """Test all scenarios for all best practices using command templates."""

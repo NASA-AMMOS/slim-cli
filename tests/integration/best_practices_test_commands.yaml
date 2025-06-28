@@ -1,6 +1,11 @@
 # Best Practice Test Commands Configuration
-# This file defines the actual slim commands to test for each best practice.
+# This file defines the SLIM CLI commands to test for each best practice.
 # Template variables are replaced at runtime with appropriate test infrastructure.
+#
+# NOTE: the tests defined here are for testing success / failure scenarios for best practices.
+# For more complex scenarios where you may want to test for the existance of specific files or
+# strings within generated output (especially AI scenarios), define your tests in a custom class
+# like test_standard_best_practices.py
 #
 # ENABLE/DISABLE TOGGLES:
 # - Each best practice can have an optional "enabled" field (defaults to true if not specified)
@@ -22,32 +27,22 @@
 #           enabled: true   # This command runs
 #         - command: "slim deploy ..."
 #           enabled: false  # This command skipped
-#
-# BACKWARD COMPATIBILITY:
-# - Old format (simple command strings) still supported
-# - Missing "enabled" fields default to true
 
 # Standard best practices (from test_best_practice_standard.py)
 readme:
-  enabled: false # Practice-level toggle (optional, defaults to true)
+  enabled: true # (optional, defaults to true)
   commands:
     - command: "slim apply --best-practice-ids readme --repo-urls https://github.com/octocat/Hello-World"
-      enabled: true # Individual command toggle
+      enabled: true
     - command: "slim apply --best-practice-ids readme --repo-dir {temp_git_repo}"
       enabled: true
-    - command: "slim apply --best-practice-ids readme --repo-urls https://github.com/octocat/spoon-knife --use-ai {test_ai_model}"
-      enabled: true
     - command: "slim apply --best-practice-ids readme --repo-urls https://github.com/octocat/Hello-World --clone-to-dir {temp_dir}"
-      enabled: true
-    - command: "slim apply --best-practice-ids readme --repo-urls https://github.com/octocat/Hello-World --no-prompt"
       enabled: true
     - command: "slim apply --best-practice-ids readme --repo-urls-file {temp_urls_file}"
       enabled: true
     - command: "slim deploy --best-practice-ids readme --repo-dir {temp_git_repo_with_remote} --remote origin"
       enabled: true
     - command: "slim deploy --best-practice-ids readme --repo-dir {temp_git_repo_with_remote} --commit-message 'Add readme documentation' --remote origin"
-      enabled: true
-    - command: "slim apply-deploy --best-practice-ids readme --repo-dir {temp_git_repo_with_remote} --remote origin"
       enabled: true
     - command: "slim apply-deploy --best-practice-ids readme --best-practice-ids governance-small --repo-dir {temp_git_repo_with_remote} --remote origin --commit-message 'Apply standard best practices' --no-prompt"
       enabled: true
@@ -71,7 +66,7 @@ readme:
       enabled: true
 
 contributing:
-  enabled: false # Practice-level toggle (optional, defaults to true)
+  enabled: true
   commands:
     - command: "slim apply --best-practice-ids contributing --repo-urls https://github.com/octocat/Hello-World"
       enabled: true
@@ -80,10 +75,10 @@ contributing:
     - command: "slim deploy --best-practice-ids contributing --repo-dir {temp_git_repo_with_remote} --remote {custom_remote}"
       enabled: true
     - command: "slim apply-deploy --best-practice-ids contributing --repo-dir {temp_git_repo_with_remote} --use-ai {test_ai_model} --remote origin"
-      enabled: true
+      enabled: false
 
 changelog:
-  enabled: false
+  enabled: true
   commands:
     - command: "slim apply --best-practice-ids changelog --repo-urls https://github.com/octocat/Hello-World"
       enabled: true
@@ -91,7 +86,7 @@ changelog:
       enabled: true
 
 code-of-conduct:
-  enabled: false
+  enabled: true
   commands:
     - command: "slim apply --best-practice-ids code-of-conduct --repo-urls https://github.com/octocat/Hello-World"
       enabled: true
@@ -99,14 +94,14 @@ code-of-conduct:
       enabled: true
 
 governance-small:
-  enabled: false
+  enabled: true
   commands:
     - command: "slim apply --best-practice-ids governance-small --repo-urls https://github.com/octocat/Hello-World"
       enabled: true
 
 # Secrets detection best practices (from test_best_practice_secrets_detection.py)
 secrets-github:
-  enabled: false
+  enabled: true
   commands:
     - command: "slim apply --best-practice-ids secrets-github --repo-urls https://github.com/octocat/Hello-World --no-prompt"
       enabled: true
@@ -138,7 +133,7 @@ secrets-github:
       enabled: true
 
 secrets-precommit:
-  enabled: false
+  enabled: true
   commands:
     - command: "slim apply --best-practice-ids secrets-precommit --repo-urls https://github.com/octocat/Hello-World --no-prompt"
       enabled: true
