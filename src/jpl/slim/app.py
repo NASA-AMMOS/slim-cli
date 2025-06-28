@@ -15,6 +15,7 @@ app = typer.Typer(
     help="🛠️ SLIM CLI - Automates the application of best practices to git repositories.",
     add_completion=True,
     no_args_is_help=True,
+    invoke_without_command=True,
     rich_markup_mode="rich",
     epilog="""
 [bold]Examples:[/bold]

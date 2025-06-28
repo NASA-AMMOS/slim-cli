@@ -34,7 +34,7 @@ class TemplateManager:
             True if cloning was successful, False otherwise
         """
         try:
-            self.logger.info(f"Cloning template from {self.template_repo}")
+            self.logger.debug(f"Cloning template from {self.template_repo}")
             
             # Ensure output directory exists
             os.makedirs(self.output_dir, exist_ok=True)
@@ -72,7 +72,7 @@ class TemplateManager:
                 else:
                     shutil.copy2(source, target)
             
-            self.logger.info(f"Local template copied to {self.output_dir}")
+            self.logger.debug(f"Local template copied to {self.output_dir}")
             return True
             
         except Exception as e:

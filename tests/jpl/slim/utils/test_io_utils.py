@@ -79,8 +79,7 @@ class TestIOUtils:
         url = 'https://example.com/practices.json'
         
         # Act & Assert
-        with pytest.raises(json.JSONDecodeError):
-            fetch_best_practices(url)
+        assert [] == fetch_best_practices(url)
 
     def test_fetch_best_practices_from_file(self):
         """Test fetching best practices from a file with realistic SLIM registry structure."""

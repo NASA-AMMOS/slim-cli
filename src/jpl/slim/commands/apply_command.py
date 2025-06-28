@@ -30,7 +30,6 @@ from jpl.slim.manager.best_practices_manager import BestPracticeManager
 from jpl.slim.commands.common import (
     SLIM_REGISTRY_URI,
     GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS,
-    SUPPORTED_MODELS,
     get_ai_model_pairs
 )
 from jpl.slim.app import app, state, handle_dry_run_for_command
@@ -73,7 +72,7 @@ def apply(
     use_ai: Optional[str] = typer.Option(
         None,
         "--use-ai",
-        help=f"Automatically customize the application of the best practice with an AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}"
+        help="Automatically customize the application of the best practice with the specified AI model. Use 'slim models list' to see available models."
     ),
     no_prompt: bool = typer.Option(
         False,
@@ -99,6 +98,11 @@ def apply(
         False,
         "--dry-run", "-d",
         help="Show what would be executed without making changes"
+    ),
+    logging_level: str = typer.Option(
+        None,
+        "--logging", "-l",
+        help="Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL"
     )
 ):
     """
@@ -107,6 +111,14 @@ def apply(
     This command applies one or more best practices to specified repositories,
     optionally using AI to customize the content.
     """
+    # Configure logging
+    from jpl.slim.commands.common import configure_logging
+    configure_logging(logging_level, state)
+    
+    logging.debug("Starting apply command execution")
+    logging.debug(f"Best practice IDs: {best_practice_ids}")
+    logging.debug(f"Use AI: {use_ai}")
+    
     # Handle dry-run mode (check both global state and local parameter)
     if state.dry_run or dry_run:
         if handle_dry_run_for_command(

@@ -92,7 +92,7 @@ def generate_with_ai(best_practice_id, repo_path, template_path, model="openai/g
     """
     # In test mode, return a mock response instead of calling AI services
     if os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't'):
-        logging.info(f"TEST MODE: Simulating AI generation for best practice {best_practice_id}")
+        logging.debug(f"TEST MODE: Simulating AI generation for best practice {best_practice_id}")
         return f"Mock AI-generated content for {best_practice_id}"
         
     logging.debug(f"Using AI to apply best practice ID: {best_practice_id} in repository {repo_path}")

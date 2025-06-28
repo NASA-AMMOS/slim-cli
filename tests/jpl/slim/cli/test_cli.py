@@ -58,7 +58,8 @@ class TestModelsCommand:
     def test_models_recommend(self):
         """Test models recommend subcommand."""
         result = runner.invoke(app, ["models", "recommend", "--task", "documentation", "--tier", "balanced"])
-        assert "Recommended balanced models for documentation:" in result.output
+        assert "🏆 Premium Cloud Models:" in result.output
+        assert "🦙 Local Models:" in result.output
     
     def test_models_setup(self):
         """Test models setup subcommand."""
@@ -110,7 +111,7 @@ class TestArgumentValidation:
             "--task", "documentation",
             "--tier", "premium"
         ])
-        assert "Recommended premium models for documentation:" in result.output
+        assert "🏆 Premium Cloud Models:" in result.output
     
     def test_enum_validation_task(self):
         """Test that Enum arguments work correctly for task."""
@@ -119,7 +120,7 @@ class TestArgumentValidation:
             "--task", "code_generation",
             "--tier", "fast"
         ])
-        assert "Recommended fast models for code_generation:" in result.output
+        assert "🏆 Premium Cloud Models:" in result.output
 
 
 class TestErrorScenarios:

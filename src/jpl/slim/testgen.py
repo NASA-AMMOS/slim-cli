@@ -255,7 +255,7 @@ def main():
             return 1
             
         if generator.write_tests(generated_tests):
-            logging.info(f"Successfully generated {len(generated_tests)} test files")
+            logging.debug(f"Successfully generated {len(generated_tests)} test files")
             return 0
         else:
             logging.error("Failed to write some test files")

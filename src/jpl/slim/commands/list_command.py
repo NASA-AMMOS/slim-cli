@@ -24,6 +24,11 @@ def list(
         False,
         "--dry-run", "-d",
         help="Show what would be executed without making changes"
+    ),
+    logging_level: str = typer.Option(
+        None,
+        "--logging", "-l",
+        help="Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL"
     )
 ):
     """
@@ -33,11 +38,16 @@ def list(
     in a formatted table showing their aliases, titles, descriptions,
     and associated assets.
     """
+    # Configure logging
+    from jpl.slim.commands.common import configure_logging
+    configure_logging(logging_level, state)
+    
     # Handle dry-run mode
     if handle_dry_run_for_command("list", dry_run=dry_run or state.dry_run):
         return
     
-    logging.debug("Listing all best practices...")
+    logging.debug("Starting list command execution")
+    logging.debug(f"Registry URI: {SLIM_REGISTRY_URI}")
     
     # Fetch practices with enhanced progress indicator
     with Progress(
@@ -49,14 +59,21 @@ def list(
         task = progress.add_task("Connecting to SLIM registry...", total=None)
         
         progress.update(task, description="Fetching best practices from registry...")
+        logging.debug("Calling fetch_best_practices()")
         practices = fetch_best_practices(SLIM_REGISTRY_URI)
 
         if not practices:
+            logging.error("No practices found or failed to fetch practices")
             console.print("[red]No practices found or failed to fetch practices.[/red]")
             raise typer.Exit(1)
 
+        logging.debug(f"Successfully fetched {len(practices)} practices from registry")
         progress.update(task, description="Processing registry data...")
+        
+        logging.debug("Creating SLIM registry dictionary from practices")
+
         asset_mapping = create_slim_registry_dictionary(practices)
+        logging.debug(f"Created mapping for {len(asset_mapping)} practices")
         
         progress.update(task, description=f"Found {len(asset_mapping)} best practices")
 
@@ -75,7 +92,9 @@ def list(
     table.add_column("Asset", width=20)
 
     # Add rows
+    logging.debug("Building table rows for display")
     for alias, info in asset_mapping.items():
+        logging.debug(f"Adding practice: {alias} - {info['title']}")
         table.add_row(
             alias, 
             textwrap.fill(info['title'], width=30), 
@@ -83,5 +102,7 @@ def list(
             textwrap.fill(info['asset_name'], width=20)
         )
 
+    logging.debug("Displaying practices table")
     console.print(table)
     console.print(f"\n[dim]Total practices: {len(asset_mapping)}[/dim]")
+    logging.debug("List command completed successfully")

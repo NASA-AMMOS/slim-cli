@@ -25,7 +25,6 @@ from jpl.slim.commands.deploy_command import deploy_best_practice
 from jpl.slim.commands.common import (
     GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS,
     GIT_DEFAULT_COMMIT_MESSAGE,
-    SUPPORTED_MODELS,
     get_ai_model_pairs
 )
 from jpl.slim.app import app, state, handle_dry_run_for_command
@@ -77,7 +76,7 @@ def apply_deploy(
     use_ai: Optional[str] = typer.Option(
         None,
         "--use-ai",
-        help=f"Automatically customize the application of the best practice with the specified AI model. Support for: {get_ai_model_pairs(SUPPORTED_MODELS)}"
+        help="Automatically customize the application of the best practice with the specified AI model. Use 'slim models list' to see available models."
     ),
     remote: Optional[str] = typer.Option(
         None,
@@ -113,6 +112,11 @@ def apply_deploy(
         False,
         "--dry-run", "-d",
         help="Show what would be executed without making changes"
+    ),
+    logging_level: str = typer.Option(
+        None,
+        "--logging", "-l",
+        help="Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL"
     )
 ):
     """
@@ -121,6 +125,14 @@ def apply_deploy(
     This command combines the functionality of 'apply' and 'deploy',
     applying best practices and then pushing them to a git remote.
     """
+    # Configure logging
+    from jpl.slim.commands.common import configure_logging
+    configure_logging(logging_level, state)
+    
+    logging.debug("Starting apply-deploy command execution")
+    logging.debug(f"Best practice IDs: {best_practice_ids}")
+    logging.debug(f"Use AI: {use_ai}")
+    
     # Handle dry-run mode
     if state.dry_run or dry_run:
         if handle_dry_run_for_command(
@@ -415,7 +427,7 @@ def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote=
             progress.update(task, description=f"Completed deploying {best_practice_id}")
         
         if result:
-            logging.info(LOG_SUCCESS_APPLY_DEPLOY.format(best_practice_id))
+            logging.debug(LOG_SUCCESS_APPLY_DEPLOY.format(best_practice_id))
             
             # Print success message to user  
             console.print(f"✅ Successfully applied and deployed best practice '{best_practice_id}' to repository")
