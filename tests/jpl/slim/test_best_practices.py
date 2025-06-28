@@ -5,6 +5,7 @@ from jpl.slim.best_practices.base import BestPractice
 import tempfile
 
 
+@pytest.mark.unit
 class TestBestPracticeBase:
     """Tests for the BestPractice base class."""
 

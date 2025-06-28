@@ -18,6 +18,7 @@ from jpl.slim.utils.git_utils import (
 )
 
 
+@pytest.mark.unit
 class TestGitUtils:
     """Tests for Git utility functions."""
 

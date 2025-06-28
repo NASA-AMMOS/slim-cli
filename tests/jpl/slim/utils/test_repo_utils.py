@@ -376,6 +376,7 @@ def temp_docs_only_repo():
         yield repo_path
 
 
+@pytest.mark.unit
 class TestScanRepository:
     """Test the scan_repository function."""
     
@@ -412,6 +413,7 @@ class TestScanRepository:
         assert result["project_name"] == "test-project"
 
 
+@pytest.mark.unit
 class TestExtractProjectMetadata:
     """Test the extract_project_metadata function."""
     
@@ -516,6 +518,7 @@ class TestExtractProjectMetadata:
         assert "Multi-language project" in result["description"]
 
 
+@pytest.mark.unit
 class TestCategorizeDirectories:
     """Test the categorize_directories function."""
     
@@ -556,6 +559,7 @@ class TestCategorizeDirectories:
         assert "obj" in result["build"]
 
 
+@pytest.mark.unit
 class TestDetectLanguages:
     """Test the detect_languages function."""
     
@@ -650,6 +654,7 @@ class TestDetectLanguages:
         assert "JavaScript" not in result
 
 
+@pytest.mark.unit
 class TestExtractFromPackageJson:
     """Test the extract_from_package_json function."""
     
@@ -724,6 +729,7 @@ class TestExtractFromPackageJson:
         assert metadata["repo_url"] == "https://github.com/test/repo"
 
 
+@pytest.mark.unit
 class TestExtractFromSetupPy:
     """Test the extract_from_setup_py function."""
     
@@ -760,6 +766,7 @@ setup(
         assert metadata["dependencies"] == ["requests", "click"]
 
 
+@pytest.mark.unit
 class TestExtractFromReadme:
     """Test the extract_from_readme function."""
     
@@ -805,6 +812,7 @@ Run `pip install awesome-project`
         assert metadata["project_name"] == "Existing Name"
 
 
+@pytest.mark.unit
 class TestFindKeyFiles:
     """Test the find_key_files function."""
     
@@ -887,6 +895,7 @@ class TestFindKeyFiles:
             assert result["code_of_conduct"] == "CODE_OF_CONDUCT.md"
 
 
+@pytest.mark.unit
 class TestGetFileLanguage:
     """Test the get_file_language function."""
     
@@ -1030,6 +1039,7 @@ class TestGetFileLanguage:
             assert get_file_language(node_script) == "JavaScript"
 
 
+@pytest.mark.unit
 class TestDirectoryClassification:
     """Test directory classification functions."""
     
@@ -1058,6 +1068,7 @@ class TestDirectoryClassification:
         assert not is_documentation_directory("tests")
 
 
+@pytest.mark.unit
 class TestPyprojectTomlExtraction:
     """Test pyproject.toml extraction functionality."""
     
@@ -1122,6 +1133,7 @@ repository = "https://github.com/test/repo"
         assert metadata["description"] == "A test package"
 
 
+@pytest.mark.unit
 class TestNonCodeRepositories:
     """Test handling of repositories with no code, only documentation or text files."""
     

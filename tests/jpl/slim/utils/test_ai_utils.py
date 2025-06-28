@@ -6,6 +6,7 @@ NOTE: Currently only testing failure conditions, not actual AI-generated functio
 
 import os
 import sys
+import pytest
 from unittest.mock import patch, MagicMock
 
 from jpl.slim.utils.ai_utils import (
@@ -18,6 +19,7 @@ from jpl.slim.utils.ai_utils import (
 )
 
 
+@pytest.mark.unit
 class TestAIUtils:
     """Tests for AI utility functions."""
 

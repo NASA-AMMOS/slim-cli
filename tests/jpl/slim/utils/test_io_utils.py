@@ -20,6 +20,7 @@ from jpl.slim.utils.io_utils import (
 )
 
 
+@pytest.mark.unit
 class TestIOUtils:
     """Tests for I/O utility functions."""
 

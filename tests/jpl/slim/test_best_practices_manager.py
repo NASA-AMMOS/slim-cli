@@ -70,6 +70,7 @@ def create_slim_registry_dictionary():
     ]
 
 
+@pytest.mark.unit
 class TestBestPracticeManager:
     """Tests for the BestPracticeManager class."""
 

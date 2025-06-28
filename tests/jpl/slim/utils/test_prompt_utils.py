@@ -56,6 +56,7 @@ def sample_prompts_file(sample_prompts_data):
     os.unlink(f.name)
 
 
+@pytest.mark.unit
 class TestLoadPrompts:
     """Test the load_prompts function."""
     
@@ -99,6 +100,7 @@ class TestLoadPrompts:
         assert result1 is not result2
 
 
+@pytest.mark.unit
 class TestGetContextHierarchy:
     """Test the get_context_hierarchy function."""
     
@@ -174,6 +176,7 @@ class TestGetContextHierarchy:
             assert contexts == expected
 
 
+@pytest.mark.unit
 class TestGetPrompt:
     """Test the get_prompt function."""
     
@@ -238,6 +241,7 @@ class TestGetPrompt:
             assert prompt is None
 
 
+@pytest.mark.unit
 class TestGetPromptWithContext:
     """Test the get_prompt_with_context function."""
     
@@ -328,6 +332,7 @@ class TestGetPromptWithContext:
             assert result is None
 
 
+@pytest.mark.unit
 class TestSubstituteVariables:
     """Test the substitute_variables function."""
     
@@ -393,6 +398,7 @@ class TestSubstituteVariables:
         assert result == expected
 
 
+@pytest.mark.unit
 class TestValidatePromptsFile:
     """Test the validate_prompts_file function."""
     
