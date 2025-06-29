@@ -12,9 +12,6 @@ context: "Do not respond with any AI conversational text, only fulfill the promp
 
 # Global repository context (applies to all unless overridden)
 repository_context:
-  categories: ["documentation"]
-  max_characters: 10000
-  include_patterns: ["README*", "*.md", "CHANGELOG*", "LICENSE*"]
   exclude_patterns: ["*.log", "node_modules/", ".git/", "__pycache__/", "*.pyc"]
 
 # Standard practices using template-based approach
@@ -109,6 +106,10 @@ docgen:
 # Documentation website generation practices
 docs-website:
   context: "You are creating comprehensive documentation for a software project. Generate professional, detailed content that accurately reflects the project's capabilities and structure."
+  repository_context:
+    categories: ["documentation"]
+    max_characters: 10000
+    include_patterns: ["README*", "*.md"]
 
   generate_content_only:
     prompt: |
@@ -275,18 +276,25 @@ docs-website:
 
 # Governance practices - specialized templates with contributor integration
 governance:
-  context: "You are helping to create governance documentation for an open source project."
+  context: "You are a documentation specialist helping to create a GOVERNANCE file. Format using markdown and ensure novice and expert users can read the documentation."
+  repository_context:
+    include_patterns: ["README*"]
 
-  governance-small:
-    prompt: "Fill out ALL blanks in the template below that start with INSERT. You MUST replace every single placeholder that contains 'INSERT' with appropriate values. Use the provided repository context to determine the project name (look for repository name or project title in the context). For governance document titles containing '[INSERT PROJECT NAME]', replace with the actual project name followed by 'Project Governance' (e.g., if project is 'MyProject', use 'MyProject Project Governance'). The following applies ONLY to the '### Committer' section so make sure to not use the following strategy for any other section Use Git contributor statistics to identify key contributors for the '#### List of Committers' section with patterns like '[INSERT MEMBER NAME] ([username1]([INSERT LINK TO USERNAME]), [INSERT ORG ASSOCIATION]'. Ensure NO placeholder text starting with '[INSERT' remains in the final output. Return the complete template with ALL INSERT placeholders replaced with actual values."
-    include_patterns: ["README*", "*.md"]
+  # Common title replacement for all governance docs
+  title:
+    prompt: "Use project information from the README to ONLY replace the placeholder '[INSERT PROJECT NAME]' with the actual project name. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the '[INSERT PROJECT NAME]' placeholder replaced with the project name followed by 'Project Governance'."
 
-  governance-medium:
-    prompt: "Fill out ALL blanks in the template below that start with INSERT. You MUST replace every single placeholder that contains 'INSERT' with appropriate values. Use the provided repository context to determine the project name (look for repository name or project title in the context). Pay special attention to the block starting with '#### List of Committers' - use Git contributor statistics to identify key contributors for the committers list. For medium teams, typically use the top 5-8 contributors. Ensure NO placeholder text starting with '[INSERT' remains in the final output. Return the complete template with ALL INSERT placeholders replaced with actual values."
-    include_patterns: ["README*", "*.md"]
-  governance-large:
-    prompt: "Fill out ALL blanks in the template below that start with INSERT. You MUST replace every single placeholder that contains 'INSERT' with appropriate values. Use the provided repository context to determine the project name (look for repository name or project title in the context). Focus specifically on the '### Committer' markdown block and use Git contributor statistics to identify key contributors for the committers information. For large teams, typically use the top 8-12 contributors. Ensure NO placeholder text starting with '[INSERT' remains in the final output. Return the complete template with ALL INSERT placeholders replaced with actual values."
-    include_patterns: ["README*", "*.md"]
+  # Small team committer section (3-5 members)
+  committers-small:
+    prompt: "You are processing a SECTION of a governance document. ONLY replace committer-related placeholders like '[INSERT MEMBER NAME]', '[INSERT LINK TO USERNAME]', and '[INSERT ORG ASSOCIATION]' with actual contributor information from the Git statistics. For small teams, use the top 3-5 contributors. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the placeholders replaced."
+
+  # Medium team committer section (5-8 members)
+  committers-medium:
+    prompt: "You are processing a SECTION of a governance document. ONLY replace committer-related placeholders like '[INSERT MEMBER NAME]', '[INSERT LINK TO USERNAME]', and '[INSERT ORG ASSOCIATION]' with actual contributor information from the Git statistics. For medium teams, use the top 5-8 contributors. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the placeholders replaced."
+
+  # Large team committer section (8-12 members)
+  committers-large:
+    prompt: "You are processing a SECTION of a governance document. ONLY replace committer-related placeholders like '[INSERT MEMBER NAME]', '[INSERT LINK TO USERNAME]', '[INSERT ORG ASSOCIATION]', and '[List of current committers]' with actual contributor information from the Git statistics. For large teams, use the top 8-12 contributors. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the placeholders replaced."
 
 # Security practices
 secrets_detection:
