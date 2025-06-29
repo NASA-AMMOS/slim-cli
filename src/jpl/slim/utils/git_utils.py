@@ -13,7 +13,7 @@ import urllib.parse
 import tempfile
 import uuid
 import re
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Union
 
 # Constants (these should be moved to a constants module later)
 GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = 'slim-best-practices'
@@ -27,7 +27,8 @@ __all__ = [
     "create_branch",
     "extract_git_info",
     "is_git_repository",
-    "get_git_info_summary"
+    "get_git_info_summary",
+    "get_contributor_stats"
 ]
 
 
@@ -259,3 +260,46 @@ def get_git_info_summary(repo_path: str) -> Optional[Dict[str, str]]:
         'repo_url': git_info.get('repo_url', ''),
         'default_branch': git_info.get('default_branch', '')
     }
+
+
+def get_contributor_stats(repo_path: str) -> List[Dict[str, Union[int, str]]]:
+    """
+    Get contributor statistics from a git repository.
+    
+    Returns a list of contributors sorted by commit count (highest first).
+    Each contributor is a dictionary with 'commits', 'name', and 'email' keys.
+    
+    Args:
+        repo_path: Path to the git repository
+        
+    Returns:
+        List of contributor dictionaries, empty list if error occurs
+    """
+    try:
+        repo = git.Repo(repo_path)
+        contributors = {}
+        
+        for commit in repo.iter_commits('--all'):
+            email = commit.author.email
+            
+            # Initialize contributor if not seen before
+            if email not in contributors:
+                contributors[email] = {
+                    'commits': 0, 
+                    'name': commit.author.name, 
+                    'email': email
+                }
+            
+            # Increment commit count and update name (in case it changed)
+            contributors[email]['commits'] += 1
+            contributors[email]['name'] = commit.author.name
+        
+        # Convert to list and sort by commit count (highest first)
+        contributor_list = list(contributors.values())
+        contributor_list.sort(key=lambda x: x['commits'], reverse=True)
+        
+        return contributor_list
+        
+    except Exception as e:
+        logging.error(f"Error getting contributor stats: {e}")
+        return []

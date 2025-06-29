@@ -14,7 +14,8 @@ from jpl.slim.utils.git_utils import (
     create_branch,
     extract_git_info,
     is_git_repository,
-    get_git_info_summary
+    get_git_info_summary,
+    get_contributor_stats
 )
 
 
@@ -354,3 +355,172 @@ class TestGitUtils:
             'repo_url': 'https://github.com/testuser/testrepo',
             'default_branch': 'main'
         }
+
+    # Tests for get_contributor_stats function
+    @patch('jpl.slim.utils.git_utils.git.Repo')
+    def test_get_contributor_stats_success(self, mock_repo_class):
+        """Test successful contributor statistics extraction."""
+        # Arrange
+        mock_repo = MagicMock()
+        mock_repo_class.return_value = mock_repo
+        
+        # Create mock commits with different authors
+        mock_commit1 = MagicMock()
+        mock_commit1.author.name = 'Rishi Verma'
+        mock_commit1.author.email = 'riverma@apache.org'
+        
+        mock_commit2 = MagicMock()
+        mock_commit2.author.name = 'Kyongsik Yun'
+        mock_commit2.author.email = 'yunkss@gmail.com'
+        
+        mock_commit3 = MagicMock()
+        mock_commit3.author.name = 'Rishi Verma'
+        mock_commit3.author.email = 'riverma@apache.org'
+        
+        mock_repo.iter_commits.return_value = [mock_commit1, mock_commit2, mock_commit3]
+        
+        # Act - path doesn't matter since we're mocking git.Repo
+        result = get_contributor_stats('/any/path')
+        
+        # Assert
+        expected = [
+            {'commits': 2, 'name': 'Rishi Verma', 'email': 'riverma@apache.org'},
+            {'commits': 1, 'name': 'Kyongsik Yun', 'email': 'yunkss@gmail.com'}
+        ]
+        assert result == expected
+        mock_repo.iter_commits.assert_called_once_with('--all')
+
+    @patch('jpl.slim.utils.git_utils.git.Repo')
+    def test_get_contributor_stats_single_contributor(self, mock_repo_class):
+        """Test contributor statistics with single contributor."""
+        # Arrange
+        mock_repo = MagicMock()
+        mock_repo_class.return_value = mock_repo
+        
+        mock_commit = MagicMock()
+        mock_commit.author.name = 'Priya Sharma'
+        mock_commit.author.email = 'priya@example.com'
+        
+        mock_repo.iter_commits.return_value = [mock_commit]
+        
+        # Act
+        result = get_contributor_stats('/any/path')
+        
+        # Assert
+        expected = [
+            {'commits': 1, 'name': 'Priya Sharma', 'email': 'priya@example.com'}
+        ]
+        assert result == expected
+
+    @patch('jpl.slim.utils.git_utils.git.Repo')
+    def test_get_contributor_stats_empty_repo(self, mock_repo_class):
+        """Test contributor statistics with empty repository."""
+        # Arrange
+        mock_repo = MagicMock()
+        mock_repo_class.return_value = mock_repo
+        mock_repo.iter_commits.return_value = []  # No commits
+        
+        # Act
+        result = get_contributor_stats('/any/path')
+        
+        # Assert
+        assert result == []
+
+    @patch('jpl.slim.utils.git_utils.git.Repo')
+    def test_get_contributor_stats_invalid_repo(self, mock_repo_class):
+        """Test contributor statistics with invalid repository."""
+        # Arrange
+        from git.exc import InvalidGitRepositoryError
+        mock_repo_class.side_effect = InvalidGitRepositoryError('Not a git repository')
+        
+        # Act
+        result = get_contributor_stats('/any/path')
+        
+        # Assert
+        assert result == []
+
+    @patch('jpl.slim.utils.git_utils.git.Repo')
+    def test_get_contributor_stats_same_name_different_emails(self, mock_repo_class):
+        """Test that same name with different emails creates separate contributors."""
+        # Arrange
+        mock_repo = MagicMock()
+        mock_repo_class.return_value = mock_repo
+        
+        # Same person using work and personal emails (realistic scenario)
+        mock_commit1 = MagicMock()
+        mock_commit1.author.name = 'Carlos Rodriguez'
+        mock_commit1.author.email = 'carlos.rodriguez@company.com'
+        
+        mock_commit2 = MagicMock()
+        mock_commit2.author.name = 'Carlos Rodriguez'  # Same name
+        mock_commit2.author.email = 'carlos.rodriguez@gmail.com'  # Different email
+        
+        mock_repo.iter_commits.return_value = [mock_commit1, mock_commit2]
+        
+        # Act
+        result = get_contributor_stats('/any/path')
+        
+        # Assert - should create TWO separate contributors (email is unique identifier)
+        expected = [
+            {'commits': 1, 'name': 'Carlos Rodriguez', 'email': 'carlos.rodriguez@company.com'},
+            {'commits': 1, 'name': 'Carlos Rodriguez', 'email': 'carlos.rodriguez@gmail.com'}
+        ]
+        assert result == expected
+
+    @patch('jpl.slim.utils.git_utils.git.Repo')
+    def test_get_contributor_stats_sorting(self, mock_repo_class):
+        """Test contributor statistics are sorted by commit count."""
+        # Arrange
+        mock_repo = MagicMock()
+        mock_repo_class.return_value = mock_repo
+        
+        # Create commits with different authors in non-sorted order
+        commits = []
+        
+        # Author with 1 commit
+        commit = MagicMock()
+        commit.author.name = 'Rajesh Kumar'
+        commit.author.email = 'rajesh@example.com'
+        commits.append(commit)
+        
+        # Author with 5 commits
+        for _ in range(5):
+            commit = MagicMock()
+            commit.author.name = 'Maria Gonzalez'
+            commit.author.email = 'maria@example.com'
+            commits.append(commit)
+        
+        # Author with 3 commits
+        for _ in range(3):
+            commit = MagicMock()
+            commit.author.name = 'Arjun Patel'
+            commit.author.email = 'arjun@example.com'
+            commits.append(commit)
+        
+        mock_repo.iter_commits.return_value = commits
+        
+        # Act
+        result = get_contributor_stats('/any/path')
+        
+        # Assert - should be sorted by commit count (highest first)
+        expected = [
+            {'commits': 5, 'name': 'Maria Gonzalez', 'email': 'maria@example.com'},
+            {'commits': 3, 'name': 'Arjun Patel', 'email': 'arjun@example.com'},
+            {'commits': 1, 'name': 'Rajesh Kumar', 'email': 'rajesh@example.com'}
+        ]
+        assert result == expected
+
+    @patch('jpl.slim.utils.git_utils.git.Repo')
+    def test_get_contributor_stats_git_error(self, mock_repo_class):
+        """Test contributor statistics with git command error."""
+        # Arrange
+        from git.exc import GitCommandError
+        mock_repo = MagicMock()
+        mock_repo_class.return_value = mock_repo
+        mock_repo.iter_commits.side_effect = GitCommandError('iter_commits', 'Repository corrupted')
+        
+        # Act
+        result = get_contributor_stats('/any/path')
+        
+        # Assert
+        assert result == []

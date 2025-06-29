@@ -10,13 +10,15 @@ from typing import Dict, List, Optional, Any, Union
 from jpl.slim.best_practices.standard import StandardPractice
 from jpl.slim.best_practices.secrets_detection import SecretsDetection
 from jpl.slim.best_practices.docs_website import DocsWebsiteBestPractice
+from jpl.slim.best_practices.governance import GovernanceBestPractice
 from jpl.slim.best_practices.practice_mapping import (
     get_practice_class_name,
     is_docgen_practice,
     get_all_aliases,
     PRACTICE_CLASS_STANDARD,
     PRACTICE_CLASS_SECRETS,
-    PRACTICE_CLASS_DOCSWEBSITE
+    PRACTICE_CLASS_DOCSWEBSITE,
+    PRACTICE_CLASS_GOVERNANCE
 )
 from jpl.slim.utils.io_utils import create_slim_registry_dictionary
 
@@ -44,7 +46,7 @@ class BestPracticeManager:
             # If it's already a dictionary, use it directly
             self.registry_dict = registry
 
-    def get_best_practice(self, alias: str) -> Optional[Union[StandardPractice, SecretsDetection, DocsWebsiteBestPractice]]:
+    def get_best_practice(self, alias: str) -> Optional[Union[StandardPractice, SecretsDetection, DocsWebsiteBestPractice, GovernanceBestPractice]]:
         """
         Get a best practice by alias.
 
@@ -52,7 +54,7 @@ class BestPracticeManager:
             alias: Alias of the best practice to retrieve (e.g., "readme", "secrets-github", "docs-website")
 
         Returns:
-            Union[StandardPractice, SecretsDetection, DocsWebsiteBestPractice]: The best practice object if found, None otherwise
+            Union[StandardPractice, SecretsDetection, DocsWebsiteBestPractice, GovernanceBestPractice]: The best practice object if found, None otherwise
         """
         logging.debug(f"Retrieving best practice with alias: {alias}")
 
@@ -96,6 +98,13 @@ class BestPracticeManager:
             )
         elif practice_class_name == PRACTICE_CLASS_DOCSWEBSITE:
             return DocsWebsiteBestPractice()
+        elif practice_class_name == PRACTICE_CLASS_GOVERNANCE:
+            return GovernanceBestPractice(
+                best_practice_id=alias,
+                uri=uri,
+                title=title,
+                description=description
+            )
         else:
             logging.warning(f"Unknown practice class: {practice_class_name}")
             return None

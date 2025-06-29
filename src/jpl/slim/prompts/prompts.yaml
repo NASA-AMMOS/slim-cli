@@ -19,10 +19,6 @@ repository_context:
 
 # Standard practices using template-based approach
 standard_practices:
-  # Governance practices
-  governance:
-    prompt: "Fill out all blanks in the template below that start with INSERT. Use the provided context information to fill the blanks. Return the template with filled out values."
-
   # Documentation practices
   readme:
     context: "You are a technical documentation specialist helping to create a README file. Format using markdown and ensure novice and expert users can read the documentation."
@@ -276,6 +272,21 @@ docs-website:
       - Convert loose URLs to proper markdown links
 
       OUTPUT: Return the complete corrected markdown content.
+
+# Governance practices - specialized templates with contributor integration
+governance:
+  context: "You are helping to create governance documentation for an open source project."
+
+  governance-small:
+    prompt: "Fill out ALL blanks in the template below that start with INSERT. You MUST replace every single placeholder that contains 'INSERT' with appropriate values. Use the provided repository context to determine the project name (look for repository name or project title in the context). For governance document titles containing '[INSERT PROJECT NAME]', replace with the actual project name followed by 'Project Governance' (e.g., if project is 'MyProject', use 'MyProject Project Governance'). The following applies ONLY to the '### Committer' section so make sure to not use the following strategy for any other section Use Git contributor statistics to identify key contributors for the '#### List of Committers' section with patterns like '[INSERT MEMBER NAME] ([username1]([INSERT LINK TO USERNAME]), [INSERT ORG ASSOCIATION]'. Ensure NO placeholder text starting with '[INSERT' remains in the final output. Return the complete template with ALL INSERT placeholders replaced with actual values."
+    include_patterns: ["README*", "*.md"]
+
+  governance-medium:
+    prompt: "Fill out ALL blanks in the template below that start with INSERT. You MUST replace every single placeholder that contains 'INSERT' with appropriate values. Use the provided repository context to determine the project name (look for repository name or project title in the context). Pay special attention to the block starting with '#### List of Committers' - use Git contributor statistics to identify key contributors for the committers list. For medium teams, typically use the top 5-8 contributors. Ensure NO placeholder text starting with '[INSERT' remains in the final output. Return the complete template with ALL INSERT placeholders replaced with actual values."
+    include_patterns: ["README*", "*.md"]
+  governance-large:
+    prompt: "Fill out ALL blanks in the template below that start with INSERT. You MUST replace every single placeholder that contains 'INSERT' with appropriate values. Use the provided repository context to determine the project name (look for repository name or project title in the context). Focus specifically on the '### Committer' markdown block and use Git contributor statistics to identify key contributors for the committers information. For large teams, typically use the top 8-12 contributors. Ensure NO placeholder text starting with '[INSERT' remains in the final output. Return the complete template with ALL INSERT placeholders replaced with actual values."
+    include_patterns: ["README*", "*.md"]
 
 # Security practices
 secrets_detection:

@@ -10,13 +10,14 @@ across the SLIM CLI codebase.
 PRACTICE_CLASS_STANDARD = 'StandardPractice'
 PRACTICE_CLASS_SECRETS = 'SecretsDetection'
 PRACTICE_CLASS_DOCSWEBSITE = 'DocsWebsiteBestPractice'
+PRACTICE_CLASS_GOVERNANCE = 'GovernanceBestPractice'
 
 # Mapping from aliases to practice class names
 ALIAS_TO_PRACTICE_CLASS = {
-    # Governance practices (StandardPractice)
-    'governance-small': PRACTICE_CLASS_STANDARD,
-    'governance-medium': PRACTICE_CLASS_STANDARD,
-    'governance-large': PRACTICE_CLASS_STANDARD,
+    # Governance practices (GovernanceBestPractice)
+    'governance-small': PRACTICE_CLASS_GOVERNANCE,
+    'governance-medium': PRACTICE_CLASS_GOVERNANCE,
+    'governance-large': PRACTICE_CLASS_GOVERNANCE,
     'code-of-conduct': PRACTICE_CLASS_STANDARD,
     'code-of-conduct-collab': PRACTICE_CLASS_STANDARD,
     'contributing': PRACTICE_CLASS_STANDARD,
