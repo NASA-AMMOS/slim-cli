@@ -43,19 +43,18 @@ class GovernanceBestPractice(StandardPractice):
             
             # Format contributor stats for AI context
             contributor_context = {}
+            contributor_stats_label = "Committer Statistics"
             if contributor_stats:
                 # Prepare contributor info for AI prompts
                 contributors_list = []
                 for contributor in contributor_stats[:12]:  # Top 12 for large teams
                     contributors_list.append(f"{contributor['name']} ({contributor['email']}): {contributor['commits']} commits")
-                contributor_context['contributor_stats'] = "\n".join(contributors_list)
+                contributor_context[contributor_stats_label] = "\n" + "\n".join(contributors_list)
                 contributor_context['total_contributors'] = len(contributor_stats)
-                contributor_context['project_name'] = git_repo.working_tree_dir.split('/')[-1]
                 logging.debug(f"Found {len(contributor_stats)} contributors, using top 12 for AI context")
             else:
-                contributor_context['contributor_stats'] = "No contributor statistics available"
+                contributor_context[contributor_stats_label] = "No contributor statistics available"
                 contributor_context['total_contributors'] = 0
-                contributor_context['project_name'] = git_repo.working_tree_dir.split('/')[-1]
                 logging.warning("No contributor statistics found for repository")
             
             # Get repository context
@@ -71,13 +70,35 @@ class GovernanceBestPractice(StandardPractice):
             title_prompt = get_prompt_with_context('governance', 'title')
             committers_prompt = None
             
-            # Determine which committers prompt to use based on practice ID
-            if self.best_practice_id == 'governance-small':
-                committers_prompt = get_prompt_with_context('governance', 'committers-small')
-            elif self.best_practice_id == 'governance-medium':
-                committers_prompt = get_prompt_with_context('governance', 'committers-medium')
-            elif self.best_practice_id == 'governance-large':
-                committers_prompt = get_prompt_with_context('governance', 'committers-large')
+            # Load prompts from nested structure in YAML using glom
+            try:
+                from glom import glom
+                from jpl.slim.utils.prompt_utils import load_prompts
+                prompts_dict = load_prompts()
+                
+                # Get the committers prompt based on practice ID
+                if self.best_practice_id == 'governance-small':
+                    committers_prompt = glom(prompts_dict, 'governance.governance-small.committers-small.prompt', default=None)
+                elif self.best_practice_id == 'governance-medium':
+                    committers_prompt = glom(prompts_dict, 'governance.governance-medium.committers-medium.prompt', default=None)
+                elif self.best_practice_id == 'governance-large':
+                    committers_prompt = glom(prompts_dict, 'governance.governance-large.committers-large.prompt', default=None)
+                
+                # Add contexts if prompt was found
+                if committers_prompt:
+                    global_context = glom(prompts_dict, 'context', default='')
+                    governance_context = glom(prompts_dict, 'governance.context', default='')
+                    
+                    contexts = [ctx for ctx in [global_context, governance_context] if ctx]
+                    if contexts:
+                        committers_prompt = '\n\n'.join(contexts) + '\n\n' + committers_prompt
+                        
+            except ImportError:
+                logging.error("glom library not installed. Please install with: pip install glom")
+                committers_prompt = None
+            except Exception as e:
+                logging.error(f"Error loading nested prompts: {e}")
+                committers_prompt = None
             
             if not title_prompt or not committers_prompt:
                 logging.warning(f"Could not load prompts for {self.best_practice_id}, falling back to original method")

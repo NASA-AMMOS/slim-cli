@@ -119,9 +119,6 @@ def get_repository_context(practice_type: str, prompt_key: Optional[str] = None)
 def _get_default_repository_context() -> Dict[str, Any]:
     """Get default repository context configuration."""
     return {
-        'categories': ['documentation'],
-        'max_characters': 10000,
-        'include_patterns': ['README*', '*.md'],
         'exclude_patterns': ['*.log', 'node_modules/', '.git/', '__pycache__/', '*.pyc']
     }
 

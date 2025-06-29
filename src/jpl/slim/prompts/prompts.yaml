@@ -279,22 +279,24 @@ governance:
   context: "You are a documentation specialist helping to create a GOVERNANCE file. Format using markdown and ensure novice and expert users can read the documentation."
   repository_context:
     include_patterns: ["README*"]
+    exclude_patterns:
+      ["LICENSE*", "*.log", "node_modules/", ".git/", "__pycache__/", "*.pyc"]
 
   # Common title replacement for all governance docs
   title:
     prompt: "Use project information from the README to ONLY replace the placeholder '[INSERT PROJECT NAME]' with the actual project name. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the '[INSERT PROJECT NAME]' placeholder replaced with the project name followed by 'Project Governance'."
 
-  # Small team committer section (3-5 members)
-  committers-small:
-    prompt: "You are processing a SECTION of a governance document. ONLY replace committer-related placeholders like '[INSERT MEMBER NAME]', '[INSERT LINK TO USERNAME]', and '[INSERT ORG ASSOCIATION]' with actual contributor information from the Git statistics. For small teams, use the top 3-5 contributors. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the placeholders replaced."
+  governance-small:
+    committers-small:
+      prompt: "You are processing a SECTION of a governance document. ONLY replace committer-related placeholders like '[INSERT MEMBER NAME]', '[INSERT LINK TO USERNAME]', and '[INSERT ORG ASSOCIATION]' with actual contributor information from the Git statistics. For small teams, use the top 3-5 contributors. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the placeholders replaced."
 
-  # Medium team committer section (5-8 members)
-  committers-medium:
-    prompt: "You are processing a SECTION of a governance document. ONLY replace committer-related placeholders like '[INSERT MEMBER NAME]', '[INSERT LINK TO USERNAME]', and '[INSERT ORG ASSOCIATION]' with actual contributor information from the Git statistics. For medium teams, use the top 5-8 contributors. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the placeholders replaced."
+  governance-medium:
+    committers-medium:
+      prompt: "You are processing the '#### List of Committers' section of a governance document. ONLY replace committer-related placeholders like '[INSERT MEMBER NAME]', '[INSERT LINK TO USERNAME]', and '[INSERT ORG ASSOCIATION]' with actual contributor information from the Git statistics. For medium teams, use the top 5-8 contributors. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the placeholders replaced."
 
-  # Large team committer section (8-12 members)
-  committers-large:
-    prompt: "You are processing a SECTION of a governance document. ONLY replace committer-related placeholders like '[INSERT MEMBER NAME]', '[INSERT LINK TO USERNAME]', '[INSERT ORG ASSOCIATION]', and '[List of current committers]' with actual contributor information from the Git statistics. For large teams, use the top 8-12 contributors. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the placeholders replaced."
+  governance-large:
+    committers-large:
+      prompt: "You are processing a SECTION of a governance document. ONLY replace committer-related placeholders like '[INSERT MEMBER NAME]', '[INSERT LINK TO USERNAME]', '[INSERT ORG ASSOCIATION]', and '[List of current committers]' with actual contributor information from the Git statistics. For large teams, use the top 8-12 contributors. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the placeholders replaced."
 
 # Security practices
 secrets_detection:

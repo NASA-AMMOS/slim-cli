@@ -52,18 +52,18 @@ class TestGovernanceBestPractices:
             assert result.exit_code == 0, f"Command failed with output: {result.output}"
             assert "Successfully applied" in result.output
             
-            # Filter to only governance module logs for precise assertions
-            governance_logs = '\n'.join([
+            # Filter to capture AI generated content logs from ai_utils.py
+            ai_content_logs = '\n'.join([
                 record.getMessage() for record in caplog.records 
-                if record.filename == 'governance.py'
+                if record.filename == 'ai_utils.py' and 'AI generated content for' in record.getMessage()
             ])
             
-            #print(f"Governance Logs:\n{governance_logs}")
-            assert "john.lage@jhuapl.edu" in governance_logs, f"Committer information not found in governance logs: {governance_logs}"
-            assert re.search(r"MMTC.*Project Governance", governance_logs), f"'MMTC.*Project Governance' pattern not found in governance logs: {governance_logs}"
-            #assert "RiverM" not in governance_logs, f"RiverM information found in governance logs: {governance_logs}"
-            assert "[INSERT PROJECT NAME]" not in governance_logs, f"Template placeholder found in governance logs: {governance_logs}"
-            assert "completed template" not in governance_logs, f"AI chat text found in governance logs: {governance_logs}"
+            #print(f"AI Content Logs:\n{ai_content_logs}")
+            assert "john.lage@jhuapl.edu" in ai_content_logs, f"Committer information not found in AI content logs: {ai_content_logs}"
+            assert re.search(r"MMTC.*Project Governance", ai_content_logs), f"'MMTC.*Project Governance' pattern not found in AI content logs: {ai_content_logs}"
+            #assert "RiverM" not in ai_content_logs, f"RiverM information found in AI content logs: {ai_content_logs}"
+            assert "[INSERT PROJECT NAME]" not in ai_content_logs, f"Template placeholder found in AI content logs: {ai_content_logs}"
+            assert "completed template" not in ai_content_logs, f"AI chat text found in AI content logs: {ai_content_logs}"
             
             # Verify repository setup
             repo_path = verify_repository_setup(env.target_dir, 'GOVERNANCE.md')
@@ -102,8 +102,17 @@ class TestGovernanceBestPractices:
             # Custom assertions for this specific test
             assert result.exit_code == 0, f"Command failed with output: {result.output}"
             assert "Successfully applied" in result.output
-            assert "john.lage@jhuapl.edu" in caplog.text, "MMTC committer information not found in debug logs"
-            assert "completed template" not in caplog.text, "AI-generated content has chat text"
+            
+            # Filter to capture AI generated content logs from ai_utils.py
+            ai_content_logs = '\n'.join([
+                record.getMessage() for record in caplog.records 
+                if record.filename == 'ai_utils.py' and 'AI generated content for' in record.getMessage()
+            ])
+            
+            assert "john.lage@jhuapl.edu" in ai_content_logs, f"Committer information not found in AI content logs: {ai_content_logs}"
+            assert re.search(r"MMTC.*Project Governance", ai_content_logs), f"'MMTC.*Project Governance' pattern not found in AI content logs: {ai_content_logs}"
+            assert "[INSERT PROJECT NAME]" not in ai_content_logs, f"Template placeholder found in AI content logs: {ai_content_logs}"
+            assert "completed template" not in ai_content_logs, f"AI chat text found in AI content logs: {ai_content_logs}"
             
             # Verify repository setup
             repo_path = verify_repository_setup(env.target_dir, 'GOVERNANCE.md')
@@ -142,8 +151,17 @@ class TestGovernanceBestPractices:
             # Custom assertions for this specific test
             assert result.exit_code == 0, f"Command failed with output: {result.output}"
             assert "Successfully applied" in result.output
-            assert "john.lage@jhuapl.edu" in caplog.text, "MMTC committer information not found in debug logs"
-            assert "completed template" not in caplog.text, "AI-generated content has chat text"
+            
+            # Filter to capture AI generated content logs from ai_utils.py
+            ai_content_logs = '\n'.join([
+                record.getMessage() for record in caplog.records 
+                if record.filename == 'ai_utils.py' and 'AI generated content for' in record.getMessage()
+            ])
+            
+            assert "john.lage@jhuapl.edu" in ai_content_logs, f"Committer information not found in AI content logs: {ai_content_logs}"
+            assert re.search(r"MMTC.*Project Governance", ai_content_logs), f"'MMTC.*Project Governance' pattern not found in AI content logs: {ai_content_logs}"
+            assert "[INSERT PROJECT NAME]" not in ai_content_logs, f"Template placeholder found in AI content logs: {ai_content_logs}"
+            assert "completed template" not in ai_content_logs, f"AI chat text found in AI content logs: {ai_content_logs}"
             
             # Verify repository setup
             repo_path = verify_repository_setup(env.target_dir, 'GOVERNANCE.md')

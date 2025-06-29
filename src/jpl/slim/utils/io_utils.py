@@ -223,41 +223,63 @@ def fetch_repository_context(repo_path, repository_context_config):
     Returns:
         str: Combined context content, or None if not found
     """
-    categories = repository_context_config.get('categories', ['documentation'])
+    categories = repository_context_config.get('categories', None)
     max_characters = repository_context_config.get('max_characters', 10000)
-    include_patterns = repository_context_config.get('include_patterns', ['README*', '*.md'])
+    include_patterns = repository_context_config.get('include_patterns', [])
     exclude_patterns = repository_context_config.get('exclude_patterns', ['*.log', '.git/'])
     
-    context_parts = []
-    total_chars = 0
+    # Build the final set of patterns
+    all_patterns = set()
     
-    # Process each category in order
-    for category in categories:
-        if total_chars >= max_characters:
-            break
-            
-        category_content = ""
-        
-        if category == "documentation":
-            category_content = fetch_documentation_files(repo_path, include_patterns, exclude_patterns)
-        elif category == "code":
-            category_content = fetch_code_files(repo_path, include_patterns, exclude_patterns)
-        elif category == "config":
-            category_content = fetch_config_files(repo_path, include_patterns, exclude_patterns)
-        elif category == "structure":
-            category_content = fetch_directory_structure(repo_path, exclude_patterns)
-        elif category == "tests":
-            category_content = fetch_test_files(repo_path, include_patterns, exclude_patterns)
-        
-        if category_content:
-            remaining_chars = max_characters - total_chars
-            if len(category_content) > remaining_chars:
-                category_content = category_content[:remaining_chars] + "... [truncated]"
-            
-            context_parts.append(f"=== {category.upper()} ===\n{category_content}")
-            total_chars += len(category_content)
+    # Step 1: If categories specified, add their default patterns
+    if categories:
+        for category in categories:
+            if category == "documentation":
+                # Get default doc patterns
+                doc_patterns = ['README*', '*.md', '*.rst', '*.txt', 'CHANGELOG*', 'LICENSE*', 'CONTRIBUTING*']
+                all_patterns.update(doc_patterns)
+            elif category == "code":
+                # Get default code patterns
+                code_patterns = ['*.py', '*.js', '*.ts', '*.java', '*.go', '*.rs', '*.cpp', '*.c', '*.h', '*.cs', '*.php', '*.rb']
+                all_patterns.update(code_patterns)
+            elif category == "config":
+                # Get default config patterns
+                config_patterns = ['package.json', 'setup.py', 'pyproject.toml', 'Cargo.toml', 'pom.xml', '*.yaml', '*.yml', '*.ini', '*.cfg', 'Makefile', 'Dockerfile']
+                all_patterns.update(config_patterns)
+            elif category == "tests":
+                # Get default test patterns
+                test_patterns = ['test_*.py', '*_test.py', '*.test.js', '*.spec.js', 'tests/**', 'test/**']
+                all_patterns.update(test_patterns)
     
-    return "\n\n".join(context_parts) if context_parts else None
+    # Step 2: Add include_patterns if specified
+    if include_patterns:
+        all_patterns.update(include_patterns)
+    
+    # Step 3: If no patterns collected, return None (no context)
+    if not all_patterns:
+        return None
+    
+    # Convert set back to list for processing
+    final_patterns = list(all_patterns)
+    
+    # Fetch files using the final pattern list
+    # exclude_patterns are handled at the file level in _fetch_files_by_patterns
+    content = _fetch_files_by_patterns(repo_path, final_patterns, exclude_patterns)
+    
+    # Handle max_characters limit
+    if content and len(content) > max_characters:
+        content = content[:max_characters] + "... [truncated]"
+    
+    # For structure category, handle separately as it doesn't use patterns
+    if categories and "structure" in categories:
+        structure_content = fetch_directory_structure(repo_path, exclude_patterns)
+        if structure_content:
+            if content:
+                content = f"{content}\n\n=== STRUCTURE ===\n{structure_content}"
+            else:
+                content = f"=== STRUCTURE ===\n{structure_content}"
+    
+    return content
 
 
 def fetch_documentation_files(repo_path, include_patterns, exclude_patterns):

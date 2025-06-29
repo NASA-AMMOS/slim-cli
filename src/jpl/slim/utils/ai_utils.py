@@ -497,6 +497,7 @@ class PlaceholderAIGenerator:
                 
                 # Reconstruct and save file
                 final_content = self.reconstruct_content(sections)
+                logging.debug(f"AI generated content for {file_name}:\n{final_content}")
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(final_content)
                 
