@@ -11,7 +11,7 @@ from jpl.slim.commands import (
     apply_command,
     deploy_command,
     apply_deploy_command,
-    generate_tests_command
+    # generate_tests_command  # Temporarily disabled - needs work
 )
 
 __all__ = [
@@ -19,5 +19,5 @@ __all__ = [
     "apply_command",
     "deploy_command",
     "apply_deploy_command",
-    "generate_tests_command"
+    # "generate_tests_command"  # Temporarily disabled - needs work
 ]

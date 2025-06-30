@@ -12,26 +12,46 @@ from rich.console import Console
 # Create the main Typer app
 app = typer.Typer(
     name="slim",
-    help="🛠️ SLIM CLI - Automates the application of best practices to git repositories.",
-    add_completion=True,
+    help="🛠️  SLIM CLI - Modernizing software through the automated infusion of best practices.",
+    add_completion=False,
     no_args_is_help=True,
     invoke_without_command=True,
     rich_markup_mode="rich",
     epilog="""
-[bold]Examples:[/bold]
-  # List available best practices
-  slim list
+  [bold]Examples:[/bold]
 
-  # Apply documentation generation with AI
-  slim apply --best-practice-ids docs-website --repo-dir ./my-project --output-dir ./docs --use-ai openai/gpt-4o-mini
+  [u]List available best practices:[/u]\n\n 
+  slim list\n
+  
+  [u]Apply a README template by cloning and patching a repo in a temp folder:[/u]\n\n
+  slim apply --best-practice-ids readme --repo-urls <YOUR_GITHUB_REPO_URL>\n
+  
+  [u]Apply a README template by cloning and patching a repo in a temp folder, then pushing to GitHub as a new branch:[/u]\n\n
+  slim apply-deploy --best-practice-ids readme --repo-urls <YOUR_GITHUB_REPO_URL>\n
+  
+  [u]Apply Secrets Detection support (two assets):[/u]\n\n
+  slim apply --best-practice-ids secrets-github --best-practice-ids secrets-precommit --repo-urls <YOUR_GITHUB_REPO_URL> --no-prompt\n
 
-  # See available AI models
-  slim models list
+  [u]See available AI models:[/u]\n\n
+  slim models list\n
+  
+  [u]Get model recommendations:[/u]\n\n
+  slim models recommend\n
 
-  # Get model recommendations
-  slim models recommend --task documentation --tier balanced
+  [u]Create a docs website from scanning source code with local AI:[/u]\n\n
+  slim apply --best-practice-ids docs-website --repo-dir /path/to/my-source-repo --output-dir /path/to/new/docs-website-folder-to-create --use-ai ollama/llama3.1\n
+  
+  [u]Apply to multiple repositories:[/u]\n\n
+  slim apply --best-practice-ids readme --repo-urls https://github.com/org/repo1 --repo-urls https://github.com/org/repo2 --repo-urls https://github.com/org/repo3\n
+  
+  [u]Apply using a list of repositories from a file:[/u]\n\n
+  slim apply --best-practice-ids governance-small --repo-urls-file repos.txt\n
+  
+  [u]Apply docs-website using a cloud AI model:[/u]\n\n
+  slim apply --best-practice-ids docs-website --repo-dir /path/to/my-source-repo --output-dir /path/to/new/docs-website-folder-to-create --use-ai anthropic/claude-3-5-sonnet-20241022\n\n
 
-For more information: https://github.com/NASA-AMMOS/slim
+
+[blue]Visit the SLIM website: https://github.com/NASA-AMMOS/slim[/blue]
     """
 )
 

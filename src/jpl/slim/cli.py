@@ -75,7 +75,7 @@ from jpl.slim.utils.ai_utils import (
 from jpl.slim.commands.apply_command import apply_best_practices, apply_best_practice
 from jpl.slim.commands.deploy_command import deploy_best_practices, deploy_best_practice
 from jpl.slim.commands.apply_deploy_command import apply_and_deploy_best_practices, apply_and_deploy_best_practice
-from jpl.slim.commands.generate_tests_command import handle_generate_tests
+# from jpl.slim.commands.generate_tests_command import handle_generate_tests  # Temporarily disabled - needs work
 
 
 
@@ -219,7 +219,7 @@ from jpl.slim.commands import models_command
 from jpl.slim.commands import apply_command  
 from jpl.slim.commands import deploy_command
 from jpl.slim.commands import apply_deploy_command
-from jpl.slim.commands import generate_tests_command
+# from jpl.slim.commands import generate_tests_command  # Temporarily disabled - needs work
 
 
 def main():
