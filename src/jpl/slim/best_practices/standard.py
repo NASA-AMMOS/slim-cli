@@ -19,6 +19,7 @@ from jpl.slim.utils.io_utils import download_and_place_file
 from jpl.slim.utils.ai_utils import generate_with_ai
 from jpl.slim.utils.prompt_utils import get_prompt_with_context, get_repository_context
 from jpl.slim.utils.io_utils import read_file_content, fetch_repository_context
+from jpl.slim.utils.git_utils import create_repo_temp_dir
 # Import the constant directly to avoid circular imports
 GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = 'slim-best-practices'
 
@@ -76,7 +77,7 @@ class StandardPractice(BestPractice):
                     target_dir_to_clone_to = os.path.join(target_dir_to_clone_to, repo_name)
                     logging.debug(f"Set clone directory to {target_dir_to_clone_to}")
                 else:  # else make a temporary directory
-                    target_dir_to_clone_to = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+                    target_dir_to_clone_to = create_repo_temp_dir(repo_name)
                     logging.debug(f"Generating temporary clone directory at {target_dir_to_clone_to}")
             else:
                 target_dir_to_clone_to = repo_path

@@ -25,7 +25,7 @@ from jpl.slim.utils.io_utils import (
     fetch_best_practices,
     repo_file_to_list
 )
-from jpl.slim.utils.git_utils import generate_git_branch_name
+from jpl.slim.utils.git_utils import generate_git_branch_name, create_repo_temp_dir
 from jpl.slim.manager.best_practices_manager import BestPracticeManager
 from jpl.slim.commands.common import (
     SLIM_REGISTRY_URI,
@@ -262,7 +262,7 @@ def apply_best_practices(best_practice_ids, use_ai_flag, model, repo_urls=None, 
                                         return False
                                     progress.update(task, description=f"Completed {best_practice_id}")
                     else:  # else make a temporary directory
-                        repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+                        repo_dir = create_repo_temp_dir(repo_name)
                         logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
                         for best_practice_id in best_practice_ids:
                             with Progress(
@@ -403,7 +403,7 @@ def apply_best_practice(best_practice_id, use_ai_flag, model, repo_url=None, exi
             logging.debug(f"Set clone directory to {repo_path}")
         else:
             # Create a temporary directory
-            repo_path = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+            repo_path = create_repo_temp_dir(repo_name)
             logging.debug(f"Generating temporary clone directory at {repo_path}")
 
     # Apply the best practice

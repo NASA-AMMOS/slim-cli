@@ -19,7 +19,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 import git
 
 from jpl.slim.utils.io_utils import repo_file_to_list
-from jpl.slim.utils.git_utils import generate_git_branch_name
+from jpl.slim.utils.git_utils import generate_git_branch_name, create_repo_temp_dir
 from jpl.slim.commands.apply_command import apply_best_practice
 from jpl.slim.commands.deploy_command import deploy_best_practice
 from jpl.slim.commands.common import (
@@ -325,7 +325,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                         )
 
                     else:  # Make a temporary directory
-                        repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+                        repo_dir = create_repo_temp_dir(repo_name)
                         logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
                         
                         # Apply and deploy with temporary directory

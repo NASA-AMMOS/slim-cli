@@ -18,6 +18,27 @@ from typing import Dict, List, Optional, Union
 # Constants (these should be moved to a constants module later)
 GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = 'slim-best-practices'
 GIT_DEFAULT_REMOTE_NAME = 'origin'
+
+
+def create_repo_temp_dir(repo_name: str) -> str:
+    """
+    Create a temporary directory with structure {temp_dir}/{repo_name}/
+    
+    Args:
+        repo_name (str): Name of the repository
+        
+    Returns:
+        str: Path to the repo subdirectory
+    """
+    # Create a randomized parent directory using system temp dir
+    parent_dir = tempfile.mkdtemp()
+    
+    # Create repo subdirectory within the parent
+    repo_dir = os.path.join(parent_dir, repo_name)
+    os.makedirs(repo_dir, exist_ok=True)
+    
+    logging.debug(f"Created temporary repo directory at {repo_dir}")
+    return repo_dir
 GIT_CUSTOM_REMOTE_NAME = 'slim-custom'
 GIT_DEFAULT_COMMIT_MESSAGE = 'SLIM-CLI Best Practices Bot Commit'
 
@@ -82,8 +103,7 @@ def clone_repository(repo_url, target_dir=None):
             target_dir = os.path.join(target_dir, repo_name)
             logging.debug(f"Set clone directory to {target_dir}")
         else:
-            target_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
-            logging.debug(f"Generating temporary clone directory at {target_dir}")
+            target_dir = create_repo_temp_dir(repo_name)
         
         # Clone the repository
         repo = git.Repo.clone_from(repo_url, target_dir)
