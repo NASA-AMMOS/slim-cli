@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.tree import Tree
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from jpl.slim.utils.io_utils import fetch_best_practices, create_slim_registry_dictionary
+from jpl.slim.utils.io_utils import fetch_best_practices
 from jpl.slim.commands.common import SLIM_REGISTRY_URI
 from jpl.slim.app import app, state, handle_dry_run_for_command
 from jpl.slim.utils.cli_utils import managed_progress
@@ -36,8 +36,8 @@ def list(
     Lists all available best practices from the SLIM registry.
     
     This command fetches and displays all registered best practices
-    in a tree format organized by category, showing their aliases, 
-    titles, descriptions, and associated assets.
+    in a tree format organized by practice title, showing their 
+    descriptions, guide URLs, and associated assets with aliases.
     """
     # Configure logging
     from jpl.slim.commands.common import configure_logging
@@ -72,38 +72,57 @@ def list(
             logging.debug(f"Successfully fetched {len(practices)} practices from registry")
             progress.update(task, description="Processing registry data...")
             
-            logging.debug("Creating SLIM registry dictionary from practices")
-
-            asset_mapping = create_slim_registry_dictionary(practices)
-            logging.debug(f"Created mapping for {len(asset_mapping)} practices")
-            
-            progress.update(task, description=f"Found {len(asset_mapping)} best practices")
+            progress.update(task, description=f"Found {len(practices)} best practices")
 
     # Create and configure the tree
     tree = Tree(
-        "[bold]Available SLIM Best Practices[/bold]",
-        style="bold magenta"
+        "[bold]Available SLIM Best Practices (choose an asset)[/bold]",
+        style="bold"
     )
     
-    # Add practices to tree in alphabetical order (no categorization)
+    # Add practices to tree in alphabetical order by title
     logging.debug("Building tree structure for display")
-    for alias, info in sorted(asset_mapping.items(), key=lambda x: x[0]):
-        logging.debug(f"Adding practice: {alias} - {info['title']}")
+    for practice in sorted(practices, key=lambda x: x.get('title', '')):
+        title = practice.get('title', 'N/A')
+        logging.debug(f"Adding practice: {title}")
         
-        # Create the practice node with alias
-        practice_node = tree.add(f"[cyan]{alias}[/cyan]")
+        # Create the practice node with title
+        practice_node = tree.add(f"[yellow]{title}[/yellow]")
         
-        # Add title as a sub-node
-        practice_node.add(f"[bold yellow]Title:[/bold yellow] [white]{info['title']}[/white]")
+        # Add description as a sub-node
+        description = practice.get('description', 'N/A')
+        description = textwrap.fill(description, width=80)
+        practice_node.add(f"[yellow]Description:[/yellow] [white]{description}[/white]")
         
-        # Add description, wrapped for readability
-        description = textwrap.fill(info['description'], width=80)
-        practice_node.add(f"[bold yellow]Description:[/bold yellow] [white]{description}[/white]")
+        # Add guide URL
+        practice_uri = practice.get('uri', '')
+        if practice_uri:
+            guide_url = f"https://nasa-ammos.github.io{practice_uri}"
+            practice_node.add(f"[yellow]Guide:[/yellow] [white]{guide_url}[/white]")
         
-        # Add asset information
-        practice_node.add(f"[bold yellow]Asset:[/bold yellow] [white]{info['asset_name']}[/white]")
+        # Add assets if available
+        assets = practice.get('assets', [])
+        if assets:
+            assets_node = practice_node.add("[yellow]Assets:[/yellow]")
+            for asset in assets:
+                alias = asset.get('alias', '')
+                name = asset.get('name', 'N/A')
+                uri = asset.get('uri', '')
+                
+                if alias:
+                    # Format: alias (cyan) - name (white)
+                    asset_text = f"[cyan]{alias}[/cyan] - [white]{name}[/white]"
+                    if uri:
+                        asset_text += f" [white]({uri})[/white]"
+                    assets_node.add(asset_text)
+                else:
+                    # No alias, just show name
+                    asset_text = f"[white]{name}[/white]"
+                    if uri:
+                        asset_text += f" [white]({uri})[/white]"
+                    assets_node.add(asset_text)
 
     logging.debug("Displaying practices tree")
     console.print(tree)
-    console.print(f"\n[dim]Total practices: {len(asset_mapping)}[/dim]")
+    console.print(f"\n[dim]Total practices: {len(practices)}[/dim]")
     logging.debug("List command completed successfully")
