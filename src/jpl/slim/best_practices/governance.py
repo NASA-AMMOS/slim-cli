@@ -105,6 +105,26 @@ class GovernanceBestPractice(StandardPractice):
                 from jpl.slim.utils.ai_utils import generate_with_ai
                 return self._fallback_ai_generation(git_repo, file_path, model)
             
+            # Create governance-specific patterns
+            committer_pattern = None
+            delimiter_pattern = None
+            if self.best_practice_id == 'governance-small':
+                # Small teams focus on basic committer info
+                committer_pattern = re.compile(r'\[INSERT.*?(MEMBER|COMMITTER).*?\]')
+                delimiter_pattern = re.compile(r'### Committer', re.MULTILINE)
+            elif self.best_practice_id == 'governance-medium':
+                # Medium teams include username links and org associations
+                committer_pattern = re.compile(r'\[INSERT.*?(MEMBER|COMMITTER|USERNAME|ORG).*?\]')
+                delimiter_pattern = re.compile(r'### Steering Committee', re.MULTILINE)
+            elif self.best_practice_id == 'governance-large':
+                # Large teams include all patterns plus committer lists
+                committer_pattern = re.compile(r'\[List of current committers\]')
+                delimiter_pattern = re.compile(r'### Technical Steering Committee Member', re.MULTILINE)
+            else:
+                # Fallback patterns
+                committer_pattern = re.compile(r'\[INSERT.*?(MEMBER|COMMITTER|USERNAME|ORG).*?\]|\[List of current committers\]')
+                delimiter_pattern = re.compile(r'^##\s+', re.MULTILINE)
+            
             # Create placeholder mappings
             placeholder_mappings = [
                 PlaceholderMapping(
@@ -113,7 +133,7 @@ class GovernanceBestPractice(StandardPractice):
                     context=contributor_context
                 ),
                 PlaceholderMapping(
-                    pattern=re.compile(r'\[INSERT.*?(MEMBER|COMMITTER|USERNAME|ORG).*?\]|\[List of current committers\]'),
+                    pattern=committer_pattern,
                     prompt=committers_prompt,
                     context=contributor_context
                 )
@@ -124,7 +144,7 @@ class GovernanceBestPractice(StandardPractice):
             
             # Generate AI content for the file using section splitting
             # Split on ## headings to separate title, roles, acknowledgements, etc.
-            delimiter_pattern = re.compile(r'^##\s+', re.MULTILINE)
+            # DELETE SOON: delimiter_pattern = re.compile(r'^##\s+', re.MULTILINE)
             
             result = generator.generate_files(
                 file_paths=[file_path],
