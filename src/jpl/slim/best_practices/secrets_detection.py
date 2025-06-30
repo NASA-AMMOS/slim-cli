@@ -14,6 +14,7 @@ import git
 from pathlib import Path
 from jpl.slim.best_practices.standard import StandardPractice
 from jpl.slim.utils.io_utils import download_and_place_file
+from jpl.slim.utils.cli_utils import spinner_safe_input
 
 # Check if we're in test mode
 SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')
@@ -79,14 +80,14 @@ class SecretsDetection(StandardPractice):
                             return None
                     else:
                         # Prompt for confirmation before installing
-                        confirmation = input("The detect-secrets tool (https://github.com/Yelp/detect-secrets) is needed to support this best practice. Do you want me to install/re-install detect-secrets? (y/n): ")
+                        confirmation = spinner_safe_input("\nThe detect-secrets tool (https://github.com/Yelp/detect-secrets) is needed to support this best practice. Do you want me to install/re-install detect-secrets? (y/n): ")
                         if confirmation.lower() in ['y', 'yes']:
                             self._install_detect_secrets()
                         else:
                             logging.warning("Not installing detect-secrets. Assuming it is already installed.")
 
                         # Prompt for confirmation before installing
-                        confirmation = input("Do you want me to run an initial scan with detect-secrets (will overwrite an existing `.secrets-baseline` file)? (y/n): ")
+                        confirmation = spinner_safe_input("\nDo you want me to run an initial scan with detect-secrets (will overwrite an existing `.secrets-baseline` file)? (y/n): ")
                         if confirmation.lower() in ['y', 'yes']:
                             scan_result = self._run_detect_secrets_scan(git_repo)
                             if not scan_result:
@@ -113,14 +114,14 @@ class SecretsDetection(StandardPractice):
                     self._install_pre_commit()
                 else:
                     # Prompt for confirmation before installing
-                    confirmation = input("The detect-secrets tool (https://github.com/Yelp/detect-secrets) is needed to support this best practice. Do you want me to install/re-install detect-secrets? (y/n): ")
+                    confirmation = spinner_safe_input("\nThe detect-secrets tool (https://github.com/Yelp/detect-secrets) is needed to support this best practice. Do you want me to install/re-install detect-secrets? (y/n): ")
                     if confirmation.lower() in ['y', 'yes']:
                         self._install_detect_secrets()
                     else:
                         logging.warning("Not installing detect-secrets. Assuming it is already installed.")
 
                     # Prompt for confirmation before installing
-                    confirmation = input("The pre-commit tool (https://pre-commit.com) is needed to support this best practice. Do you want to install/re-install pre-commit? (y/n): ")
+                    confirmation = spinner_safe_input("\nThe pre-commit tool (https://pre-commit.com) is needed to support this best practice. Do you want to install/re-install pre-commit? (y/n): ")
                     if confirmation.lower() in ['y', 'yes']:
                         self._install_pre_commit()
                     else:
@@ -147,16 +148,16 @@ class SecretsDetection(StandardPractice):
                                 return None
                     else:
                         # Prompt for confirmation before installing hooks
-                        confirmation = input("Installation of the new pre-commit hook is needed via `pre-commit install`. Do you want to install the pre-commit hook for you? (y/n): ")
+                        confirmation = spinner_safe_input("\nInstallation of the new pre-commit hook is needed via `pre-commit install`. Do you want to install the pre-commit hook for you? (y/n): ")
                         if confirmation.lower() in ['y', 'yes']:
                             self._install_pre_commit_hooks(git_repo)
                         
                         # Check if .secrets.baseline file exists and prompt user
                         baseline_file = os.path.join(git_repo.working_dir, '.secrets.baseline')
                         if os.path.exists(baseline_file):
-                            confirmation = input("A .secrets.baseline file already exists. Do you want to run detect-secrets scan again (this will overwrite the existing file)? (y/n): ")
+                            confirmation = spinner_safe_input("\nA .secrets.baseline file already exists. Do you want to run detect-secrets scan again (this will overwrite the existing file)? (y/n): ")
                         else:
-                            confirmation = input("Do you want to run an initial scan with detect-secrets to create a .secrets.baseline file? (y/n): ")
+                            confirmation = spinner_safe_input("\nDo you want to run an initial scan with detect-secrets to create a .secrets.baseline file? (y/n): ")
                         
                         if confirmation.lower() in ['y', 'yes']:
                             scan_result = self._run_detect_secrets_scan(git_repo)
