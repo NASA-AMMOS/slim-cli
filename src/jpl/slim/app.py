@@ -30,7 +30,7 @@ app = typer.Typer(
   slim apply-deploy --best-practice-ids readme --repo-urls <YOUR_GITHUB_REPO_URL>\n
   
   [u]Apply Secrets Detection support (two assets):[/u]\n\n
-  slim apply --best-practice-ids secrets-github --best-practice-ids secrets-precommit --repo-urls <YOUR_GITHUB_REPO_URL> --no-prompt\n
+  slim apply --best-practice-ids secrets-github --best-practice-ids secrets-precommit --repo-urls <YOUR_GITHUB_REPO_URL>\n
 
   [u]See available AI models:[/u]\n\n
   slim models list\n
@@ -39,7 +39,7 @@ app = typer.Typer(
   slim models recommend\n
 
   [u]Create a docs website from scanning source code with local AI:[/u]\n\n
-  slim apply --best-practice-ids docs-website --repo-dir /path/to/my-source-repo --output-dir /path/to/new/docs-website-folder-to-create --use-ai ollama/llama3.1\n
+  slim apply --best-practice-ids docs-website --repo-urls <YOUR_GITHUB_REPO_URL> --output-dir /path/to/new/docs-website-folder-to-create --use-ai ollama/llama3.1\n
   
   [u]Apply to multiple repositories:[/u]\n\n
   slim apply --best-practice-ids readme --repo-urls https://github.com/org/repo1 --repo-urls https://github.com/org/repo2 --repo-urls https://github.com/org/repo3\n
@@ -48,7 +48,7 @@ app = typer.Typer(
   slim apply --best-practice-ids governance-small --repo-urls-file repos.txt\n
   
   [u]Apply docs-website using a cloud AI model:[/u]\n\n
-  slim apply --best-practice-ids docs-website --repo-dir /path/to/my-source-repo --output-dir /path/to/new/docs-website-folder-to-create --use-ai anthropic/claude-3-5-sonnet-20241022\n\n
+  slim apply --best-practice-ids docs-website --repo-urls <YOUR_GITHUB_REPO_URL> --output-dir /path/to/new/docs-website-folder-to-create --use-ai anthropic/claude-3-5-sonnet-20241022\n\n
 
 
 [blue]Visit the SLIM website: https://github.com/NASA-AMMOS/slim[/blue]
