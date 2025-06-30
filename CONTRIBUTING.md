@@ -16,12 +16,20 @@ Our Code of Conduct helps facilitate a positive interaction environment for ever
 
 ### Developer Environment
 
-For patch contributions, see our [README.md](README.md) for more details on how to set up your local environment, to best contribute to our project. 
+For patch contributions, see our [README.md](README.md) for more details on how to set up your local environment, to best contribute to our project.
+
+**Development Dependencies:**
+- Python 3.7+
+- Git
+- **Optional**: LiteLLM for AI model support (`pip install litellm`)
+- pytest for testing (`pip install pytest pytest-cov`)
+- Typer and Rich for CLI development (`pip install typer rich`)
 
 At a minimum however to submit patches (if using Git), you'll want to ensure you have:
 1. An account on the Version Control System our project uses (i.e. GitHub).
 2. The Version Control System client (i.e. Git) installed on your local machine.
 3. The ability to edit, build, and test our project on your local machine. Again, see our [README.md](README.md) for more details.
+4. Understanding of the modern CLI framework (Typer + Rich) used in this project.
 
 ### Communication Channels
 
@@ -101,48 +109,110 @@ This section provides an overview of the SLIM codebase architecture and explains
 
 ### Architectural Overview
 
-SLIM is designed with a modular architecture that makes it easy to extend with new functionality. The main components are:
+SLIM CLI is built on a modern architecture using **Typer** for CLI framework and **Rich** for terminal UI. The system features dynamic AI model discovery, extensible best practice mapping, and YAML-based testing. The main components are:
 
 ```mermaid
 flowchart TD
-    CLI[CLI Module] --> Commands[Commands Package]
-    CLI --> Manager[Manager Package]
-    Commands --> Manager
-    Manager --> BestPractices[Best Practices Package]
-    Commands --> BestPractices
-    Commands --> Utils[Utils Package]
-    BestPractices --> Utils
-    Manager --> Utils
+    subgraph "CLI Layer (Typer + Rich)"
+        App[app.py - Main Typer App]
+        CLI[cli.py - Entry Point & Legacy Compatibility]
+    end
+    
+    subgraph "Commands Layer"
+        Apply[apply_command.py]
+        Deploy[deploy_command.py]
+        Models[models_command.py]
+        List[list_command.py]
+    end
+    
+    subgraph "Rich TUI System"
+        Spinner[SpinnerManager]
+        Progress[Progress Indicators]
+    end
+    
+    subgraph "Management & Configuration"
+        Manager[best_practices_manager.py]
+        Mapping[practice_mapping.py]
+        Prompts[prompts/prompts.yaml]
+    end
+    
+    subgraph "Best Practices"
+        Standard[standard.py]
+        Secrets[secrets_detection.py]
+        Governance[governance.py]
+        DocsWebsite[docs_website.py]
+    end
+    
+    subgraph "Utils Layer"
+        AIUtils[ai_utils.py - LiteLLM Integration]
+        GitUtils[git_utils.py]
+        CLIUtils[cli_utils.py - Spinner Management]
+        PromptUtils[prompt_utils.py]
+    end
+    
+    App --> CLI
+    CLI --> Apply
+    CLI --> Deploy
+    CLI --> Models
+    CLI --> List
+    Apply --> Spinner
+    Apply --> Manager
+    Manager --> Mapping
+    Manager --> Standard
+    Manager --> Secrets
+    Standard --> AIUtils
+    Standard --> PromptUtils
+    PromptUtils --> Prompts
+    AIUtils --> LiteLLM[100+ AI Models via LiteLLM]
 ```
 
 #### Key Components
 
-1. **CLI Module** (`src/jpl/slim/cli.py`):
-   - Entry point for the command-line interface
-   - Parses arguments and dispatches to appropriate command handlers
-   - Registers all available commands
+1. **Typer CLI Framework** (`src/jpl/slim/app.py`, `src/jpl/slim/cli.py`):
+   - **app.py**: Main Typer application instance with Rich markup support
+   - **cli.py**: Entry point and legacy compatibility layer
+   - Features: Rich TUI, dry-run mode, global state management
+   - Uses decorators: `@app.command()` for command registration
 
 2. **Commands Package** (`src/jpl/slim/commands/`):
-   - Contains modules for each subcommand of the SLIM CLI
-   - Each command module has:
-     - `setup_parser()` function to configure command arguments
-     - `handle_command()` function to execute the command
+   - **Modern Typer Commands**: Each command uses Typer decorators and type hints
+   - **Rich Integration**: Progress bars, spinners, and colored output
+   - **Key Commands**:
+     - `apply_command.py`: Apply best practices with Rich progress indicators
+     - `models_command.py`: AI model discovery and management (NEW)
+     - `deploy_command.py`: Git deployment with spinner feedback
+     - `list_command.py`: List available practices
 
-3. **Best Practices Package** (`src/jpl/slim/best_practices/`):
-   - Contains the base class and implementations of best practices
-   - `BestPractice` abstract base class defines the interface
-   - Concrete implementations extend the base class
+3. **Rich TUI System** (`src/jpl/slim/utils/cli_utils.py`):
+   - **SpinnerManager**: Global progress coordination during user input
+   - **managed_progress()**: Context manager for spinner/progress coordination
+   - **spinner_safe_input()**: Clean user input with automatic progress pause/resume
 
-4. **Manager Package** (`src/jpl/slim/manager/`):
-   - Contains the `BestPracticeManager` class
-   - Manages best practices and their lifecycle
-   - Retrieves best practices by ID
+4. **Practice Mapping System** (`src/jpl/slim/best_practices/practice_mapping.py`):
+   - **ALIAS_TO_PRACTICE_CLASS**: Central mapping for extensibility
+   - **ALIAS_TO_FILE_PATH**: File placement mapping for StandardPractice
+   - **Helper Functions**: Practice type detection and classification
+   - **Extension Point**: Add new practices by updating mappings
 
-5. **Utils Package** (`src/jpl/slim/utils/`):
-   - Contains utility functions for:
-     - Git operations (`git_utils.py`)
-     - I/O operations (`io_utils.py`)
-     - AI operations (`ai_utils.py`)
+5. **Best Practices Package** (`src/jpl/slim/best_practices/`):
+   - **Base Classes**: Abstract interfaces for different practice types
+   - **Standard Practices**: Template-based practices (README, CONTRIBUTING, etc.)
+   - **Secrets Detection**: Security-focused practices
+   - **Governance**: Project governance with git contributor integration
+   - **Documentation Website**: AI-powered documentation site generation
+
+6. **AI Integration** (`src/jpl/slim/utils/ai_utils.py`, `src/jpl/slim/prompts/`):
+   - **LiteLLM Integration**: 100+ AI models with automatic discovery
+   - **Centralized Prompts**: YAML-based prompt management with inheritance
+   - **Model Management**: Validation, recommendations, and setup instructions
+   - **Repository Context**: Configurable context extraction for AI enhancement
+
+7. **Utils Layer** (`src/jpl/slim/utils/`):
+   - **ai_utils.py**: LiteLLM integration and model management
+   - **cli_utils.py**: Rich TUI utilities and spinner management
+   - **git_utils.py**: Git operations with `create_repo_temp_dir()` helper
+   - **prompt_utils.py**: Centralized prompt loading and context management
+   - **io_utils.py**: File I/O and registry operations
 
 ### Extension Points
 
@@ -150,148 +220,362 @@ SLIM is designed to be easily extended with new best practices and commands. Her
 
 #### Adding a New Best Practice
 
-⚠️ NOTE: You'll want to ensure your best practice is referenced in the SLIM registry with assets, as this is a pre-requisite step to automating the application of a best practice:
-  1. See this guide on adding to the SLIM registry: https://nasa-ammos.github.io/slim/docs/contribute/submit-best-practice#add-entry-to-the-registry
-  2. Once added, run `slim list` to see and get the ID for the best practice you want to support. The ID numbers are automatically generated. 
-  3. Proceed with the below steps once you have an ID and best practice assets to work with.
+⚠️ **Prerequisites**: Ensure your best practice is in the SLIM registry first:
+1. See: https://nasa-ammos.github.io/slim/docs/contribute/submit-best-practice#add-entry-to-the-registry
+2. Run `slim list` to get the auto-generated ID
+3. Proceed with implementation steps below
 
-To add a new best practice to SLIM:
+**Modern Best Practice Implementation Process:**
 
-1. **Create a new class** that inherits from `BestPractice` in the `src/jpl/slim/best_practices/` directory:
+SLIM uses a centralized mapping system for extensibility. To add a new best practice:
+
+**1. Update Practice Mapping** (`src/jpl/slim/best_practices/practice_mapping.py`):
 
 ```python
-from jpl.slim.best_practices.base import BestPractice
+# Add your practice to the central mapping
+ALIAS_TO_PRACTICE_CLASS = {
+    # Existing mappings...
+    'your-new-practice': 'YourNewPracticeClass',  # Add this line
+}
 
-class YourNewPractice(BestPractice):
+# If it's a StandardPractice, add file path mapping:
+ALIAS_TO_FILE_PATH = {
+    # Existing mappings...
+    'your-new-practice': 'YOUR_PRACTICE_FILE.md',  # Add this line
+}
+```
+
+**2. Create Practice Class** (choose appropriate base class):
+
+**Option A: StandardPractice (template-based)**
+```python
+# No new class needed! StandardPractice uses practice_mapping.py automatically
+# Just update the mapping above and you're done
+```
+
+**Option B: Custom Practice Class**
+```python
+from jpl.slim.best_practices.base import BestPractice
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from jpl.slim.utils.cli_utils import managed_progress
+
+class YourNewPracticeClass(BestPractice):
     """
     Your new best practice implementation.
     
     This class implements a specific best practice for [describe purpose].
     """
     
-    def __init__(self):
-        """Initialize the best practice."""
-        super().__init__(
-            best_practice_id="your-practice-id",
-            uri="https://github.com/nasa-jpl/slim/your-practice",
-            title="Your Best Practice Title",
-            description="Description of your best practice"
-        )
+    def __init__(self, best_practice_id, uri, title, description):
+        """Initialize with parameters from manager."""
+        super().__init__(best_practice_id, uri, title, description)
+        self.console = Console()
     
     def apply(self, repo_path, use_ai=False, model=None, **kwargs):
         """
-        Apply your best practice to a repository.
+        Apply your best practice with Rich UI integration.
         
         Args:
             repo_path (str): Path to the repository
-            use_ai (bool, optional): Whether to use AI assistance. Defaults to False.
-            model (str, optional): AI model to use if use_ai is True. Defaults to None.
+            use_ai (bool): Whether to use AI assistance
+            model (str): AI model to use (anthropic/claude-3-5-sonnet-20241022, etc.)
+            **kwargs: Additional arguments from CLI
             
         Returns:
-            str or None: Path to the applied file if successful, None otherwise
+            git.Repo or None: Git repository object if successful
         """
-        # Implementation of your best practice application
-        pass
-    
-    def deploy(self, repo_path, remote=None, commit_message=None):
-        """
-        Deploy changes made by applying your best practice.
-        
-        Args:
-            repo_path (str): Path to the repository
-            remote (str, optional): Remote repository to push changes to. Defaults to None.
-            commit_message (str, optional): Commit message for the changes. Defaults to None.
-            
-        Returns:
-            bool: True if deployment was successful, False otherwise
-        """
-        # Implementation of your best practice deployment
-        pass
+        # Use Rich progress indicators
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=self.console,
+            transient=True
+        ) as progress:
+            with managed_progress(progress):
+                task = progress.add_task(f"Applying {self.best_practice_id}...", total=None)
+                
+                # Your implementation here
+                # Use self.console.print() for output
+                # Return git.Repo object for success, None for failure
+                pass
 ```
 
-2. **Register your best practice** in the `BestPracticeManager` class in `src/jpl/slim/manager/best_practices_manager.py`:
+**3. Update Best Practices Manager** (`src/jpl/slim/manager/best_practices_manager.py`):
 
-   - Add your best practice to the appropriate section in the `get_best_practice` method
-   - Import your new best practice class at the top of the file
+```python
+# Add import for custom practice classes (not needed for StandardPractice)
+from jpl.slim.best_practices.your_new_practice import YourNewPracticeClass
+
+# Update the practice class mapping constants
+from jpl.slim.best_practices.practice_mapping import (
+    PRACTICE_CLASS_STANDARD,
+    PRACTICE_CLASS_SECRETS,
+    PRACTICE_CLASS_DOCSWEBSITE,
+    PRACTICE_CLASS_GOVERNANCE,
+    # No changes needed here - mapping handles everything automatically
+)
+
+# The get_best_practice() method automatically uses practice_mapping.py
+# No manual registration required!
+```
 
 #### Adding a New Command
 
-To add a new command to SLIM:
+SLIM CLI uses **Typer** with **Rich** integration. To add a new command:
 
-1. **Create a new command module** in the `src/jpl/slim/commands/` directory:
+**1. Create a new command module** in `src/jpl/slim/commands/`:
 
 ```python
 """
 Your new command module for the SLIM CLI.
 
-This module contains the implementation of the 'your-command' subcommand.
+This module contains the Typer implementation of the 'your-command' subcommand.
 """
 
 import logging
+from typing import Optional, List
+from pathlib import Path
+import typer
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+
+from jpl.slim.app import app, state, handle_dry_run_for_command
+from jpl.slim.utils.cli_utils import managed_progress
 from jpl.slim.manager.best_practices_manager import BestPracticeManager
 from jpl.slim.utils.io_utils import fetch_best_practices
 from jpl.slim.commands.common import SLIM_REGISTRY_URI
 
-def setup_parser(subparsers):
-    """
-    Set up the parser for the 'your-command' command.
-    
-    Args:
-        subparsers: Subparsers object from argparse
-        
-    Returns:
-        The parser for the 'your-command' command
-    """
-    parser = subparsers.add_parser('your-command', help='Description of your command')
-    parser.add_argument('--your-arg', required=True, help='Description of your argument')
-    # Add more arguments as needed
-    parser.set_defaults(func=handle_command)
-    return parser
+console = Console()
 
-def handle_command(args):
+@app.command()
+def your_command(
+    your_arg: str = typer.Option(
+        ..., 
+        "--your-arg", "-y",
+        help="Description of your required argument"
+    ),
+    optional_arg: Optional[str] = typer.Option(
+        None,
+        "--optional-arg",
+        help="Description of optional argument"
+    ),
+    flag_arg: bool = typer.Option(
+        False,
+        "--flag-arg",
+        help="Boolean flag argument"
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run", "-d",
+        help="Show what would be executed without making changes"
+    ),
+    logging_level: str = typer.Option(
+        None,
+        "--logging", "-l",
+        help="Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL"
+    )
+):
     """
-    Handle the 'your-command' command.
+    Your command description here.
     
-    Args:
-        args: Arguments from argparse
+    This command does [explain what it does] with Rich terminal UI integration.
     """
-    logging.info(f"Executing your-command with args: {args.your_arg}")
+    # Configure logging
+    from jpl.slim.commands.common import configure_logging
+    configure_logging(logging_level, state)
     
-    # Implement your command logic here
-    # For example:
-    practices = fetch_best_practices(SLIM_REGISTRY_URI)
-    manager = BestPracticeManager(practices)
+    logging.debug(f"Starting your-command with arg: {your_arg}")
     
-    # Your command-specific logic
-    # ...
+    # Handle dry-run mode
+    if state.dry_run or dry_run:
+        if handle_dry_run_for_command(
+            "your-command",
+            your_arg=your_arg,
+            optional_arg=optional_arg,
+            flag_arg=flag_arg,
+            dry_run=True
+        ):
+            return
     
-    logging.info("Your command completed successfully")
+    # Implement your command with Rich progress
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True
+    ) as progress:
+        with managed_progress(progress):
+            task = progress.add_task("Executing your command...", total=None)
+            
+            try:
+                # Your command logic here
+                practices = fetch_best_practices(SLIM_REGISTRY_URI)
+                manager = BestPracticeManager(practices)
+                
+                progress.update(task, description="Processing...")
+                
+                # Your implementation
+                # Use console.print() for user output
+                # Use logging.debug/info/error for debug output
+                
+                progress.update(task, description="Completed successfully")
+                console.print(f"✅ [green]Your command completed successfully[/green]")
+                
+            except Exception as e:
+                console.print(f"❌ [red]Error in your command: {str(e)}[/red]")
+                raise typer.Exit(1)
+```
 ```
 
-2. **Register your command** in the CLI module (`src/jpl/slim/cli.py`):
+**2. Register your command** by importing it:
 
-   - Import your command module at the top of the file:
-   ```python
-   from jpl.slim.commands.your_command import setup_parser as setup_your_command_parser
-   ```
+The command is automatically registered when imported. Add to `src/jpl/slim/cli.py`:
 
-   - Add your command to the `create_parser` function:
-   ```python
-   setup_your_command_parser(subparsers)
-   ```
+```python
+# Import your command to register it with the Typer app
+from jpl.slim.commands import your_command  # This auto-registers the @app.command()
+```
 
-3. **Update the `__init__.py`** in the commands package to expose your new command:
+**3. No manual registration needed!** 
 
-   - Add your command module to the imports
-   - Add your command class to the `__all__` list
+Typer automatically discovers commands decorated with `@app.command()`. The import in `cli.py` ensures your command is loaded when the CLI starts.
 
 ### Testing Your Extensions
 
-After adding new best practices or commands, make sure to:
+SLIM CLI uses a comprehensive testing framework combining pytest with YAML-based integration testing:
 
-1. Write unit tests for your new functionality in the `tests/` directory
-2. Run the existing test suite to ensure you haven't broken anything
-3. Test your new functionality manually with various inputs and edge cases
+**1. Add YAML Integration Tests** (`tests/integration/best_practices_test_commands.yaml`):
+
+```yaml
+# Add your new practice to the YAML test configuration
+your-new-practice:
+  enabled: true  # Set to false to skip during development
+  commands:
+    # Success scenarios
+    - command: "slim apply --best-practice-ids your-new-practice --repo-dir {temp_git_repo}"
+      enabled: true
+    - command: "slim deploy --best-practice-ids your-new-practice --repo-dir {temp_git_repo_with_remote}"
+      enabled: true
+    # AI enhancement testing
+    - command: "slim apply --best-practice-ids your-new-practice --repo-dir {temp_git_repo} --use-ai {test_ai_model}"
+      enabled: true
+    # Error scenarios
+    - command: "slim apply --best-practice-ids your-new-practice --repo-dir /nonexistent/path"
+      enabled: true
+```
+
+**2. Write Unit Tests** (`tests/jpl/slim/best_practices/test_your_practice.py`):
+
+```python
+import pytest
+from unittest.mock import Mock, patch
+from typer.testing import CliRunner
+from jpl.slim.app import app
+from jpl.slim.best_practices.your_practice import YourNewPracticeClass
+
+class TestYourNewPractice:
+    def test_apply_success(self):
+        """Test successful application of your practice."""
+        practice = YourNewPracticeClass("your-practice", "uri", "title", "desc")
+        result = practice.apply("/test/repo")
+        assert result is not None
+    
+    def test_command_integration(self):
+        """Test CLI command integration."""
+        runner = CliRunner()
+        result = runner.invoke(app, ["your-command", "--your-arg", "test", "--dry-run"])
+        assert result.exit_code == 0
+        assert "Dry run complete" in result.stdout
+```
+
+**3. Run Tests**:
+
+```bash
+# Run all tests
+pytest
+
+# Run only your new tests
+pytest tests/jpl/slim/best_practices/test_your_practice.py
+
+# Run YAML integration tests
+pytest tests/jpl/slim/cli/test_best_practice_commands.py
+
+# Test with coverage
+pytest --cov=jpl.slim
+
+# Set test mode to prevent real API calls
+SLIM_TEST_MODE=true pytest
+```
+
+**4. Manual Testing**:
+
+```bash
+# Test your new practice
+slim apply --best-practice-ids your-new-practice --repo-dir /path/to/test/repo --dry-run
+
+# Test with AI enhancement
+slim apply --best-practice-ids your-new-practice --repo-dir /path/to/test/repo --use-ai ollama/llama3.1 --dry-run
+
+# Test new command
+slim your-command --your-arg test --dry-run
+```
+
+### AI Integration for New Practices
+
+To add AI enhancement support for your new best practice:
+
+**1. Add Prompts** (`src/jpl/slim/prompts/prompts.yaml`):
+
+```yaml
+# Add your practice prompts with hierarchical context
+your_practice_category:
+  context: "Context for your practice category"
+  
+  your_specific_practice:
+    context: "Specific context for your practice"
+    prompt: "AI instructions for enhancing your practice..."
+    repository_context:
+      categories: ["documentation", "structure"]
+      max_characters: 8000
+      include_patterns: ["*.md", "*.py"]
+```
+
+**2. Use AI in Your Practice**:
+
+```python
+from jpl.slim.utils.ai_utils import generate_ai_content
+from jpl.slim.utils.prompt_utils import get_prompt_with_context
+from jpl.slim.utils.io_utils import fetch_repository_context
+
+def apply(self, repo_path, use_ai=False, model=None, **kwargs):
+    # ... your practice logic ...
+    
+    if use_ai and model:
+        # Get prompt with context inheritance
+        prompt = get_prompt_with_context('your_practice_category', 'your_specific_practice')
+        
+        # Get repository context
+        repo_context = fetch_repository_context(repo_path, context_config)
+        
+        # Generate AI content
+        ai_content = generate_ai_content(f"{prompt}\n\nRepo Context: {repo_context}", model)
+        
+        # Apply AI-enhanced content
+        # ...
+```
+
+**3. Test AI Integration**:
+
+```bash
+# Test with different AI models
+slim apply --best-practice-ids your-practice --use-ai anthropic/claude-3-5-sonnet-20241022 --repo-dir test-repo
+slim apply --best-practice-ids your-practice --use-ai openai/gpt-4o --repo-dir test-repo
+slim apply --best-practice-ids your-practice --use-ai ollama/llama3.1 --repo-dir test-repo
+
+# Validate model before testing
+slim models validate anthropic/claude-3-5-sonnet-20241022
+```
 
 ## Ways to Contribute
 

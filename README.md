@@ -13,7 +13,7 @@
 [![SLIM](https://img.shields.io/badge/Best%20Practices%20from-SLIM-blue)](https://nasa-ammos.github.io/slim/)
 <!-- ☝️ Add badges via: https://shields.io e.g. ![](https://img.shields.io/github/your_chosen_action/NASA-AMMOS/your_repo) ☝️ -->
 
-<img width="1242" alt="slim-cli-screen" src="https://github.com/user-attachments/assets/5a38e016-04ea-4e4d-b2b8-5e443367c899">
+<img width="1242" alt="slim-cli-screen" src="https://github.com/user-attachments/assets/8c1ae6be-f149-4b6e-a51a-b8b0cd6c79ff">
 
 SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessly with your development workflow. It fetches and applies structured SLIM best practices directly into your Git repositories. The tool leverages artificial intelligence capabilities to customize and tailor the application of SLIM best practices based on your repository's specifics.
 
@@ -21,11 +21,12 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
 
 ## Features
 
-- Command-line interface for applying SLIM best practices into Git development workflows.
-- Fetches the latest SLIM best practices dynamically from SLIM's registry.
-- Allows customization of best practices using advanced AI models before applying them to repositories.
-- Deploys, or git adds, commits, and pushes changes to your repository's remote.
-  
+- **Modern CLI Interface**: List, patch, and infuse SLIM best practices into your Git repository workflow using a seamless terminal interface
+- **Fetches the latest SLIM best practices** dynamically from SLIM's registry the moment they change
+- **Patches and pushes**, SLIM best practices to your repository and pushes up to your Git remote (i.e. GitHub) - all automatically
+- **AI Enabled**: 100+ AI models to automatically infuse best practices using AI customization for your repository
+- **Extensible Architecture**: Easy-to-extend best practice system with centralized mapping and YAML configuration
+
 ## Contents
 
 - [Features](#features)
@@ -47,11 +48,35 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
 
 This guide provides a quick way to get started with our project. Please see our [docs](https://nasa-ammos.github.io/slim/docs) for a more comprehensive overview.
 
+### Rich Terminal Experience
+
+SLIM CLI features a modern terminal interface with:
+
+- **🎨 Colored Output**: Rich markup with emojis, colors, and styled text
+- **📊 Progress Indicators**: Real-time progress bars and spinners during operations
+- **🔍 Interactive Commands**: Clean input handling with automatic progress pause/resume
+- **💾 Dry-run Mode**: Preview operations without making changes using `--dry-run`
+
+Example terminal output:
+```
+🛠️ SLIM CLI v2.0.0
+✅ LiteLLM integration enabled - 100+ AI models available
+
+⠸ Applying readme...
+✅ Successfully applied best practice 'readme' to repository
+   📁 Repository: /path/to/repo
+   🌿 Branch: readme
+   💬 Commit: Add README documentation
+
+✅ Apply operation completed in 2.34 seconds
+```
+
 ### Requirements
 
 * Python 3.7+
 * Git
-* `.env` file to properly configure the environment for Azure and OpenAI APIs
+* **Optional**: LiteLLM for enhanced AI model support (`pip install litellm`)
+* **Optional**: `.env` file to properly configure the environment for AI model APIs
   ```bash
   # .env for Azure
   AZURE_TENANT_ID=<Your-Azure-Tenant-ID>
@@ -142,49 +167,49 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
 
 2. **Apply best practices to repositories**
    - This command applies specified best practices to one or more repositories. It supports applying multiple practices simultaneously across multiple repositories, with AI customization options available.
-   - `--best-practices`: List of best practice aliases to apply (e.g., `readme`, `governance-small`, `secrets-github`).
+   - `--best-practice-ids`: List of best practice aliases to apply (e.g., `readme`, `governance-small`, `secrets-github`).
    - `--repo-urls`: List of repository URLs to apply the best practices to; not used if `--repo-dir` is specified.
    - `--repo-dir`: Local directory path of the repository where the best practices will be applied.
    - `--clone-to-dir`: Path where the repository should be cloned if not present locally. Compatible with `--repo-urls`.
    - `--use-ai`: Enables AI features to customize the application of best practices based on the project’s specific needs. Specify the model provider and model name as an argument (e.g., `azure/gpt-4o`).
    ```bash
-   slim apply --best-practices readme governance-small --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 
+   slim apply --best-practice-ids readme --best-practice-ids governance-small --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 
    ```
    - To apply a best practice using AI customization:
    ```bash
    # Apply a specific best practice using AI customization
-   slim apply --best-practices readme --repo-urls https://github.com/your_org/your_repo.git --use-ai <model provider>/<model name>
+   slim apply --best-practice-ids readme --repo-urls https://github.com/your_org/your_repo.git --use-ai <model provider>/<model name>
    ```
    Example usage: 
    ```bash
    # Apply and deploy a best practice using Azure's GPT-4o model
-   slim apply --best-practices governance-small --repo-urls https://github.com/riverma/terraformly/ --use-ai azure/gpt-4o
+   slim apply --best-practice-ids governance-small --repo-urls https://github.com/riverma/terraformly/ --use-ai azure/gpt-4o
    ```
    ```bash
    # Apply and deploy a best practice using Ollama's LLaMA 3.1 model
-   slim apply --best-practices governance-small --repo-urls https://github.com/riverma/terraformly/ --use-ai ollama/gemma3
+   slim apply --best-practice-ids governance-small --repo-urls https://github.com/riverma/terraformly/ --use-ai ollama/gemma3
    ```
    
 3. **Deploy a best practice**
    - After applying best practices, you may want to deploy (commit and push) them to a remote repository.
-   - `--best-practices`: List of best practice aliases that have been applied and are ready for deployment.
+   - `--best-practice-ids`: List of best practice aliases that have been applied and are ready for deployment.
    - `--repo-dir`: The local directory of the repository where changes will be committed and pushed.
    - `--remote-name`: Specifies the remote name in the git configuration to which the changes will be pushed.
    - `--commit-message`: A message describing the changes for the commit.
    ```bash
-   slim deploy --best-practices readme governance-small --repo-dir /path/to/repo --remote-name origin --commit-message "Apply SLIM best practices"
+   slim deploy --best-practice-ids readme --best-practice-ids governance-small --repo-dir /path/to/repo --remote origin --commit-message "Apply SLIM best practices"
    ```
 
 4. **Apply and deploy a best practice**
    - Combines the application and deployment of a best practice into one step.
-   - `--best-practices`: List of best practice aliases to apply and then deploy.
+   - `--best-practice-ids`: List of best practice aliases to apply and then deploy.
    - `--repo-urls`: List of repository URLs for cloning if not already cloned; not used if `--repo-dir` is specified.
    - `--repo-dir`: Specifies the directory of the repository where the best practice will be applied and changes committed.
    - `--remote-name`: Specifies the remote to which the changes will be pushed. Format should be a GitHub-like URL base. For example `https://github.com/my_github_user`
    - `--commit-message`: A message describing the changes for the commit.
    - `--use-ai`: If specified, enables AI customization of the best practice before applying. False by default.
    ```bash
-   slim apply-deploy --best-practices readme --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 --remote-name origin --commit-message "Integrated SLIM best practice with AI customization"
+   slim apply-deploy --best-practice-ids readme --repo-urls https://github.com/your-username/your-repo1 https://github.com/your-username/your-repo2 --remote origin --commit-message "Integrated SLIM best practice with AI customization"
    ```
    Example output:
    ```
@@ -205,19 +230,19 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
    
    **Template-Only Mode** - Generate just the template structure without analyzing a repository:
    ```bash
-   slim apply --best-practices docs-website --template-only --output-dir ../docs-site
+   slim apply --best-practice-ids docs-website --template-only --output-dir ../docs-site
    ```
    
    **AI-Enhanced Documentation** (Recommended approach):
    ```bash
    # Using OpenAI (recommended for quality)
-   slim apply --best-practices docs-website --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai openai/gpt-4o
+   slim apply --best-practice-ids docs-website --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai openai/gpt-4o
    
    # Using Azure OpenAI (recommended for enterprise)
-   slim apply --best-practices docs-website --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai azure/gpt-4o
+   slim apply --best-practice-ids docs-website --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai azure/gpt-4o
    
    # Using local models (basic quality, not recommended for production)
-   slim apply --best-practices docs-website --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai ollama/gemma3
+   slim apply --best-practice-ids docs-website --repo-dir /path/to/your/repo --output-dir /path/to/output --use-ai ollama/gemma3
 
    # Explore available AI models
    slim models list
@@ -227,16 +252,16 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
    
    Example usage:
    ```bash
-   slim apply --best-practices docs-website --repo-dir ./hysds --output-dir ./hysds-docs-site --use-ai openai/gpt-4o
+   slim apply --best-practice-ids docs-website --repo-dir ./hysds --output-dir ./hysds-docs-site --use-ai openai/gpt-4o
    ```
    
    **Revising an Existing Site**:
    ```bash
    # With cloud models (recommended)
-   slim apply --best-practices docs-website --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai openai/gpt-4o
+   slim apply --best-practice-ids docs-website --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai openai/gpt-4o
    
    # With local models (basic quality)
-   slim apply --best-practices docs-website --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai ollama/gemma3
+   slim apply --best-practice-ids docs-website --revise-site --repo-dir /path/to/your/repo --output-dir ./docs-site --use-ai ollama/gemma3
    ```
    
    **Generated Content**
@@ -290,36 +315,85 @@ To specify a logging level for the app, choose between `DEBUG`, `INFO` (default)
    ```
 
 7. **Discover and Manage AI Models**
+   
+   SLIM CLI supports 100+ AI models through LiteLLM integration with automatic model discovery:
+   
    ```bash
-   # List all available models
+   # List all available models (100+ models from various providers)
    slim models list
-
-   # Get recommendations by task and tier
+   
+   # Filter by provider
+   slim models list --provider anthropic
+   slim models list --provider openai
+   
+   # Get AI model recommendations by task and quality tier
+   slim models recommend                              # Default: documentation, balanced
    slim models recommend --task documentation --tier premium
-
-   # Get setup instructions for providers
+   slim models recommend --task code_generation --tier fast
+   
+   # Get setup instructions for specific providers
    slim models setup anthropic
    slim models setup groq
-
-   # Validate model configuration
+   slim models setup ollama
+   
+   # Validate model configuration and test connectivity
    slim models validate anthropic/claude-3-5-sonnet-20241022
+   slim models validate openai/gpt-4o
+   slim models validate ollama/llama3.1
+   ```
+   
+   **Example Model Commands Output:**
+   ```bash
+   $ slim models recommend --task documentation --tier premium
+   
+   🏆 Premium Cloud Models:
+     • anthropic/claude-3-5-sonnet-20241022
+     • openai/gpt-4o
+     • openai/gpt-4-turbo
+     • groq/llama-3.1-70b-versatile
+   
+   🦙 Local Models:
+     • ollama/llama3.1:8b
+     • ollama/codellama:13b
+   
+   💡 Usage Examples:
+     # Premium documentation generation
+     slim apply --best-practice-ids docs-website --use-ai anthropic/claude-3-5-sonnet-20241022
+     
+     # Fast local development  
+     slim apply --best-practice-ids docs-website --use-ai ollama/llama3.1:8b
    ```
 
-   - Environment Variables:
+   **Supported AI Providers:**
+   - **Cloud Premium**: OpenAI, Anthropic Claude, Google Gemini
+   - **Cloud Fast**: Groq, Together AI, Cohere, Perplexity
+   - **Local/Private**: Ollama, VLLM, LM Studio, GPT4All
+   - **Enterprise**: Azure OpenAI, AWS Bedrock, Google Vertex AI
+   
+   **Environment Variables:**
    ```bash
    # OpenAI
    export OPENAI_API_KEY="sk-..."
 
-   # Anthropic  
+   # Anthropic Claude
    export ANTHROPIC_API_KEY="sk-ant-..."
 
-   # Google AI Studio
+   # Google AI Studio & Gemini
    export GOOGLE_API_KEY="AIza..."
+   
+   # Groq (fast inference)
+   export GROQ_API_KEY="gsk_..."
+   
+   # Together AI
+   export TOGETHER_API_KEY="..."
 
    # Azure OpenAI
    export AZURE_API_KEY="..."
    export AZURE_API_BASE="https://your-resource.openai.azure.com/"
    export AZURE_API_VERSION="2024-02-01"
+   
+   # Ollama (local models) - no API key needed
+   # Just ensure Ollama is running: ollama serve
    ```
 
 ## Changelog

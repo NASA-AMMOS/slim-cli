@@ -1,107 +1,195 @@
 # SLIM CLI Testing
 
 ## Introduction
-This document provides an overview of the testing architecture for SLIM CLI. It focuses on the pytest-based testing framework used in the project and how to run the tests.
+This document describes the test architecture and strategy for SLIM CLI. SLIM CLI employs a comprehensive testing approach that combines traditional **pytest** unit testing with an innovative **YAML-based integration test framework**. Our testing philosophy emphasizes selective test execution, parameterized testing, and comprehensive coverage of all best practice scenarios through both isolated unit tests and end-to-end integration tests.
 
 ---
-## Testing with pytest
 
-SLIM CLI uses pytest for its testing framework. The tests are organized in the `tests/` directory, mirroring the structure of the source code in `src/`.
+## Tests
 
-### Test Structure
+We use the following tests to ensure SLIM CLI's quality, performance, and reliability:
 
-- **Location**: `/tests/jpl/slim/`
-- **Naming Convention**: Test files follow the pattern `test_*.py`
-- **Test Organization**:
-  - `test_cli.py`: Tests for the main CLI functionality
-  - `test_best_practices.py`: Tests for best practices implementation
-  - `test_best_practices_manager.py`: Tests for the best practices manager
-  - `/utils/`: Tests for utility functions
-    - `test_git_utils.py`: Tests for Git utilities
-    - `test_io_utils.py`: Tests for I/O utilities
-    - `test_ai_utils.py`: Tests for AI utilities
+- [x] Unit Tests
+- [x] Integration Tests
+- [x] Security Tests
+<!-- - [ ] Add any additional test categories that are relevant to your project -->
 
-### Running Tests
+### Unit Tests
 
-To run the tests, you'll need pytest installed:
+**Location:** `tests/jpl/slim/`  
+**Purpose:** Test individual modules, functions, and classes in isolation to ensure each component works correctly on its own.
 
-```bash
-pip install pytest
-```
+<details>
+<summary><b>Running Unit Tests</b></summary>
 
-#### Running All Tests
-
-From the project root directory:
+#### Running Manually
 
 ```bash
-pytest
-```
+# Install test dependencies
+pip install pytest pytest-cov
 
-#### Running Specific Test Files
+# Run all unit tests
+pytest tests/jpl/slim/
 
-To run tests from a specific file:
+# Run specific test modules
+pytest tests/jpl/slim/utils/test_git_utils.py
+pytest tests/jpl/slim/cli/test_models_command.py
 
-```bash
-pytest tests/jpl/slim/test_cli.py
-```
-
-#### Running Tests with Verbosity
-
-For more detailed output:
-
-```bash
-pytest -v
-```
-
-To see print statements in the output:
-
-```bash
-pytest -s
-```
-
-You can combine options:
-
-```bash
+# Run with verbose output
 pytest -v -s
-```
 
-#### Running Tests with Coverage
-
-To run tests with coverage reporting:
-
-```bash
-pip install pytest-cov
-pytest --cov=jpl.slim
-```
-
-For a detailed HTML coverage report:
-
-```bash
+# Run with coverage reporting
 pytest --cov=jpl.slim --cov-report=html
 ```
 
-### Test Environment
+#### Running Automatically
+- **Trigger:** Not yet
+- **Frequency:** Not yet
+- **Where to see results:** Not yet
 
-The tests use various mocking techniques to avoid making real API calls or performing actual Git operations:
+</details>
 
-- `unittest.mock` is used extensively to mock external dependencies
-- The environment variable `SLIM_TEST_MODE` is set to `'True'` during tests to prevent real API calls
-- Temporary directories are used for file system operations
+<details>
+<summary><b>Contributing Guidelines</b></summary>
 
-### Writing New Tests
+**Testing Framework:** pytest 7.x with fixtures and mocking
 
-When adding new functionality to SLIM CLI, please follow these guidelines for writing tests:
+**Tips for Contributing:**
+- Follow the naming convention `test_*.py` for test files
+- Use pytest fixtures for setup and teardown
+- Mock external dependencies (API calls, file systems, git operations)
+- Test both success and failure paths
+- Include docstrings explaining what each test verifies
 
-1. Create a new test file in the appropriate location following the naming convention
-2. Use pytest fixtures for setup and teardown
-3. Mock external dependencies to ensure tests are isolated
-4. Test both success and failure cases
-5. Include docstrings explaining what each test is verifying
+</details>
 
-### Continuous Integration
+### Integration Tests
 
-Tests are automatically run in the CI/CD pipeline on GitHub Actions for:
-- Pull requests to the main branch
-- Pushes to the main branch
+**Location:** `tests/integration/best_practices_test_commands.yaml`  
+**Purpose:** Test complete command workflows and interactions between components using a YAML-based configuration system.
 
-This ensures that all changes are tested before being merged.
+<details>
+<summary><b>Running Integration Tests</b></summary>
+
+#### Running Manually
+
+```bash
+# Run all YAML-configured integration tests
+pytest tests/jpl/slim/cli/test_best_practice_commands.py
+
+# Run with verbose output to see individual YAML commands
+pytest -v tests/jpl/slim/cli/test_best_practice_commands.py
+
+# Enable/disable specific tests via YAML configuration
+# Edit tests/integration/best_practices_test_commands.yaml
+```
+
+**YAML Configuration Example:**
+```yaml
+readme:
+  enabled: true  # Enable/disable entire practice
+  commands:
+    - command: "slim apply --best-practice-ids readme --repo-dir {temp_git_repo}"
+      enabled: true   # Enable/disable individual commands
+    - command: "slim deploy --best-practice-ids readme --repo-dir {temp_git_repo_with_remote}"
+      enabled: false
+```
+
+**Template Variables:**
+- `{temp_git_repo}` - Temporary git repository path
+- `{temp_git_repo_with_remote}` - Git repo with configured remote
+- `{temp_dir}` - Generic temporary directory
+- `{temp_urls_file}` - File containing repository URLs
+- `{test_ai_model}` - AI model for testing
+- `{custom_remote}` - Custom git remote URL
+
+#### Running Automatically
+- **Trigger:** Not yet
+- **Frequency:** Not yet
+- **Where to see results:** Not yet
+
+</details>
+
+<details>
+<summary><b>Contributing Guidelines</b></summary>
+
+**Testing Framework:** YAML-based test configuration with pytest runner
+
+**Tips for Contributing:**
+- Add new practices to `tests/integration/best_practices_test_commands.yaml`
+- Include both success and error scenarios
+- Use template variables for dynamic values
+- Test with different AI models when applicable
+- Enable/disable toggles for development flexibility
+
+**Adding a New Practice:**
+```yaml
+new-practice:
+  enabled: true
+  commands:
+    - command: "slim apply --best-practice-ids new-practice --repo-dir {temp_git_repo}"
+      enabled: true
+    - command: "slim deploy --best-practice-ids new-practice --repo-dir {temp_git_repo_with_remote}"
+      enabled: true
+    # Error scenarios
+    - command: "slim apply --best-practice-ids new-practice --repo-dir /nonexistent/path"
+      enabled: true
+```
+
+</details>
+
+### Security Tests
+
+**Location:** SonarQube Cloud integration  
+**Purpose:** Automated security vulnerability scanning and code quality analysis.
+
+<details>
+<summary><b>Running Security Tests</b></summary>
+
+#### Running Manually
+
+SonarQube Cloud analysis is automatically integrated and cannot be run manually. For local security testing:
+
+```bash
+# Run secrets detection practice tests
+pytest tests/jpl/slim/best_practices/test_secrets_detection.py -v
+
+# Test security-related best practices
+pytest -k "secrets" -v
+```
+
+#### Running Automatically
+- **Trigger:** Every pull request automatically
+- **Frequency:** On every PR submission and update
+- **Where to see results:** SonarQube Cloud dashboard and PR status checks
+
+</details>
+
+<details>
+<summary><b>Contributing Guidelines</b></summary>
+
+**Testing Framework:** SonarQube Cloud automated scanning
+
+**Tips for Contributing:**
+- SonarQube Cloud automatically scans all code changes
+- Address any security vulnerabilities flagged in PR checks
+- Maintain security rating above B grade
+- Review SonarQube Cloud report before merging PRs
+- No manual setup required - fully automated
+
+</details>
+
+---
+
+## Contributing to Tests
+
+When adding new functionality to SLIM CLI:
+
+1. **Write unit tests** for new modules and functions
+2. **Add integration tests** to `best_practices_test_commands.yaml`
+3. **Include error scenarios** and edge cases
+4. **Document test purpose** with clear docstrings
+5. **Run full test suite** before submitting PR
+6. **Check coverage** remains above 80%
+
+For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
