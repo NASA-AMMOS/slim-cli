@@ -36,10 +36,11 @@ pytest tests/jpl/slim/utils/test_git_utils.py
 pytest tests/jpl/slim/cli/test_models_command.py
 
 # Run with verbose output
-pytest -v -s
+pytest tests/jpl/slim/ -v -s
 
 # Run with coverage reporting
-pytest --cov=jpl.slim --cov-report=html
+python -m pytest tests/jpl/slim/ --cov=jpl.slim --cov-report=html
+
 ```
 
 #### Running Automatically
