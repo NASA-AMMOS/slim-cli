@@ -76,10 +76,10 @@ python -m pytest tests/jpl/slim/ --cov=jpl.slim --cov-report=html
 
 ```bash
 # Run all YAML-configured integration tests
-pytest tests/jpl/slim/cli/test_best_practice_commands.py
+pytest tests/integration/test_best_practice_commands.py
 
 # Run with verbose output to see individual YAML commands
-pytest -v tests/jpl/slim/cli/test_best_practice_commands.py
+pytest -v tests/integration/test_best_practice_commands.py
 
 # Enable/disable specific tests via YAML configuration
 # Edit tests/integration/best_practices_test_commands.yaml
