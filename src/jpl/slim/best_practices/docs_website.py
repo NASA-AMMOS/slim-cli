@@ -38,7 +38,7 @@ class DocsWebsiteBestPractice(StandardPractice):
         """Initialize the documentation generation best practice."""
         super().__init__(
             best_practice_id="docs-website",
-            uri="/Users/rverma/Desktop/test/yunks/slim-cli/example_sites/slim-docsite-template/",
+            uri="https://github.com/NASA-AMMOS/slim-docsite-template",
             title="Documentation Generator",
             description="Generates comprehensive documentation sites for software projects using the SLIM docsite template and AI enhancement"
         )

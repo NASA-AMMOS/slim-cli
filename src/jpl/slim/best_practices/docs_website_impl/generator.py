@@ -704,7 +704,7 @@ class SlimDocGenerator:
     def _generate_site_tree_from_template(self) -> str:
         """Generate comprehensive site tree from template including sub-sections."""
         try:
-            template_docs_dir = Path(self.template_repo) / "docs"
+            template_docs_dir = self.output_dir / "docs"
             if not template_docs_dir.exists():
                 self.logger.warning("Template docs directory not found")
                 return "No site tree available"
