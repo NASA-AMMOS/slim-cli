@@ -4,9 +4,13 @@ import sys
 import tempfile
 import urllib.parse
 import uuid
+import warnings
 from typing import Any, Dict, Optional
 import typer
 from rich.console import Console
+
+# Suppress Pydantic v2 migration warnings from dependencies
+warnings.filterwarnings("ignore", message="Valid config keys have changed in V2", category=UserWarning)
 
 try:
     import yaml

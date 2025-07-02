@@ -22,7 +22,7 @@ standard_practices:
     prompt: "Fill out ONLY the placeholders that are enclosed in square brackets and contain the word INSERT (e.g., [INSERT YOUR REPO / PROJ NAME HERE]). Use the provided repository context to determine appropriate values. Do NOT modify any other parts of the template, including badges, links, or formatting. Return the complete template with only the INSERT placeholders replaced. Do NOT extrapolate too much meaning from the SLIM badge - ignore that badge in your context."
     repository_context:
       categories: ["documentation", "structure"]
-      max_characters: 8000
+      max_characters: 50000
       include_patterns:
         ["README*", "*.md", "package.json", "setup.py", "pyproject.toml"]
 
@@ -42,73 +42,12 @@ standard_practices:
           "testplans/**",
         ]
 
-# Documentation generation practices
-docgen:
-  context: "You are a technical documentation specialist helping to create comprehensive software documentation. Format using markdown and fix any errors for Docusaurus website compatibility."
-
-  overview:
-    context: "Create an engaging project overview that captures the essence and value proposition of the project."
-    prompt: "Enhance this project overview to be more comprehensive and user-friendly while maintaining accuracy. Add clear sections for features, use cases, and key concepts if they're not already present."
-
-  installation:
-    context: "Provide clear, step-by-step installation instructions that users can follow successfully."
-    prompt: "Improve this installation guide by adding clear prerequisites, troubleshooting tips, and platform-specific instructions while maintaining accuracy."
-
-  api:
-    context: "Document APIs with clarity, comprehensive examples, and detailed parameter descriptions."
-    prompt: "Enhance this API documentation by adding more detailed descriptions, usage examples, and parameter explanations while maintaining technical accuracy."
-
-  development:
-    context: "Guide developers through the development workflow, project structure, and best practices."
-    prompt: "Improve this development guide by adding more context, best practices, and workflow descriptions while maintaining accuracy."
-
-  contributing:
-    context: "Create welcoming and clear contributing guidelines that encourage community participation."
-    prompt: "Enhance these contributing guidelines by adding more specific examples, workflow descriptions, and best practices while maintaining accuracy."
-
-  changelog:
-    context: "Document project changes, releases, and version history clearly and comprehensively."
-    prompt: "Enhance this changelog by adding clear version histories, release notes, and change descriptions while maintaining chronological accuracy."
-
-  deployment:
-    context: "Provide clear deployment instructions and operational guidance for the project."
-    prompt: "Improve this deployment guide by adding detailed deployment steps, environment configurations, and operational best practices while maintaining accuracy."
-
-  architecture:
-    context: "Document system architecture, design patterns, and technical implementation details."
-    prompt: "Enhance this architecture documentation by adding clear system diagrams, design patterns, and technical implementation details while maintaining accuracy."
-
-  testing:
-    context: "Document testing strategies, test suites, and quality assurance practices."
-    prompt: "Improve this testing documentation by adding comprehensive testing strategies, coverage information, and testing best practices while maintaining accuracy."
-
-  security:
-    context: "Document security practices, vulnerability management, and security considerations."
-    prompt: "Enhance this security documentation by adding security best practices, vulnerability management, and security considerations while maintaining accuracy."
-
-  guides:
-    context: "Create comprehensive user and developer guides that provide step-by-step instructions."
-    prompt: "Improve these guides by adding more detailed step-by-step instructions, examples, and troubleshooting information while maintaining accuracy."
-
-  # Site-specific enhancements for React components
-  index_js_update:
-    context: "Update React component content while preserving the existing structure completely."
-    prompt: "Using the provided overview.md content as context, update ONLY the text content in this React component (index.js) while preserving its existing structure completely."
-
-  homepage_features_update:
-    context: "Update feature descriptions in React components based on documentation content."
-    prompt: "Using the provided overview.md content as context, update ONLY the feature descriptions in this React component while preserving its structure."
-
-  docusaurus_config_update:
-    context: "Update Docusaurus configuration based on project information."
-    prompt: "Using the provided overview.md content as context, update ONLY the title and tagline in this docusaurus.config.js file."
-
 # Documentation website generation practices
 docs-website:
   context: "You are creating comprehensive documentation for a software project. Generate professional, detailed content that accurately reflects the project's capabilities and structure."
   repository_context:
-    categories: ["documentation"]
-    max_characters: 10000
+    categories: ["documentation", "code"]
+    max_characters: 20000
     include_patterns: ["README*", "*.md"]
 
   generate_content_only:
@@ -278,9 +217,10 @@ docs-website:
 governance:
   context: "You are a documentation specialist helping to create a GOVERNANCE file. Format using markdown and ensure novice and expert users can read the documentation."
   repository_context:
+    category: ["documentation"]
+    max_characters: 10000
     include_patterns: ["README*"]
-    exclude_patterns:
-      ["LICENSE*", "*.log", "node_modules/", ".git/", "__pycache__/", "*.pyc"]
+    exclude_patterns: ["LICENSE*"]
 
   # Common title replacement for all governance docs
   title:
