@@ -7,6 +7,12 @@ which deploys best practices to repositories.
 
 import os
 import logging
+import time
+from typing import List, Optional
+from pathlib import Path
+import typer
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
 import git
 
 from jpl.slim.utils.git_utils import generate_git_branch_name
@@ -15,38 +21,93 @@ from jpl.slim.commands.common import (
     GIT_CUSTOM_REMOTE_NAME,
     GIT_DEFAULT_COMMIT_MESSAGE
 )
+from jpl.slim.app import app, state, handle_dry_run_for_command
 
-def setup_parser(subparsers):
-    """
-    Set up the parser for the 'deploy' command.
+console = Console()
 
-    Args:
-        subparsers: Subparsers object from argparse
-
-    Returns:
-        The parser for the 'deploy' command
-    """
-    parser = subparsers.add_parser('deploy', help='Deploys a best practice, i.e. places the best practice in a git repo, adds, commits, and pushes to the git remote.')
-    parser.add_argument('--best-practice-ids', nargs='+', required=True, help='Best practice IDs to deploy')
-    parser.add_argument('--repo-dir', required=False, help='Repository directory location on local machine')
-    parser.add_argument('--remote', required=False, default=None, help=f"Push to a specified remote name. If not specified, pushes to '{GIT_DEFAULT_REMOTE_NAME}'.")
-    parser.add_argument('--commit-message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}'")
-    parser.set_defaults(func=handle_command)
-    return parser
-
-def handle_command(args):
-    """
-    Handle the 'deploy' command.
-
-    Args:
-        args: Arguments from argparse
-    """
-    deploy_best_practices(
-        best_practice_ids=args.best_practice_ids,
-        repo_dir=args.repo_dir,
-        remote=args.remote,
-        commit_message=args.commit_message
+@app.command()
+def deploy(
+    best_practice_ids: List[str] = typer.Option(
+        ...,
+        "--best-practice-ids", "-b",
+        help="Best practice aliases to deploy (e.g., readme, governance-small, secrets-github)"
+    ),
+    repo_dir: Optional[Path] = typer.Option(
+        None,
+        "--repo-dir",
+        help="Repository directory location on local machine",
+        exists=True,
+        file_okay=False,
+        dir_okay=True
+    ),
+    remote: Optional[str] = typer.Option(
+        None,
+        "--remote",
+        help=f"Push to a specified remote name. If not specified, pushes to '{GIT_DEFAULT_REMOTE_NAME}'."
+    ),
+    commit_message: str = typer.Option(
+        GIT_DEFAULT_COMMIT_MESSAGE,
+        "--commit-message", "-m",
+        help=f"Commit message to use for the deployment."
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run", "-d",
+        help="Show what would be executed without making changes"
+    ),
+    logging_level: str = typer.Option(
+        None,
+        "--logging", "-l",
+        help="Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL"
     )
+):
+    """
+    Deploy best practices to a git repository.
+    
+    This command adds, commits, and pushes best practice files to a git remote.
+    """
+    # Configure logging
+    from jpl.slim.commands.common import configure_logging
+    configure_logging(logging_level, state)
+    
+    logging.debug("Starting deploy command execution")
+    logging.debug(f"Best practice IDs: {best_practice_ids}")
+    logging.debug(f"Repository directory: {repo_dir}")
+    logging.debug(f"Remote: {remote or GIT_DEFAULT_REMOTE_NAME}")
+    
+    # Handle dry-run mode
+    if state.dry_run or dry_run:
+        if handle_dry_run_for_command(
+            "deploy",
+            best_practice_ids=best_practice_ids,
+            repo_dir=str(repo_dir) if repo_dir else None,
+            remote=remote,
+            commit_message=commit_message,
+            dry_run=True
+        ):
+            return
+    
+    # Convert path to string for backward compatibility
+    repo_dir_str = str(repo_dir) if repo_dir else None
+    
+    # Deploy best practices with timing
+    start_time = time.time()
+    try:
+        success = deploy_best_practices(
+            best_practice_ids=best_practice_ids,
+            repo_dir=repo_dir_str,
+            remote=remote,
+            commit_message=commit_message
+        )
+        if success:
+            end_time = time.time()
+            duration = end_time - start_time
+            console.print(f"\n✅ [green]Deploy operation completed in {duration:.2f} seconds[/green]")
+        else:
+            raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"❌ [red]Error deploying best practices: {str(e)}[/red]")
+        raise typer.Exit(1)
 
 def deploy_best_practices(best_practice_ids, repo_dir, remote=None, commit_message=GIT_DEFAULT_COMMIT_MESSAGE):
     """
@@ -58,17 +119,37 @@ def deploy_best_practices(best_practice_ids, repo_dir, remote=None, commit_messa
         remote: Remote repository to push to
         commit_message: Commit message to use
     """
+    logging.debug(f"deploy_best_practices called with: best_practice_ids={best_practice_ids}, repo_dir={repo_dir}")
+    logging.debug(f"Remote: {remote}, commit_message: {commit_message}")
+    
     # Use shared branch if multiple best_practice_ids else use default branch name
     branch_name = generate_git_branch_name(best_practice_ids)
+    logging.debug(f"Using branch name: {branch_name}")
 
+    success = True
     for best_practice_id in best_practice_ids:
-        deploy_best_practice(
-            best_practice_id=best_practice_id,
-            repo_dir=repo_dir,
-            remote=remote,
-            commit_message=commit_message,
-            branch=branch_name
-        )
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+            transient=True
+        ) as progress:
+            task = progress.add_task(f"Deploying {best_practice_id}...", total=None)
+            
+            result = deploy_best_practice(
+                best_practice_id=best_practice_id,
+                repo_dir=repo_dir,
+                remote=remote,
+                commit_message=commit_message,
+                branch=branch_name
+            )
+            if not result:
+                success = False
+                break
+            
+            progress.update(task, description=f"Completed deployment of {best_practice_id}")
+    
+    return success
 
 def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message='Default commit message', branch=None):
     """
@@ -84,17 +165,16 @@ def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message
     Returns:
         bool: True if deployment was successful, False otherwise
     """
-    # In test mode, simulate success without making actual changes
-    if os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't'):
-        logging.info(f"TEST MODE: Simulating deployment of best practice {best_practice_id}")
-        return True
 
+    logging.debug(f"deploy_best_practice called for: {best_practice_id}")
+    logging.debug(f"Repository: {repo_dir}, branch: {branch}, remote: {remote}")
+    
     branch_name = branch if branch else best_practice_id
-
-    logging.debug(f"Deploying branch: {branch_name}")
+    logging.debug(f"Using branch name: {branch_name}")
 
     try:
         # Assuming repo_dir points to a local git repository directory
+        logging.debug(f"Opening git repository at: {repo_dir}")
         repo = git.Repo(repo_dir)
 
         # Checkout the branch or create it if it doesn't exist
@@ -106,7 +186,8 @@ def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message
             logging.debug(f"Branch {branch_name} doesn't exist, creating it")
             repo.git.checkout('-b', branch_name)
             logging.debug(f"Created and checked out branch {branch_name}")
-
+        
+        # Handle remote setup
         if remote:
             # Check if the remote name already exists in the repository
             remote_exists = remote in [r.name for r in repo.remotes]
@@ -164,7 +245,7 @@ def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message
                 else:
                     logging.debug(f"Local branch {branch_name} is up-to-date with remote {remote_name}. No pull needed.")
             else:
-                logging.info(f"Branch {branch_name} does not exist on remote {remote_name}. No pull performed.")
+                logging.debug(f"Branch {branch_name} does not exist on remote {remote_name}. No pull performed.")
         except git.exc.GitCommandError as ls_error:
             logging.warning(f"Failed to check if branch exists on remote: {str(ls_error)}")
             logging.warning("Continuing with local changes only.")
@@ -180,7 +261,15 @@ def deploy_best_practice(best_practice_id, repo_dir, remote=None, commit_message
         try:
             repo.git.push(remote_name, branch_name)
             logging.debug(f"Pushed changes to remote {remote_name} on branch {branch_name}")
-            logging.info(f"Deployed best practice id '{best_practice_id}' to remote '{remote_name}' on branch '{branch_name}'")
+            logging.debug(f"Deployed best practice id '{best_practice_id}' to remote '{remote_name}' on branch '{branch_name}'")
+            
+            # Print success message to user
+            console.print(f"✅ Successfully deployed best practice '{best_practice_id}' to repository")
+            console.print(f"   📁 Repository: {repo.working_dir}")
+            console.print(f"   🌿 Branch: {branch_name}")
+            console.print(f"   💬 Commit: {commit_message}")
+            console.print(f"   🚀 Deployed to: {remote_name}")
+            
         except git.exc.GitCommandError as push_error:
             logging.error(f"Failed to push to remote '{remote_name}': {str(push_error)}")
             raise  # Re-raise to be caught by the outer exception handler

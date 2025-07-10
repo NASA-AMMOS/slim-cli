@@ -24,17 +24,20 @@ def create_slim_registry_dictionary():
                 {
                     "name": "Governance Template (Small Teams)",
                     "type": "text/md",
-                    "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-SMALL-TEAMS.md"
+                    "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-SMALL-TEAMS.md",
+                    "alias": "governance-small"
                 },
                 {
                     "name": "Governance Template (Medium Teams)",
                     "type": "text/md",
-                    "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-MEDIUM-TEAMS.md"
+                    "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-MEDIUM-TEAMS.md",
+                    "alias": "governance-medium"
                 },
                 {
                     "name": "Governance Template (Large Teams)",
                     "type": "text/md",
-                    "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-LARGE-TEAMS.md"
+                    "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-LARGE-TEAMS.md",
+                    "alias": "governance-large"
                 }
             ]
         },
@@ -53,46 +56,49 @@ def create_slim_registry_dictionary():
                 {
                     "name": "GitHub Action Workflow Scan",
                     "type": "text/yaml",
-                    "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/software-lifecycle/security/secrets-detection/detect-secrets.yaml"
+                    "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/software-lifecycle/security/secrets-detection/detect-secrets.yaml",
+                    "alias": "secrets-github"
                 },
                 {
                     "name": "Scan Pre-commit Configuration",
                     "type": "text/yaml",
-                    "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/software-lifecycle/security/secrets-detection/pre-commit-config.yml"
+                    "uri": "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/software-lifecycle/security/secrets-detection/pre-commit-config.yml",
+                    "alias": "secrets-precommit"
                 }
             ]
         }
     ]
 
 
+@pytest.mark.unit
 class TestBestPracticeManager:
     """Tests for the BestPracticeManager class."""
 
     def test_get_best_practice_returns_governance_practice(self):
-        """Test that get_best_practice returns a GovernancePractice for SLIM-1.1."""
+        """Test that get_best_practice returns a StandardPractice for governance-small."""
         # Arrange
         registry_dict = create_slim_registry_dictionary()
         manager = BestPracticeManager(registry_dict)
         
         # Act
-        practice = manager.get_best_practice("SLIM-1.1")
+        practice = manager.get_best_practice("governance-small")
         
         # Assert
         assert practice is not None
         assert isinstance(practice, StandardPractice)
-        assert practice.best_practice_id == "SLIM-1.1"
+        assert practice.best_practice_id == "governance-small"
         assert practice.title == "GOVERNANCE.md"
         assert practice.uri == "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-SMALL-TEAMS.md"
         assert practice.description == "A governance model template seeking to generalize how most government-sponsored open source projects can expect to operate in the open source arena."
 
     def test_get_best_practice_returns_none_for_invalid_id(self):
-        """Test that get_best_practice returns None for an invalid best practice ID."""
+        """Test that get_best_practice returns None for an invalid best practice alias."""
         # Arrange
         registry_dict = create_slim_registry_dictionary()
         manager = BestPracticeManager(registry_dict)
         
         # Act
-        practice = manager.get_best_practice("INVALID-ID")
+        practice = manager.get_best_practice("invalid-alias")
         
         # Assert
         assert practice is None
@@ -104,31 +110,34 @@ class TestBestPracticeManager:
         manager = BestPracticeManager(registry_dict)
         
         # Act
-        practice = manager.get_best_practice("SLIM-1.2")  # Assuming SLIM-1.2 maps to medium teams
+        practice1 = manager.get_best_practice("governance-medium")  # Medium teams governance
+        practice2 = manager.get_best_practice("governance-large")  # Large teams governance
+        practice3 = manager.get_best_practice("governance-small")  # Small teams governance
+        practice4 = manager.get_best_practice("secrets-github")
         
         # Assert
-        assert practice is not None
-        assert isinstance(practice, StandardPractice)
-        assert practice.best_practice_id == "SLIM-1.2"
-        assert practice.title == "GOVERNANCE.md"
-        assert practice.uri == "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-MEDIUM-TEAMS.md"
-        assert practice.description == "A governance model template seeking to generalize how most government-sponsored open source projects can expect to operate in the open source arena."
+        assert practice1 is not None
+        assert isinstance(practice1, StandardPractice)
+        assert practice1.best_practice_id == "governance-medium"
+        assert practice1.title == "GOVERNANCE.md"
+        assert practice1.uri == "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-MEDIUM-TEAMS.md"
+        assert practice1.description == "A governance model template seeking to generalize how most government-sponsored open source projects can expect to operate in the open source arena."
         
-    def test_get_best_practice_returns_standard_practice(self):
-        """Test that get_best_practice returns a StandardPractice for supported IDs."""
-        # Arrange
-        registry_dict = create_slim_registry_dictionary()
-        manager = BestPracticeManager(registry_dict)
+        assert practice2 is not None
+        assert isinstance(practice2, StandardPractice)
+        assert practice2.best_practice_id == "governance-large"
+        assert practice2.title == "GOVERNANCE.md"
+        assert practice2.uri == "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-LARGE-TEAMS.md"
+        assert practice2.description == "A governance model template seeking to generalize how most government-sponsored open source projects can expect to operate in the open source arena."
         
-        # Act - Add a standard practice ID to the registry for testing
-        manager.registry_dict["SLIM-3.1"] = {
-            "title": "README.md",
-            "description": "A README template", 
-            "asset_uri": "https://example.com/readme.md"
-        }
-        practice = manager.get_best_practice("SLIM-3.1")
+        assert practice3 is not None
+        assert isinstance(practice3, StandardPractice)
+        assert practice3.best_practice_id == "governance-small"
+        assert practice3.title == "GOVERNANCE.md"
+        assert practice3.uri == "https://raw.githubusercontent.com/NASA-AMMOS/slim/main/static/assets/governance/governance-model/GOVERNANCE-TEMPLATE-SMALL-TEAMS.md"
+        assert practice3.description == "A governance model template seeking to generalize how most government-sponsored open source projects can expect to operate in the open source arena."
         
-        # Assert
-        assert practice is not None
-        assert isinstance(practice, StandardPractice)
-        assert practice.best_practice_id == "SLIM-3.1"
+        assert practice4 is not None
+        from jpl.slim.best_practices.secrets_detection import SecretsDetection
+        assert isinstance(practice4, SecretsDetection)
+        assert practice4.best_practice_id == "secrets-github"

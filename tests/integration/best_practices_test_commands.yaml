@@ -1,0 +1,158 @@
+# Best Practice Test Commands Configuration
+# This file defines the SLIM CLI commands to test for each best practice.
+# Template variables are replaced at runtime with appropriate test infrastructure.
+#
+# NOTE: the tests defined here are for testing success / failure scenarios for best practices.
+# For more complex scenarios where you may want to test for the existance of specific files or
+# strings within generated output (especially AI scenarios), define your tests in a custom class
+# like test_standard_best_practices.py
+#
+# ENABLE/DISABLE TOGGLES:
+# - Each best practice can have an optional "enabled" field (defaults to true if not specified)
+# - Each individual command can have an optional "enabled" field (defaults to true if not specified)
+# - To run specific tests, set enabled: true for the desired commands
+# - All commands are currently set to enabled: false for selective testing
+#
+# USAGE EXAMPLES:
+#   Enable entire practice:
+#     readme:
+#       enabled: true
+#       commands: [...]
+#
+#   Enable only specific commands:
+#     contributing:
+#       enabled: true
+#       commands:
+#         - command: "slim apply ..."
+#           enabled: true   # This command runs
+#         - command: "slim deploy ..."
+#           enabled: false  # This command skipped
+
+# Standard best practices (from test_best_practice_standard.py)
+readme:
+  enabled: true # (optional, defaults to true)
+  commands:
+    - command: "slim apply --best-practice-ids readme --repo-urls https://github.com/octocat/Hello-World"
+      enabled: true
+    - command: "slim apply --best-practice-ids readme --repo-dir {temp_git_repo}"
+      enabled: true
+    - command: "slim apply --best-practice-ids readme --repo-urls https://github.com/octocat/Hello-World --clone-to-dir {temp_dir}"
+      enabled: true
+    - command: "slim apply --best-practice-ids readme --repo-urls-file {temp_urls_file}"
+      enabled: true
+    - command: "slim deploy --best-practice-ids readme --repo-dir {temp_git_repo_with_remote} --remote origin"
+      enabled: true
+    - command: "slim deploy --best-practice-ids readme --repo-dir {temp_git_repo_with_remote} --commit-message 'Add readme documentation' --remote origin"
+      enabled: true
+    - command: "slim apply-deploy --best-practice-ids readme --best-practice-ids governance-small --repo-dir {temp_git_repo_with_remote} --remote origin --commit-message 'Apply standard best practices' --no-prompt"
+      enabled: true
+    # Multiple practices test (test once for standard practices)
+    - command: "slim apply --best-practice-ids readme --best-practice-ids contributing --best-practice-ids changelog --repo-urls https://github.com/octocat/Hello-World"
+      enabled: true
+    - command: "slim deploy --best-practice-ids readme --best-practice-ids contributing --repo-dir {temp_git_repo_with_remote} --remote origin"
+      enabled: true
+    # Error scenarios (test once for all)
+    - command: "slim apply --best-practice-ids readme --repo-dir /nonexistent/directory"
+      enabled: true
+    - command: "slim deploy --best-practice-ids readme --repo-dir /nonexistent/directory"
+      enabled: true
+    - command: "slim apply --best-practice-ids readme --repo-urls-file /nonexistent/file.txt"
+      enabled: true
+    - command: "slim apply --repo-urls https://github.com/octocat/Hello-World" # missing best-practice-ids
+      enabled: true
+    - command: "slim apply --best-practice-ids readme --repo-urls https://random-nonexistent-github12414.com/nonexistent-user/nonexistent-repo-12345"
+      enabled: true
+    - command: "slim apply --best-practice-ids readme --repo-urls https://invalid-git-host.com/user/repo"
+      enabled: true
+
+contributing:
+  enabled: true
+  commands:
+    - command: "slim apply --best-practice-ids contributing --repo-urls https://github.com/octocat/Hello-World"
+      enabled: true
+    - command: "slim apply --best-practice-ids contributing --repo-dir {temp_git_repo}"
+      enabled: true
+    - command: "slim deploy --best-practice-ids contributing --repo-dir {temp_git_repo_with_remote} --remote {custom_remote}"
+      enabled: true
+    - command: "slim apply-deploy --best-practice-ids contributing --repo-dir {temp_git_repo_with_remote} --use-ai {test_ai_model} --remote origin"
+      enabled: false
+
+changelog:
+  enabled: true
+  commands:
+    - command: "slim apply --best-practice-ids changelog --repo-urls https://github.com/octocat/Hello-World"
+      enabled: true
+    - command: "slim deploy --best-practice-ids changelog --repo-dir {temp_git_repo_with_remote} --commit-message 'Add changelog documentation' --remote origin"
+      enabled: true
+
+code-of-conduct:
+  enabled: true
+  commands:
+    - command: "slim apply --best-practice-ids code-of-conduct --repo-urls https://github.com/octocat/Hello-World"
+      enabled: true
+    - command: "slim apply-deploy --best-practice-ids code-of-conduct --repo-dir {temp_git_repo_with_remote} --commit-message 'Add code of conduct' --remote origin"
+      enabled: true
+
+governance-small:
+  enabled: true
+  commands:
+    - command: "slim apply --best-practice-ids governance-small --repo-urls https://github.com/octocat/Hello-World"
+      enabled: true
+
+# Secrets detection best practices (from test_best_practice_secrets_detection.py)
+secrets-github:
+  enabled: true
+  commands:
+    - command: "slim apply --best-practice-ids secrets-github --repo-urls https://github.com/octocat/Hello-World --no-prompt"
+      enabled: true
+    - command: "slim apply --best-practice-ids secrets-github --repo-dir {temp_git_repo} --no-prompt"
+      enabled: true
+    - command: "slim apply --best-practice-ids secrets-github --repo-urls https://github.com/octocat/Hello-World --no-prompt"
+      enabled: true
+    - command: "slim apply --best-practice-ids secrets-github --repo-urls https://github.com/octocat/Hello-World --clone-to-dir {temp_dir} --no-prompt"
+      enabled: true
+    - command: "slim deploy --best-practice-ids secrets-github --repo-dir {temp_git_repo_with_remote} --remote origin"
+      enabled: true
+    - command: "slim apply-deploy --best-practice-ids secrets-github --repo-dir {temp_git_repo_with_remote} --remote origin --no-prompt"
+      enabled: true
+    - command: "slim apply-deploy --best-practice-ids secrets-github --repo-dir {temp_git_repo_with_remote} --remote origin --no-prompt"
+      enabled: true
+    # Multiple secrets practices
+    - command: "slim apply --best-practice-ids secrets-github --best-practice-ids secrets-precommit --repo-urls https://github.com/octocat/Hello-World --no-prompt"
+      enabled: true
+    - command: "slim deploy --best-practice-ids secrets-github --best-practice-ids secrets-precommit --repo-dir {temp_git_repo_with_remote} --remote origin"
+      enabled: true
+    - command: "slim apply-deploy --best-practice-ids secrets-github --best-practice-ids secrets-precommit --repo-dir {temp_git_repo_with_remote} --remote origin --commit-message 'Add comprehensive secrets detection' --no-prompt"
+      enabled: true
+    # Error scenarios for secrets
+    - command: "slim apply --best-practice-ids secrets-github --repo-dir /nonexistent/directory"
+      enabled: true
+    - command: "slim deploy --best-practice-ids secrets-github --repo-dir /nonexistent/directory"
+      enabled: true
+    - command: "slim apply --best-practice-ids secrets-github --repo-urls-file /nonexistent/file.txt"
+      enabled: true
+
+secrets-precommit:
+  enabled: true
+  commands:
+    - command: "slim apply --best-practice-ids secrets-precommit --repo-urls https://github.com/octocat/Hello-World --no-prompt"
+      enabled: true
+    - command: "slim apply --best-practice-ids secrets-precommit --repo-dir {temp_git_repo} --no-prompt"
+      enabled: true
+    - command: "slim apply --best-practice-ids secrets-precommit --repo-urls https://github.com/octocat/Hello-World --no-prompt"
+      enabled: true
+    - command: "slim apply --best-practice-ids secrets-precommit --repo-urls-file {temp_urls_file} --no-prompt"
+      enabled: true
+    - command: "slim deploy --best-practice-ids secrets-precommit --repo-dir {temp_git_repo_with_remote} --remote origin --commit-message 'Add pre-commit secrets detection'"
+      enabled: true
+    - command: "slim apply-deploy --best-practice-ids secrets-precommit --repo-dir {temp_git_repo_with_remote} --remote origin --no-prompt"
+      enabled: true
+    - command: "slim apply-deploy --best-practice-ids secrets-precommit --repo-dir {temp_git_repo_with_remote} --remote origin --commit-message 'Add pre-commit secrets scanning' --no-prompt"
+      enabled: true
+
+# Documentation website best practice (from test_best_practice_docs_website.py)
+docs-website:
+  enabled: false
+  commands:
+    - command: "slim apply --best-practice-ids docs-website --repo-urls https://github.com/nasa-ammos/MMTC --output-dir {temp_dir} --use-ai {test_ai_model}"
+      enabled: true

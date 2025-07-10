@@ -14,13 +14,15 @@ import uuid
 import git
 
 from jpl.slim.best_practices.base import BestPractice
+from jpl.slim.best_practices.practice_mapping import get_file_path
 from jpl.slim.utils.io_utils import download_and_place_file
 from jpl.slim.utils.ai_utils import generate_with_ai
+from jpl.slim.utils.prompt_utils import get_prompt_with_context, get_repository_context
+from jpl.slim.utils.io_utils import read_file_content, fetch_repository_context
+from jpl.slim.utils.git_utils import create_repo_temp_dir
 # Import the constant directly to avoid circular imports
 GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = 'slim-best-practices'
 
-# Check if we're in test mode
-SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')
 
 
 class StandardPractice(BestPractice):
@@ -48,18 +50,6 @@ class StandardPractice(BestPractice):
         git_repo = None
         git_branch = None
 
-        # In test mode, simulate success without making actual API calls
-        if SLIM_TEST_MODE:
-            logging.info(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
-            # Create a mock repo object for testing
-            mock_repo = git.Repo.init(target_dir_to_clone_to or tempfile.mkdtemp())
-            # Create a mock branch
-            branch_name = branch or self.best_practice_id
-            if not hasattr(mock_repo.heads, branch_name):
-                mock_repo.create_head(branch_name)
-            mock_repo.head.reference = getattr(mock_repo.heads, branch_name)
-            logging.info(f"TEST MODE: Successfully applied best practice {self.best_practice_id} to mock repository")
-            return mock_repo, mock_repo.head.reference, mock_repo.working_dir
 
         try:
             # Handle repository setup
@@ -73,7 +63,7 @@ class StandardPractice(BestPractice):
                     target_dir_to_clone_to = os.path.join(target_dir_to_clone_to, repo_name)
                     logging.debug(f"Set clone directory to {target_dir_to_clone_to}")
                 else:  # else make a temporary directory
-                    target_dir_to_clone_to = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+                    target_dir_to_clone_to = create_repo_temp_dir(repo_name)
                     logging.debug(f"Generating temporary clone directory at {target_dir_to_clone_to}")
             else:
                 target_dir_to_clone_to = repo_path
@@ -84,15 +74,10 @@ class StandardPractice(BestPractice):
                 logging.debug(f"Repository folder ({target_dir_to_clone_to}) exists already. Using existing directory.")
             except Exception as e:
                 logging.debug(f"Repository folder ({target_dir_to_clone_to}) not a git repository yet already. Cloning repo {repo_url} contents into folder.")
-                if SLIM_TEST_MODE:
-                    # In test mode, just initialize a new repo instead of cloning
-                    git_repo = git.Repo.init(target_dir_to_clone_to)
-                    logging.debug(f"TEST MODE: Initialized new git repository at {target_dir_to_clone_to}")
-                else:
-                    git_repo = git.Repo.clone_from(repo_url, target_dir_to_clone_to)
+                git_repo = git.Repo.clone_from(repo_url, target_dir_to_clone_to)
 
-            # Change directory to the cloned repository
-            os.chdir(target_dir_to_clone_to)
+            # Note: We don't change the working directory to avoid global state issues
+            # Git operations work with absolute paths from git_repo object
 
             if git_repo.head.is_valid():
                 if self.best_practice_id in git_repo.heads:
@@ -122,16 +107,32 @@ class StandardPractice(BestPractice):
 
         except git.exc.InvalidGitRepositoryError:
             logging.error(f"Error: {target_dir_to_clone_to} is not a valid Git repository.")
+            print(f"❌ Error: {target_dir_to_clone_to} is not a valid Git repository.")
             return None, None, None
         except git.exc.GitCommandError as e:
             logging.error(f"Git command error: {e}")
+            # Extract user-friendly error message from Git command error
+            error_msg = str(e)
+            if "Could not resolve host" in error_msg:
+                print(f"❌ Error: Unable to access repository. Could not resolve host.")
+            elif "Repository not found" in error_msg or "not found" in error_msg:
+                print(f"❌ Error: Repository not found. Please check the URL and try again.")
+            elif "could not read Username" in error_msg or "Authentication failed" in error_msg:
+                print(f"❌ Error: Repository not found or access denied. Please check the URL and your permissions.")
+            elif "Permission denied" in error_msg or "access denied" in error_msg:
+                print(f"❌ Error: Permission denied. Please check your access credentials.")
+            elif "Connection refused" in error_msg or "Connection timed out" in error_msg:
+                print(f"❌ Error: Connection failed. Please check your network connection and try again.")
+            else:
+                print(f"❌ Error: Failed to clone repository. Please check the repository URL and try again.")
             return None, None, None
         except Exception as e:
             logging.error(f"An unexpected error occurred: {e}")
+            print(f"❌ Error: An unexpected error occurred while setting up repository: {str(e)}")
             return None, None, None
             
     def apply(self, repo_path, use_ai=False, model=None, repo_url=None,
-              target_dir_to_clone_to=None, branch=None, no_prompt=False):
+              target_dir_to_clone_to=None, branch=None, no_prompt=False, **kwargs):
         """
         Apply the standard best practice to a repository.
 
@@ -149,18 +150,6 @@ class StandardPractice(BestPractice):
         """
         logging.debug(f"Applying best practice {self.best_practice_id} to repository: {repo_path}")
 
-        # In test mode with direct return path
-        if SLIM_TEST_MODE and not repo_url:  # Special fast path for tests with local repos
-            logging.info(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
-            # Create a mock repo object for testing
-            mock_repo = git.Repo.init(target_dir_to_clone_to or tempfile.mkdtemp())
-            # Create a mock branch
-            branch_name = branch or self.best_practice_id
-            if not hasattr(mock_repo.heads, branch_name):
-                mock_repo.create_head(branch_name)
-            mock_repo.head.reference = getattr(mock_repo.heads, branch_name)
-            logging.info(f"TEST MODE: Successfully applied best practice {self.best_practice_id} to mock repository")
-            return mock_repo
 
         applied_file_path = None  # default return value is invalid applied best practice
         
@@ -169,51 +158,32 @@ class StandardPractice(BestPractice):
         if not git_repo:
             return None
 
-        # Process best practice by ID
-        if self.best_practice_id == 'SLIM-1.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'GOVERNANCE.md')
-        elif self.best_practice_id == 'SLIM-1.2':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'GOVERNANCE.md')
-        elif self.best_practice_id == 'SLIM-1.3':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'GOVERNANCE.md')
-        elif self.best_practice_id == 'SLIM-3.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'README.md')
-        elif self.best_practice_id == 'SLIM-4.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, '.github/ISSUE_TEMPLATE/bug_report.md')
-        elif self.best_practice_id == 'SLIM-4.2':
-            applied_file_path = download_and_place_file(git_repo, self.uri, '.github/ISSUE_TEMPLATE/bug_report.yml')
-        elif self.best_practice_id == 'SLIM-4.3':
-            applied_file_path = download_and_place_file(git_repo, self.uri, '.github/ISSUE_TEMPLATE/new_feature.md')
-        elif self.best_practice_id == 'SLIM-4.4':
-            applied_file_path = download_and_place_file(git_repo, self.uri, '.github/ISSUE_TEMPLATE/new_feature.yml')
-        elif self.best_practice_id == 'SLIM-5.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'CHANGELOG.md')
-        elif self.best_practice_id == 'SLIM-7.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, '.github/PULL_REQUEST_TEMPLATE.md')
-        elif self.best_practice_id == 'SLIM-8.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'CODE_OF_CONDUCT.md')
-        elif self.best_practice_id == 'SLIM-9.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'CONTRIBUTING.md')
-        elif self.best_practice_id == 'SLIM-13.1':
-            applied_file_path = download_and_place_file(git_repo, self.uri, 'TESTING.md')
+        # Process best practice by alias
+        file_path = get_file_path(self.best_practice_id)
+        if file_path:
+            applied_file_path = download_and_place_file(git_repo, self.uri, file_path)
         else:
             applied_file_path = None  # nothing was modified
-            logging.warning(f"SLIM best practice {self.best_practice_id} not supported.")
+            logging.warning(f"Best practice {self.best_practice_id} not supported or no file mapping found.")
 
         # Apply AI customization if requested
         if applied_file_path and use_ai and model:
             self._apply_ai_customization(git_repo, applied_file_path, model)
 
         if applied_file_path:
-            logging.info(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
+            logging.debug(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
+            print(f"✅ Successfully applied best practice '{self.best_practice_id}' to repository")
+            print(f"   📁 Repository: {git_repo.working_tree_dir}")
+            print(f"   🌿 Branch: {git_branch.name}")
             return git_repo  # return the modified git repo object
         else:
             logging.error(f"Failed to apply best practice {self.best_practice_id}")
+            print(f"❌ Failed to apply best practice '{self.best_practice_id}'")
             return None
 
     def _apply_ai_customization(self, git_repo, file_path, model):
         """
-        Apply AI customization to a file.
+        Apply AI customization to a file using centralized prompt system.
 
         Args:
             git_repo (git.Repo): Git repository object
@@ -224,11 +194,44 @@ class StandardPractice(BestPractice):
             bool: True if AI customization was successful, False otherwise
         """
         try:
-            ai_content = generate_with_ai(self.best_practice_id, git_repo.working_tree_dir, file_path, model)
+            # Read current file content
+            current_content = read_file_content(file_path)
+            if not current_content:
+                logging.warning(f"Could not read content from {file_path}")
+                return False
+            
+            # Get AI prompt with context from centralized system
+            prompt_with_context = get_prompt_with_context('standard_practices', self.best_practice_id)
+            
+            if not prompt_with_context:
+                logging.warning(f"No AI prompt found for best practice {self.best_practice_id}, falling back to original method")
+                # Fall back to original AI generation method
+                ai_content = generate_with_ai(self.best_practice_id, git_repo.working_tree_dir, file_path, model)
+            else:
+                # Use centralized prompt system with repository context
+                logging.debug(f"Fetching repository context from: {git_repo.working_tree_dir}")
+                
+                # Get repository context configuration for this specific best practice
+                repo_context_config = get_repository_context('standard_practices', self.best_practice_id)
+                logging.debug(f"Repository context config: {repo_context_config}")
+                
+                # Fetch repository context using the new system
+                repo_context = fetch_repository_context(git_repo.working_tree_dir, repo_context_config)
+                context_info = f"REPOSITORY CONTEXT:\n{repo_context}" if repo_context else "No repository context found."
+                logging.debug(f"Fetched repository context, length: {len(repo_context) if repo_context else 0}")
+                
+                # Construct full prompt
+                full_prompt = f"{prompt_with_context}\n\nTEMPLATE TO ENHANCE:\n{current_content}\n\nCONTEXT INFORMATION:\n{context_info}"
+                
+                # Generate AI content using the centralized AI utilities
+                from jpl.slim.utils.ai_utils import generate_ai_content
+                ai_content = generate_ai_content(full_prompt, model)
+            
             if ai_content:
+                logging.debug(f"AI-generated content for {file_path}:\n{ai_content}")
                 with open(file_path, 'w') as f:
                     f.write(ai_content)
-                logging.info(f"Applied AI-generated content to {file_path}")
+                logging.debug(f"Applied AI-generated content to {file_path}")
                 return True
             else:
                 logging.warning(f"AI generation failed for best practice {self.best_practice_id}")
@@ -295,7 +298,7 @@ class StandardPractice(BestPractice):
             success, error_message = self._handle_commit_and_push(repo, remote, commit_message)
             
             if success:
-                logging.info(f"Successfully deployed best practice {self.best_practice_id}")
+                logging.debug(f"Successfully deployed best practice {self.best_practice_id}")
                 return True
             else:
                 logging.error(error_message)

@@ -14,3 +14,4 @@ downloads
 venv
 __pycache__
 .env
+.python_version

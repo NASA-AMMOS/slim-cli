@@ -1,0 +1,249 @@
+# SLIM CLI Prompts Configuration
+#
+# This file defines all AI prompts used throughout SLIM CLI.
+# Context is optional at any level and cascades from parent to child.
+# If present, all applicable context levels are combined and passed to the LLM.
+#
+# Repository context can also be defined at any level to control what
+# repository information is included in AI prompts. Child settings override parent settings.
+
+# Global context for all SLIM practices (optional)
+context: "Do not respond with any AI conversational text, only fulfill the prompt request directly and don't talk to me."
+
+# Global repository context (applies to all unless overridden)
+repository_context:
+  exclude_patterns: ["*.log", "node_modules/", ".git/", "__pycache__/", "*.pyc"]
+
+# Standard practices using template-based approach
+standard_practices:
+  # Documentation practices
+  readme:
+    context: "You are a technical documentation specialist helping to create a README file. Format using markdown and ensure novice and expert users can read the documentation."
+    prompt: "Fill out ONLY the placeholders that are enclosed in square brackets and contain the word INSERT (e.g., [INSERT YOUR REPO / PROJ NAME HERE]). Use the provided repository context to determine appropriate values. Do NOT modify any other parts of the template, including badges, links, or formatting. Return the complete template with only the INSERT placeholders replaced. Do NOT extrapolate too much meaning from the SLIM badge - ignore that badge in your context."
+    repository_context:
+      categories: ["documentation", "structure"]
+      max_characters: 50000
+      include_patterns:
+        ["README*", "*.md", "package.json", "setup.py", "pyproject.toml"]
+
+  # Testing documentation
+  testing-plan:
+    context: "Document existing testing practices and coverage accurately based on what actually exists in the repository."
+    prompt: "Within the provided testing template, only fill out the sections that plausibly have existing tests to fill out based on the directory listing provided (do not make up tests that do not exist). Return the template with filled out values."
+    repository_context:
+      categories: ["structure"]
+      include_patterns:
+        [
+          "test/**",
+          "tests/**",
+          "testing/**",
+          "testcases/**",
+          "testsuites/**",
+          "testplans/**",
+        ]
+
+# Documentation website generation practices
+docs-website:
+  context: "You are creating comprehensive documentation for a software project. Generate professional, detailed content that accurately reflects the project's capabilities and structure."
+  repository_context:
+    categories: ["documentation", "code"]
+    max_characters: 20000
+    include_patterns: ["README*", "*.md"]
+
+  generate_content_only:
+    prompt: |
+      You are enhancing a documentation template by replacing [INSERT_CONTENT] markers with appropriate content. You can see the full template structure below, including all existing headings and sections.
+
+      CRITICAL MDX SAFETY RULES - MUST FOLLOW:
+      1. NEVER use angle brackets < > except in fenced code blocks
+      2. NEVER write email addresses in angle brackets (use `email@domain.com` or [email](mailto:email))
+      3. NEVER write URLs in angle brackets (use [text](url) format)
+      4. ALWAYS escape special characters that might be interpreted as JSX
+      5. ALWAYS use proper markdown link syntax: [text](url)
+      6. NEVER use loose comparison operators < or > in text
+      7. ALWAYS wrap code in triple backticks with language tags
+      8. NEVER use malformed links or incomplete brackets
+      9. In code examples, when showing method signatures like getMissionData(String missionId), ensure the content is within a code block
+      10. For API path parameters, use placeholder format like `/missions/[MISSION_ID]` or put them in code blocks like `/missions/{{missionId}}`
+      11. NEVER leave unescaped JavaScript variable names in regular text - they must be in code blocks or backticks like `{{variableName}}`
+      12. NEVER use Jekyll/Liquid template syntax like `{{{{ site.baseurl }}}}`, `{{% %}}`, or any `{{{{ site.* }}}}` patterns
+      13. NEVER use Jekyll variables like `{{{{ page.* }}}}`, `{{{{ layout.* }}}}`, or similar template syntax
+      14. For internal links, ALWAYS use relative paths like `./page`, `../section/page`, or `[text](./path)` 
+      15. NEVER use template variables in URLs - use direct relative paths instead
+
+      TEMPLATE ENHANCEMENT INSTRUCTIONS:
+      1. You can see the COMPLETE template structure below - DO NOT duplicate any existing headings (#, ##, ###)
+      2. ONLY replace [INSERT_CONTENT] markers with appropriate content
+      3. Do NOT add, remove, or modify any existing headings or structure
+      4. Do NOT include YAML front matter in your response
+      5. Generate substantial, professional content appropriate for each section
+      6. Make content specific to {project_name}, not generic templates
+      7. Include relevant examples, commands, and best practices where appropriate
+      8. Follow all MDX safety rules above
+      9. When showing variable examples, use [ALL_CAPS] format (e.g., [DATASET_ID], [USER_ID]) or put JavaScript variables in code blocks
+
+      LINK GENERATION RULES:
+      - ONLY reference files and sections that exist in the provided Site Tree
+      - Use relative links for internal pages (e.g., [Installation](./installation) or [API](../developer/api))
+      - For section links within pages, use anchors (e.g., [Prerequisites](./installation#prerequisites))
+      - Never create links to pages or sections not listed in the Site Tree
+
+      Context provided:
+      - Project name: {project_name}
+      - File name: {file_name}
+      - Project type: {project_type}
+      - Languages: {languages}
+
+      AVAILABLE SITE NAVIGATION:
+      {site_tree}
+
+      SPECIAL INSTRUCTIONS FOR INDEX FILES:
+      If this is an index.md file, generate content that:
+      - Provides an overview of what's in this documentation section
+      - Lists and briefly describes the subsections/pages available from the Site Tree
+      - Helps users navigate to the right content
+      - Includes links to key pages in the section (only those that exist in the Site Tree)
+
+      TEMPLATE STRUCTURE TO ENHANCE:
+      {template_structure}
+
+      OUTPUT FORMAT: Return the complete enhanced template with all [INSERT_CONTENT] markers replaced. Do NOT include YAML front matter. Start immediately with the enhanced template - no preamble, no explanation.
+
+  enhance_section:
+    context: "You are enhancing a specific section of documentation. Focus on providing detailed, useful content that matches the section's purpose."
+    prompt: |
+      You are enhancing a specific section of documentation for {project_name}.
+
+      File: {file_name}
+      Section Header: {section_header}
+      Current Content: {current_content}
+
+      Context about the project:
+      - Project Name: {project_name}
+      - Languages: {languages}
+      - Project Type: {project_type}
+
+      CRITICAL MDX SAFETY RULES - MUST FOLLOW:
+      1. NEVER use angle brackets < > except in fenced code blocks
+      2. NEVER write email addresses in angle brackets (use `email@domain.com` or [email](mailto:email))
+      3. NEVER write URLs in angle brackets (use [text](url) format)
+      4. ALWAYS escape special characters that might be interpreted as JSX
+      5. ALWAYS use proper markdown link syntax: [text](url)
+      6. NEVER use loose comparison operators < or > in text
+      7. ALWAYS wrap code in triple backticks with language tags
+
+      Content Instructions:
+      1. Replace [INSERT_CONTENT] markers with relevant, detailed content
+      2. If the section is too brief, expand it with useful information
+      3. Keep the existing structure and formatting
+      4. Make content specific to {project_name} and the section topic
+      5. Return ONLY the enhanced section content (no header, no extra text)
+      6. DO NOT include conversational text like "Here is the enhanced section"
+      7. Focus on providing practical, useful information that matches the section's purpose
+      8. Include relevant examples, commands, and best practices where appropriate
+
+      For troubleshooting sections: Provide specific, actionable solutions
+      For tutorial sections: Include step-by-step instructions with examples
+      For API sections: Include detailed parameter descriptions and usage examples
+      For installation sections: Provide clear prerequisites and platform-specific instructions
+
+      OUTPUT FORMAT: Return only the enhanced section content, ready to be inserted into the documentation.
+
+  fill_empty_section:
+    context: "You are filling in an empty section of documentation with appropriate content."
+    prompt: |
+      You are filling in an empty section of documentation for {project_name}.
+
+      File: {file_name}
+      Section Header: {section_header}
+      Context about the project:
+      - Project Name: {project_name}
+      - Languages: {languages}
+      - Project Type: {project_type}
+
+      CRITICAL MDX SAFETY RULES - MUST FOLLOW:
+      1. NEVER use angle brackets < > except in fenced code blocks
+      2. NEVER write email addresses in angle brackets (use `email@domain.com` or [email](mailto:email))
+      3. NEVER write URLs in angle brackets (use [text](url) format)
+      4. ALWAYS escape special characters that might be interpreted as JSX
+      5. ALWAYS use proper markdown link syntax: [text](url)
+      6. NEVER use loose comparison operators < or > in text
+      7. ALWAYS wrap code in triple backticks with language tags
+
+      This section appears to be empty or contains minimal content. Generate comprehensive, useful content that:
+      1. Matches the section header and purpose
+      2. Is specific to {project_name} and its technology stack
+      3. Provides practical, actionable information
+      4. Includes relevant examples where appropriate
+      5. Follows documentation best practices
+      6. Follows all MDX safety rules above
+
+      Return ONLY the section content (no header, no conversational text).
+      Make the content substantial and useful for users of {project_name}.
+
+  fix_markdown_lint_errors:
+    context: "You are fixing markdown syntax errors to ensure MDX/Docusaurus compilation success."
+    prompt: |
+      Fix the following markdown syntax errors in this documentation file. The markdown will be compiled by MDX/Docusaurus.
+
+      File: {file_name}
+
+      Linter Errors Found:
+      {lint_errors}
+
+      Current Content:
+      {content}
+
+      CRITICAL INSTRUCTIONS:
+      1. Fix ALL linting errors while preserving the intended content and meaning
+      2. Ensure all HTML/JSX tags are properly closed or self-closing
+      3. Escape or fix special characters that might be interpreted as JSX:
+         - Email addresses: change <email@example.com> to `email@example.com` or [email](mailto:email@example.com)
+         - URLs in angle brackets: change <http://example.com> to [http://example.com](http://example.com)
+         - Comparison operators: wrap in backticks `< >` or use words "less than", "greater than"
+      4. Fix any malformed markdown links - use [text](url) format
+      5. Ensure code blocks are properly fenced with triple backticks
+      6. Return ONLY the corrected content - no explanations or conversation
+
+      Common MDX-specific fixes:
+      - Replace <tag> with `<tag>` if it's meant to be shown as text
+      - Ensure @ symbols in text are not at the start of what looks like a tag
+      - Escape curly braces {{{{ }}}} if they're meant to be displayed
+      - Convert loose URLs to proper markdown links
+
+      OUTPUT: Return the complete corrected markdown content.
+
+# Governance practices - specialized templates with contributor integration
+governance:
+  context: "You are a documentation specialist helping to create a GOVERNANCE file. Format using markdown and ensure novice and expert users can read the documentation."
+  repository_context:
+    category: ["documentation"]
+    max_characters: 10000
+    include_patterns: ["README*"]
+    exclude_patterns: ["LICENSE*"]
+
+  # Common title replacement for all governance docs
+  title:
+    prompt: "Use project information from the README to ONLY replace the placeholder '[INSERT PROJECT NAME]' with the actual project name. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the '[INSERT PROJECT NAME]' placeholder replaced with the project name followed by 'Project Governance'."
+
+  governance-small:
+    committers-small:
+      prompt: "You are processing a SECTION of a governance document. ONLY replace committer-related placeholders like '[INSERT MEMBER NAME]', '[INSERT LINK TO USERNAME]', and '[INSERT ORG ASSOCIATION]' with actual contributor information from the Git statistics. For small teams, use the top 3-5 contributors. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the placeholders replaced."
+
+  governance-medium:
+    committers-medium:
+      prompt: "You are processing the '#### List of Committers' section of a governance document. ONLY replace committer-related placeholders like '[INSERT MEMBER NAME]', '[INSERT LINK TO USERNAME]', and '[INSERT ORG ASSOCIATION]' with actual contributor information from the Git statistics. For medium teams, use the top 5-8 contributors. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the placeholders replaced."
+
+  governance-large:
+    committers-large:
+      prompt: "You are processing a SECTION of a governance document. ONLY replace committer-related placeholders like '[INSERT MEMBER NAME]', '[INSERT LINK TO USERNAME]', '[INSERT ORG ASSOCIATION]', and '[List of current committers]' with actual contributor information from the Git statistics. For large teams, use the top 8-12 contributors. Do NOT add, remove, or modify any other content in this section. Do NOT add new headings, paragraphs, or structure. Return the exact same section content with only the placeholders replaced."
+
+# Security practices
+secrets_detection:
+  # No AI prompts needed - this practice uses rule-based detection
+  context: "Security-focused practice for detecting and preventing secrets in code repositories."
+# Future practices can be added here following the same pattern
+# Each practice type can define:
+# - context (optional): Inherits from parent levels
+# - prompt: The main instruction for the AI
+# - Additional nested levels with their own context/prompt pairs

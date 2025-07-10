@@ -8,18 +8,28 @@ which applies and deploys best practices to repositories.
 import logging
 import os
 import tempfile
+import time
 import urllib.parse
 import uuid
+from typing import List, Optional
+from pathlib import Path
+import typer
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
 import git
 
 from jpl.slim.utils.io_utils import repo_file_to_list
-from jpl.slim.utils.git_utils import generate_git_branch_name
+from jpl.slim.utils.git_utils import generate_git_branch_name, create_repo_temp_dir
 from jpl.slim.commands.apply_command import apply_best_practice
 from jpl.slim.commands.deploy_command import deploy_best_practice
 from jpl.slim.commands.common import (
     GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS,
-    GIT_DEFAULT_COMMIT_MESSAGE
+    GIT_DEFAULT_COMMIT_MESSAGE,
+    get_ai_model_pairs
 )
+from jpl.slim.app import app, state, handle_dry_run_for_command
+
+console = Console()
 
 # Log message constants
 LOG_APPLY_FAILED = "Failed to apply best practice '{}'"
@@ -30,54 +40,155 @@ LOG_SUCCESS_APPLY_DEPLOY = "Successfully applied and deployed best practice ID: 
 LOG_UNABLE_TO_APPLY_DEPLOY = "Unable to apply and deploy best practice ID: {}"
 LOG_UNABLE_TO_DEPLOY = "Unable to deploy best practice ID: {}"
 
-def setup_parser(subparsers):
-    """
-    Set up the parser for the 'apply-deploy' command.
-
-    Args:
-        subparsers: Subparsers object from argparse
-
-    Returns:
-        The parser for the 'apply-deploy' command
-    """
-    from jpl.slim.commands.common import SUPPORTED_MODELS, get_ai_model_pairs
-
-    parser = subparsers.add_parser('apply-deploy', help='Applies and deploys a best practice')
-    parser.add_argument('--best-practice-ids', nargs='+', required=True, help='Best practice IDs to apply')
-    parser.add_argument('--repo-urls', nargs='+', required=False, help='Repository URLs to apply to. Do not use if --repo-dir specified')
-    parser.add_argument('--repo-urls-file', required=False, help='Path to a file containing repository URLs')
-    parser.add_argument('--repo-dir', required=False, help='Repository directory location on local machine. Only one repository supported')
-    parser.add_argument('--clone-to-dir', required=False, help='Local path to clone repository to. Compatible with --repo-urls')
-    parser.add_argument('--use-ai', metavar='MODEL', help=f'Automatically customize the application of the best practice with the specified AI model. Support for: {{get_ai_model_pairs(SUPPORTED_MODELS)}}')
-    parser.add_argument('--remote', required=False, default=None, help=f"Push to a specified remote. If not specified, pushes to 'origin'. Format should be a GitHub-like URL base. For example `https://github.com/my_github_user`")
-    parser.add_argument('--commit-message', required=False, default=GIT_DEFAULT_COMMIT_MESSAGE, help=f"Commit message to use for the deployment. Default '{GIT_DEFAULT_COMMIT_MESSAGE}")
-    parser.add_argument('--no-prompt', action='store_true', help='Skip user confirmation prompts when installing dependencies')
-    parser.set_defaults(func=handle_command)
-    return parser
-
-def handle_command(args):
-    """
-    Handle the 'apply-deploy' command.
-
-    Args:
-        args: Arguments from argparse
-    """
-    apply_and_deploy_best_practices(
-        best_practice_ids=args.best_practice_ids,
-        use_ai_flag=bool(args.use_ai),
-        model=args.use_ai if args.use_ai else None,
-        remote=args.remote,
-        commit_message=args.commit_message,
-        repo_urls=repo_file_to_list(args.repo_urls_file) if args.repo_urls_file else args.repo_urls,
-        existing_repo_dir=args.repo_dir,
-        target_dir_to_clone_to=args.clone_to_dir,
-        no_prompt=args.no_prompt
+@app.command(name="apply-deploy")
+def apply_deploy(
+    best_practice_ids: List[str] = typer.Option(
+        ...,
+        "--best-practice-ids", "-b",
+        help="Best practice aliases to apply (e.g., readme, governance-small, secrets-github)"
+    ),
+    repo_urls: Optional[List[str]] = typer.Option(
+        None,
+        "--repo-urls",
+        help="Repository URLs to apply to. Do not use if --repo-dir specified"
+    ),
+    repo_urls_file: Optional[Path] = typer.Option(
+        None,
+        "--repo-urls-file",
+        help="Path to a file containing repository URLs",
+        exists=True,
+        file_okay=True,
+        dir_okay=False
+    ),
+    repo_dir: Optional[Path] = typer.Option(
+        None,
+        "--repo-dir",
+        help="Repository directory location on local machine. Only one repository supported",
+        exists=True,
+        file_okay=False,
+        dir_okay=True
+    ),
+    clone_to_dir: Optional[Path] = typer.Option(
+        None,
+        "--clone-to-dir",
+        help="Local path to clone repository to. Compatible with --repo-urls"
+    ),
+    use_ai: Optional[str] = typer.Option(
+        None,
+        "--use-ai",
+        help="Automatically customize the application of the best practice with the specified AI model. Use 'slim models list' to see available models."
+    ),
+    remote: Optional[str] = typer.Option(
+        None,
+        "--remote",
+        help="Push to a specified remote. If not specified, pushes to 'origin'. Format should be a GitHub-like URL base. For example `https://github.com/my_github_user`"
+    ),
+    commit_message: str = typer.Option(
+        GIT_DEFAULT_COMMIT_MESSAGE,
+        "--commit-message", "-m",
+        help="Commit message to use for the deployment."
+    ),
+    no_prompt: bool = typer.Option(
+        False,
+        "--no-prompt",
+        help="Skip user confirmation prompts when installing dependencies"
+    ),
+    output_dir: Optional[Path] = typer.Option(
+        None,
+        "--output-dir",
+        help="Output directory for generated documentation (required for doc-gen)"
+    ),
+    template_only: bool = typer.Option(
+        False,
+        "--template-only",
+        help="Generate only the documentation template without analyzing a repository (for doc-gen)"
+    ),
+    revise_site: bool = typer.Option(
+        False,
+        "--revise-site",
+        help="Revise an existing documentation site (for doc-gen)"
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run", "-d",
+        help="Show what would be executed without making changes"
+    ),
+    logging_level: str = typer.Option(
+        None,
+        "--logging", "-l",
+        help="Set the logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL"
     )
+):
+    """
+    Apply and deploy best practices to repositories in one step.
+    
+    This command combines the functionality of 'apply' and 'deploy',
+    applying best practices and then pushing them to a git remote.
+    """
+    # Configure logging
+    from jpl.slim.commands.common import configure_logging
+    configure_logging(logging_level, state)
+    
+    logging.debug("Starting apply-deploy command execution")
+    logging.debug(f"Best practice IDs: {best_practice_ids}")
+    logging.debug(f"Use AI: {use_ai}")
+    
+    # Handle dry-run mode
+    if state.dry_run or dry_run:
+        if handle_dry_run_for_command(
+            "apply-deploy",
+            best_practice_ids=best_practice_ids,
+            repo_urls=repo_urls,
+            repo_urls_file=str(repo_urls_file) if repo_urls_file else None,
+            repo_dir=str(repo_dir) if repo_dir else None,
+            clone_to_dir=str(clone_to_dir) if clone_to_dir else None,
+            use_ai=use_ai,
+            remote=remote,
+            commit_message=commit_message,
+            no_prompt=no_prompt,
+            output_dir=str(output_dir) if output_dir else None,
+            template_only=template_only,
+            revise_site=revise_site,
+            dry_run=True
+        ):
+            return
+    
+    # Convert paths to strings for backward compatibility
+    repo_dir_str = str(repo_dir) if repo_dir else None
+    clone_to_dir_str = str(clone_to_dir) if clone_to_dir else None
+    output_dir_str = str(output_dir) if output_dir else None
+    
+    # Read URLs from file if provided
+    urls_from_file = repo_file_to_list(str(repo_urls_file)) if repo_urls_file else None
+    
+    # Apply and deploy best practices with timing
+    start_time = time.time()
+    try:
+        apply_and_deploy_best_practices(
+            best_practice_ids=best_practice_ids,
+            use_ai_flag=bool(use_ai),
+            model=use_ai,
+            remote=remote,
+            commit_message=commit_message,
+            repo_urls=urls_from_file if urls_from_file else repo_urls,
+            existing_repo_dir=repo_dir_str,
+            target_dir_to_clone_to=clone_to_dir_str,
+            no_prompt=no_prompt,
+            output_dir=output_dir_str,
+            template_only=template_only,
+            revise_site=revise_site
+        )
+        end_time = time.time()
+        duration = end_time - start_time
+        console.print(f"\n✅ [green]Apply-deploy operation completed in {duration:.2f} seconds[/green]")
+    except Exception as e:
+        console.print(f"❌ [red]Error in apply-deploy operation: {str(e)}[/red]")
+        raise typer.Exit(1)
 
 def _apply_multiple_best_practices(best_practice_ids, use_ai_flag, model, remote=None, 
                                  commit_message=GIT_DEFAULT_COMMIT_MESSAGE, repo_url=None, 
                                  existing_repo_dir=None, target_dir_to_clone_to=None, 
-                                 branch_name=None, no_prompt=False):
+                                 branch_name=None, no_prompt=False, **kwargs):
     """
     Apply multiple best practices to a repository and deploy them.
     
@@ -92,6 +203,7 @@ def _apply_multiple_best_practices(best_practice_ids, use_ai_flag, model, remote
         target_dir_to_clone_to (str, optional): Directory to clone repository to. Defaults to None.
         branch_name (str, optional): Git branch to use. Defaults to None.
         no_prompt (bool, optional): Skip user confirmation prompts. Defaults to False.
+        **kwargs: Additional arguments for doc-gen and other features
         
     Returns:
         bool: True if all best practices were successfully applied and deployed, False otherwise
@@ -109,7 +221,8 @@ def _apply_multiple_best_practices(best_practice_ids, use_ai_flag, model, remote
             existing_repo_dir=existing_repo_dir,
             target_dir_to_clone_to=target_dir_to_clone_to,
             branch=branch_name,
-            no_prompt=no_prompt
+            no_prompt=no_prompt,
+            **kwargs
         )
 
         # Keep track of the result and repo
@@ -136,7 +249,7 @@ def _apply_multiple_best_practices(best_practice_ids, use_ai_flag, model, remote
         return False
 
 def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remote=None, commit_message=GIT_DEFAULT_COMMIT_MESSAGE,
-                                    repo_urls=None, existing_repo_dir=None, target_dir_to_clone_to=None, no_prompt=False):
+                                    repo_urls=None, existing_repo_dir=None, target_dir_to_clone_to=None, no_prompt=False, **kwargs):
     """
     Apply and deploy best practices to repositories.
 
@@ -150,6 +263,7 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
         existing_repo_dir: Existing repository directory to apply to
         target_dir_to_clone_to: Directory to clone repositories to
         no_prompt: Skip user confirmation prompts for dependencies installation
+        **kwargs: Additional arguments for doc-gen and other features
     """
     branch_name = generate_git_branch_name(best_practice_ids)
 
@@ -165,7 +279,8 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                 commit_message=commit_message,
                 existing_repo_dir=existing_repo_dir,
                 branch_name=branch_name,
-                no_prompt=no_prompt
+                no_prompt=no_prompt,
+                **kwargs
             )
         elif len(best_practice_ids) == 1:
             # For a single best practice
@@ -177,7 +292,8 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                 commit_message=commit_message,
                 existing_repo_dir=existing_repo_dir,
                 branch=branch_name,
-                no_prompt=no_prompt
+                no_prompt=no_prompt,
+                **kwargs
             )
         else:
             logging.error(LOG_NO_BEST_PRACTICE_IDS)
@@ -204,11 +320,12 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                             repo_url=repo_url,
                             target_dir_to_clone_to=target_dir_to_clone_to,
                             branch_name=branch_name,
-                            no_prompt=no_prompt
+                            no_prompt=no_prompt,
+                            **kwargs
                         )
 
                     else:  # Make a temporary directory
-                        repo_dir = tempfile.mkdtemp(prefix=f"{repo_name}_" + str(uuid.uuid4()) + '_')
+                        repo_dir = create_repo_temp_dir(repo_name)
                         logging.debug(f"Generating temporary clone directory for group of best_practice_ids at {repo_dir}")
                         
                         # Apply and deploy with temporary directory
@@ -221,7 +338,8 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                             repo_url=repo_url,
                             target_dir_to_clone_to=repo_dir,
                             branch_name=branch_name,
-                            no_prompt=no_prompt
+                            no_prompt=no_prompt,
+                            **kwargs
                         )
 
             elif len(best_practice_ids) == 1:
@@ -235,13 +353,14 @@ def apply_and_deploy_best_practices(best_practice_ids, use_ai_flag, model, remot
                     repo_url=repo_url,
                     target_dir_to_clone_to=target_dir_to_clone_to,
                     branch=branch_name,
-                    no_prompt=no_prompt
+                    no_prompt=no_prompt,
+                    **kwargs
                 )
             else:
                 logging.error(LOG_NO_BEST_PRACTICE_IDS)
 
 def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote=None, commit_message=GIT_DEFAULT_COMMIT_MESSAGE,
-                                   repo_url=None, existing_repo_dir=None, target_dir_to_clone_to=None, branch=None, no_prompt=False):
+                                   repo_url=None, existing_repo_dir=None, target_dir_to_clone_to=None, branch=None, no_prompt=False, **kwargs):
     """
     Apply and deploy a best practice to a repository.
 
@@ -256,6 +375,7 @@ def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote=
         target_dir_to_clone_to: Directory to clone repository to
         branch: Git branch to use
         no_prompt: Skip user confirmation prompts for dependencies installation
+        **kwargs: Additional arguments for doc-gen and other features
 
     Returns:
         bool: True if application and deployment were successful, False otherwise
@@ -263,29 +383,60 @@ def apply_and_deploy_best_practice(best_practice_id, use_ai_flag, model, remote=
     logging.debug("AI customization enabled for applying and deploying best practices" if use_ai_flag else "AI customization disabled")
     logging.debug(f"Applying and deploying best practice ID: {best_practice_id}")
 
-    # Apply the best practice
-    git_repo = apply_best_practice(
-        best_practice_id=best_practice_id,
-        use_ai_flag=use_ai_flag,
-        model=model,
-        repo_url=repo_url,
-        existing_repo_dir=existing_repo_dir,
-        target_dir_to_clone_to=target_dir_to_clone_to,
-        branch=branch,
-        no_prompt=no_prompt
-    )
-
+    # Apply the best practice with simple spinner
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True
+    ) as progress:
+        task = progress.add_task(f"Applying {best_practice_id}...", total=None)
+        
+        git_repo = apply_best_practice(
+            best_practice_id=best_practice_id,
+            use_ai_flag=use_ai_flag,
+            model=model,
+            repo_url=repo_url,
+            existing_repo_dir=existing_repo_dir,
+            target_dir_to_clone_to=target_dir_to_clone_to,
+            branch=branch,
+            no_prompt=no_prompt,
+            **kwargs
+        )
+        
+        progress.update(task, description=f"Completed applying {best_practice_id}")
+    
     # Deploy the best practice if applied successfully
     if git_repo:
-        result = deploy_best_practice(
-            best_practice_id=best_practice_id,
-            repo_dir=git_repo.working_tree_dir,
-            remote=remote,
-            commit_message=commit_message,
-            branch=branch
-        )
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            console=console,
+            transient=True
+        ) as progress:
+            task = progress.add_task(f"Deploying {best_practice_id}...", total=None)
+            
+            result = deploy_best_practice(
+                best_practice_id=best_practice_id,
+                repo_dir=git_repo.working_tree_dir,
+                remote=remote,
+                commit_message=commit_message,
+                branch=branch
+            )
+            
+            progress.update(task, description=f"Completed deploying {best_practice_id}")
+        
         if result:
-            logging.info(LOG_SUCCESS_APPLY_DEPLOY.format(best_practice_id))
+            logging.debug(LOG_SUCCESS_APPLY_DEPLOY.format(best_practice_id))
+            
+            # Print success message to user  
+            console.print(f"✅ Successfully applied and deployed best practice '{best_practice_id}' to repository")
+            console.print(f"   📁 Repository: {git_repo.working_dir}")
+            console.print(f"   🌿 Branch: {branch if branch else best_practice_id}")
+            console.print(f"   💬 Commit: {commit_message}")
+            if remote:
+                console.print(f"   🚀 Deployed to: {remote}")
+            
             return True
         else:
             logging.error(LOG_UNABLE_TO_DEPLOY.format(best_practice_id))
