@@ -16,8 +16,6 @@ from jpl.slim.best_practices.standard import StandardPractice
 from jpl.slim.utils.io_utils import download_and_place_file
 from jpl.slim.utils.cli_utils import spinner_safe_input
 
-# Check if we're in test mode
-SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')
 
 
 class SecretsDetection(StandardPractice):
@@ -47,10 +45,6 @@ class SecretsDetection(StandardPractice):
         """
         logging.debug(f"Applying best practice {self.best_practice_id} to repository: {repo_path}")
 
-        # In test mode, we can use the parent's fast path for tests with local repos
-        if SLIM_TEST_MODE and not repo_url:
-            logging.debug(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
-            return super().apply(repo_path, use_ai, model, repo_url, target_dir_to_clone_to, branch, no_prompt)
 
         # Setup repository using the parent class method
         git_repo, git_branch, target_dir = self.setup_repository(repo_path, repo_url, target_dir_to_clone_to, branch)
@@ -69,32 +63,31 @@ class SecretsDetection(StandardPractice):
             if applied_file_path:
                 logging.debug(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
 
-                # Install detect-secrets if not in test mode
-                if not SLIM_TEST_MODE:
-                    if no_prompt:
-                        # Skip confirmation if --no-prompt flag is used
+                # Install detect-secrets
+                if no_prompt:
+                    # Skip confirmation if --no-prompt flag is used
+                    self._install_detect_secrets()
+                    # Run scan and check for unverified secrets
+                    if not self._run_detect_secrets_scan(git_repo):
+                        logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
+                        return None
+                else:
+                    # Prompt for confirmation before installing
+                    confirmation = spinner_safe_input("\nThe detect-secrets tool (https://github.com/Yelp/detect-secrets) is needed to support this best practice. Do you want me to install/re-install detect-secrets? (y/n): ")
+                    if confirmation.lower() in ['y', 'yes']:
                         self._install_detect_secrets()
-                        # Run scan and check for unverified secrets
-                        if not self._run_detect_secrets_scan(git_repo):
+                    else:
+                        logging.warning("Not installing detect-secrets. Assuming it is already installed.")
+
+                    # Prompt for confirmation before installing
+                    confirmation = spinner_safe_input("\nDo you want me to run an initial scan with detect-secrets (will overwrite an existing `.secrets-baseline` file)? (y/n): ")
+                    if confirmation.lower() in ['y', 'yes']:
+                        scan_result = self._run_detect_secrets_scan(git_repo)
+                        if not scan_result:
                             logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
                             return None
                     else:
-                        # Prompt for confirmation before installing
-                        confirmation = spinner_safe_input("\nThe detect-secrets tool (https://github.com/Yelp/detect-secrets) is needed to support this best practice. Do you want me to install/re-install detect-secrets? (y/n): ")
-                        if confirmation.lower() in ['y', 'yes']:
-                            self._install_detect_secrets()
-                        else:
-                            logging.warning("Not installing detect-secrets. Assuming it is already installed.")
-
-                        # Prompt for confirmation before installing
-                        confirmation = spinner_safe_input("\nDo you want me to run an initial scan with detect-secrets (will overwrite an existing `.secrets-baseline` file)? (y/n): ")
-                        if confirmation.lower() in ['y', 'yes']:
-                            scan_result = self._run_detect_secrets_scan(git_repo)
-                            if not scan_result:
-                                logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
-                                return None
-                        else:
-                            logging.warning("Not running detect-secrets scan. Assuming you have a `.secrets-baseline` file present in your repo already.")
+                        logging.warning("Not running detect-secrets scan. Assuming you have a `.secrets-baseline` file present in your repo already.")
 
                 print(f"✅ Successfully applied best practice '{self.best_practice_id}' to repository")
                 print(f"   📁 Repository: {git_repo.working_dir}")
@@ -106,26 +99,25 @@ class SecretsDetection(StandardPractice):
                 return None
 
         elif self.best_practice_id == 'secrets-precommit':
-            # Install pre-commit if not in test mode
-            if not SLIM_TEST_MODE:
-                if no_prompt:
-                    # Skip confirmation if --no-prompt flag is used
+            # Install pre-commit
+            if no_prompt:
+                # Skip confirmation if --no-prompt flag is used
+                self._install_detect_secrets()
+                self._install_pre_commit()
+            else:
+                # Prompt for confirmation before installing
+                confirmation = spinner_safe_input("\nThe detect-secrets tool (https://github.com/Yelp/detect-secrets) is needed to support this best practice. Do you want me to install/re-install detect-secrets? (y/n): ")
+                if confirmation.lower() in ['y', 'yes']:
                     self._install_detect_secrets()
+                else:
+                    logging.warning("Not installing detect-secrets. Assuming it is already installed.")
+
+                # Prompt for confirmation before installing
+                confirmation = spinner_safe_input("\nThe pre-commit tool (https://pre-commit.com) is needed to support this best practice. Do you want to install/re-install pre-commit? (y/n): ")
+                if confirmation.lower() in ['y', 'yes']:
                     self._install_pre_commit()
                 else:
-                    # Prompt for confirmation before installing
-                    confirmation = spinner_safe_input("\nThe detect-secrets tool (https://github.com/Yelp/detect-secrets) is needed to support this best practice. Do you want me to install/re-install detect-secrets? (y/n): ")
-                    if confirmation.lower() in ['y', 'yes']:
-                        self._install_detect_secrets()
-                    else:
-                        logging.warning("Not installing detect-secrets. Assuming it is already installed.")
-
-                    # Prompt for confirmation before installing
-                    confirmation = spinner_safe_input("\nThe pre-commit tool (https://pre-commit.com) is needed to support this best practice. Do you want to install/re-install pre-commit? (y/n): ")
-                    if confirmation.lower() in ['y', 'yes']:
-                        self._install_pre_commit()
-                    else:
-                        logging.warning("Not installing pre-commit tool. Assuming it is already installed.")
+                    logging.warning("Not installing pre-commit tool. Assuming it is already installed.")
 
             # Download and place the pre-commit config file
             applied_file_path = download_and_place_file(git_repo, self.uri, '.pre-commit-config.yaml')
@@ -133,39 +125,38 @@ class SecretsDetection(StandardPractice):
             if applied_file_path:
                 logging.debug(f"Applied best practice {self.best_practice_id} to local repo {git_repo.working_tree_dir} and branch '{git_branch.name}'")
 
-                # Initialize pre-commit hooks if not in test mode
-                if not SLIM_TEST_MODE:
-                    if no_prompt:
-                        # Skip confirmation if --no-prompt flag is used
+                # Initialize pre-commit hooks
+                if no_prompt:
+                    # Skip confirmation if --no-prompt flag is used
+                    self._install_pre_commit_hooks(git_repo)
+                    
+                    # Check if .secrets.baseline file exists and run detect-secrets scan if it doesn't
+                    baseline_file = os.path.join(git_repo.working_dir, '.secrets.baseline')
+                    if not os.path.exists(baseline_file):
+                        logging.debug("No existing .secrets.baseline file found. Running detect-secrets scan...")
+                        if not self._run_detect_secrets_scan(git_repo):
+                            logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
+                            return None
+                else:
+                    # Prompt for confirmation before installing hooks
+                    confirmation = spinner_safe_input("\nInstallation of the new pre-commit hook is needed via `pre-commit install`. Do you want to install the pre-commit hook for you? (y/n): ")
+                    if confirmation.lower() in ['y', 'yes']:
                         self._install_pre_commit_hooks(git_repo)
-                        
-                        # Check if .secrets.baseline file exists and run detect-secrets scan if it doesn't
-                        baseline_file = os.path.join(git_repo.working_dir, '.secrets.baseline')
-                        if not os.path.exists(baseline_file):
-                            logging.debug("No existing .secrets.baseline file found. Running detect-secrets scan...")
-                            if not self._run_detect_secrets_scan(git_repo):
-                                logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
-                                return None
+                    
+                    # Check if .secrets.baseline file exists and prompt user
+                    baseline_file = os.path.join(git_repo.working_dir, '.secrets.baseline')
+                    if os.path.exists(baseline_file):
+                        confirmation = spinner_safe_input("\nA .secrets.baseline file already exists. Do you want to run detect-secrets scan again (this will overwrite the existing file)? (y/n): ")
                     else:
-                        # Prompt for confirmation before installing hooks
-                        confirmation = spinner_safe_input("\nInstallation of the new pre-commit hook is needed via `pre-commit install`. Do you want to install the pre-commit hook for you? (y/n): ")
-                        if confirmation.lower() in ['y', 'yes']:
-                            self._install_pre_commit_hooks(git_repo)
-                        
-                        # Check if .secrets.baseline file exists and prompt user
-                        baseline_file = os.path.join(git_repo.working_dir, '.secrets.baseline')
-                        if os.path.exists(baseline_file):
-                            confirmation = spinner_safe_input("\nA .secrets.baseline file already exists. Do you want to run detect-secrets scan again (this will overwrite the existing file)? (y/n): ")
-                        else:
-                            confirmation = spinner_safe_input("\nDo you want to run an initial scan with detect-secrets to create a .secrets.baseline file? (y/n): ")
-                        
-                        if confirmation.lower() in ['y', 'yes']:
-                            scan_result = self._run_detect_secrets_scan(git_repo)
-                            if not scan_result:
-                                logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
-                                return None
-                        elif not os.path.exists(baseline_file):
-                            logging.warning("Not running detect-secrets scan. No .secrets.baseline file is present in your repo.")
+                        confirmation = spinner_safe_input("\nDo you want to run an initial scan with detect-secrets to create a .secrets.baseline file? (y/n): ")
+                    
+                    if confirmation.lower() in ['y', 'yes']:
+                        scan_result = self._run_detect_secrets_scan(git_repo)
+                        if not scan_result:
+                            logging.error("Detection of unverified secrets failed. Aborting application of best practice.")
+                            return None
+                    elif not os.path.exists(baseline_file):
+                        logging.warning("Not running detect-secrets scan. No .secrets.baseline file is present in your repo.")
 
                 print(f"✅ Successfully applied best practice '{self.best_practice_id}' to repository")
                 print(f"   📁 Repository: {git_repo.working_dir}")

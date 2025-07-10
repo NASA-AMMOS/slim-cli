@@ -108,6 +108,12 @@ def test_ai_model_ready():
 def create_temp_git_repo(repo_dir: str) -> git.Repo:
     """Create a temporary git repository with initial commit."""
     repo = git.Repo.init(repo_dir)
+    
+    # Set git identity for the test repository
+    with repo.config_writer() as git_config:
+        git_config.set_value('user', 'name', 'Test User')
+        git_config.set_value('user', 'email', 'test@example.com')
+    
     readme_path = os.path.join(repo_dir, 'README.md')
     with open(readme_path, 'w') as f:
         f.write('# Test Repository\nThis is a test repository.')

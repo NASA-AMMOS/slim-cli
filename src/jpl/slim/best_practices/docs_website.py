@@ -22,8 +22,6 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from jpl.slim.best_practices.standard import StandardPractice
 from jpl.slim.best_practices.docs_website_impl.generator import SlimDocGenerator
 
-# Check if we're in test mode
-SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')
 
 
 class DocsWebsiteBestPractice(StandardPractice):
@@ -111,10 +109,6 @@ class DocsWebsiteBestPractice(StandardPractice):
         # Use the actual repository path from setup_repository
         repo_path = actual_repo_path
             
-        # In test mode, simulate success without making actual changes
-        if SLIM_TEST_MODE:
-            logging.debug(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
-            return repo_path
         
         # Use the integrated documentation generator
         try:

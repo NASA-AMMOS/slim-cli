@@ -23,8 +23,6 @@ from jpl.slim.utils.git_utils import create_repo_temp_dir
 # Import the constant directly to avoid circular imports
 GIT_BRANCH_NAME_FOR_MULTIPLE_COMMITS = 'slim-best-practices'
 
-# Check if we're in test mode
-SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')
 
 
 class StandardPractice(BestPractice):
@@ -52,18 +50,6 @@ class StandardPractice(BestPractice):
         git_repo = None
         git_branch = None
 
-        # In test mode, simulate success without making actual API calls
-        if SLIM_TEST_MODE:
-            logging.debug(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
-            # Create a mock repo object for testing
-            mock_repo = git.Repo.init(target_dir_to_clone_to or tempfile.mkdtemp())
-            # Create a mock branch
-            branch_name = branch or self.best_practice_id
-            if not hasattr(mock_repo.heads, branch_name):
-                mock_repo.create_head(branch_name)
-            mock_repo.head.reference = getattr(mock_repo.heads, branch_name)
-            logging.debug(f"TEST MODE: Successfully applied best practice {self.best_practice_id} to mock repository")
-            return mock_repo, mock_repo.head.reference, mock_repo.working_dir
 
         try:
             # Handle repository setup
@@ -88,12 +74,7 @@ class StandardPractice(BestPractice):
                 logging.debug(f"Repository folder ({target_dir_to_clone_to}) exists already. Using existing directory.")
             except Exception as e:
                 logging.debug(f"Repository folder ({target_dir_to_clone_to}) not a git repository yet already. Cloning repo {repo_url} contents into folder.")
-                if SLIM_TEST_MODE:
-                    # In test mode, just initialize a new repo instead of cloning
-                    git_repo = git.Repo.init(target_dir_to_clone_to)
-                    logging.debug(f"TEST MODE: Initialized new git repository at {target_dir_to_clone_to}")
-                else:
-                    git_repo = git.Repo.clone_from(repo_url, target_dir_to_clone_to)
+                git_repo = git.Repo.clone_from(repo_url, target_dir_to_clone_to)
 
             # Note: We don't change the working directory to avoid global state issues
             # Git operations work with absolute paths from git_repo object
@@ -169,18 +150,6 @@ class StandardPractice(BestPractice):
         """
         logging.debug(f"Applying best practice {self.best_practice_id} to repository: {repo_path}")
 
-        # In test mode with direct return path
-        if SLIM_TEST_MODE and not repo_url:  # Special fast path for tests with local repos
-            logging.debug(f"TEST MODE: Simulating applying best practice {self.best_practice_id}")
-            # Create a mock repo object for testing
-            mock_repo = git.Repo.init(target_dir_to_clone_to or tempfile.mkdtemp())
-            # Create a mock branch
-            branch_name = branch or self.best_practice_id
-            if not hasattr(mock_repo.heads, branch_name):
-                mock_repo.create_head(branch_name)
-            mock_repo.head.reference = getattr(mock_repo.heads, branch_name)
-            logging.debug(f"TEST MODE: Successfully applied best practice {self.best_practice_id} to mock repository")
-            return mock_repo
 
         applied_file_path = None  # default return value is invalid applied best practice
         

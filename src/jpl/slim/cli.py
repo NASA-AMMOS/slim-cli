@@ -41,8 +41,6 @@ except ImportError:
 
 VERSION = open(os.path.join(os.path.dirname(__file__), 'VERSION.txt')).read().strip()
 
-# Set up test mode detection
-SLIM_TEST_MODE = os.environ.get('SLIM_TEST_MODE', 'False').lower() in ('true', '1', 't')
 
 # CLI-level arguments that should never be passed to commands
 CLI_ONLY_ARGS = {
@@ -208,11 +206,11 @@ def main_callback(
     setup_logging(log_level)
     
     # Print startup banner for interactive use (only if a command is being run)
-    if not SLIM_TEST_MODE and len(sys.argv) > 1 and ctx.invoked_subcommand is not None:
+    if len(sys.argv) > 1 and ctx.invoked_subcommand is not None:
         print_startup_banner()
     
-    # Check LiteLLM availability if not in test mode
-    if not SLIM_TEST_MODE and ctx.invoked_subcommand is not None:
+    # Check LiteLLM availability
+    if ctx.invoked_subcommand is not None:
         check_litellm_availability()
 
 

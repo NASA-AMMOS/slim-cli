@@ -23,6 +23,12 @@ runner = CliRunner()
 def create_temp_git_repo(repo_dir: str) -> git.Repo:
     """Create a temporary git repository with initial commit."""
     repo = git.Repo.init(repo_dir)
+    
+    # Set git identity for the test repository
+    with repo.config_writer() as git_config:
+        git_config.set_value('user', 'name', 'Test User')
+        git_config.set_value('user', 'email', 'test@example.com')
+    
     # Create initial commit
     readme_path = os.path.join(repo_dir, 'README.md')
     with open(readme_path, 'w') as f:

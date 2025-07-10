@@ -504,8 +504,7 @@ pytest tests/jpl/slim/cli/test_best_practice_commands.py
 # Test with coverage
 pytest --cov=jpl.slim
 
-# Set test mode to prevent real API calls
-SLIM_TEST_MODE=true pytest
+# Run tests (no special environment variable needed)
 ```
 
 **4. Manual Testing**:
