@@ -248,6 +248,8 @@ SLIM is designed to be easily extended with new best practices and commands. Her
 
 SLIM uses a centralized mapping system for extensibility. To add a new best practice:
 
+**Note**: Best practices do NOT require new command files. They work with existing `apply`, `deploy`, and `apply-deploy` commands. You only need to:
+
 **1. Update Practice Mapping** (`src/jpl/slim/best_practices/practice_mapping.py`):
 
 ```python
