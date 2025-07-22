@@ -73,7 +73,7 @@ Example terminal output:
 
 ### Requirements
 
-* Python 3.7+
+* Python 3.9+
 * Git
 * **Optional**: LiteLLM for enhanced AI model support (`pip install litellm`)
 * **Optional**: `.env` file to properly configure the environment for AI model APIs
@@ -134,7 +134,7 @@ Use this method if:
   
 ### Setup Instructions via pip (Recommended for most users)
 
-As the SLIM CLI is written in Python, you'll need Python 3.7 or later. Usually, you'll want to create a virtual environment in order to isolate the dependencies of SLIM from other Python-using applications. Install into that environment using `pip`:
+As the SLIM CLI is written in Python, you'll need Python 3.9 or later. Usually, you'll want to create a virtual environment in order to isolate the dependencies of SLIM from other Python-using applications. Install into that environment using `pip`:
 
     pip install slim-cli
 
