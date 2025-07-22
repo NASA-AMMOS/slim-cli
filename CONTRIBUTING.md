@@ -122,118 +122,15 @@ Reviewing pull-requests, or any kinds of proposed patch changes, is an art. That
 - **Reproducibility** - is your patch reproducible by others?
 - **Tests** - do you have or have conducted meaningful tests?
 
-## SLIM Architecture and Extension Points
+## Understanding SLIM Architecture
 
-This section provides an overview of the SLIM codebase architecture and explains how to extend it by adding new best practices and commands.
+Before adding new features, review the [ARCHITECTURE.md](ARCHITECTURE.md) to understand:
+- System design and component relationships
+- CLI framework (Typer + Rich) structure
+- Best practice system and extension mechanisms
+- AI integration architecture
 
-### Architectural Overview
-
-SLIM CLI is built on a modern architecture using **Typer** for CLI framework and **Rich** for terminal UI. The system features dynamic AI model discovery, extensible best practice mapping, and YAML-based testing. The main components are:
-
-```mermaid
-flowchart TD
-    subgraph "CLI Layer (Typer + Rich)"
-        App[app.py - Main Typer App]
-        CLI[cli.py - Entry Point & Legacy Compatibility]
-    end
-    
-    subgraph "Commands Layer"
-        Apply[apply_command.py]
-        Deploy[deploy_command.py]
-        Models[models_command.py]
-        List[list_command.py]
-    end
-    
-    subgraph "Rich TUI System"
-        Spinner[SpinnerManager]
-        Progress[Progress Indicators]
-    end
-    
-    subgraph "Management & Configuration"
-        Manager[best_practices_manager.py]
-        Mapping[practice_mapping.py]
-        Prompts[prompts/prompts.yaml]
-    end
-    
-    subgraph "Best Practices"
-        Standard[standard.py]
-        Secrets[secrets_detection.py]
-        Governance[governance.py]
-        DocsWebsite[docs_website.py]
-    end
-    
-    subgraph "Utils Layer"
-        AIUtils[ai_utils.py - LiteLLM Integration]
-        GitUtils[git_utils.py]
-        CLIUtils[cli_utils.py - Spinner Management]
-        PromptUtils[prompt_utils.py]
-    end
-    
-    App --> CLI
-    CLI --> Apply
-    CLI --> Deploy
-    CLI --> Models
-    CLI --> List
-    Apply --> Spinner
-    Apply --> Manager
-    Manager --> Mapping
-    Manager --> Standard
-    Manager --> Secrets
-    Standard --> AIUtils
-    Standard --> PromptUtils
-    PromptUtils --> Prompts
-    AIUtils --> LiteLLM[100+ AI Models via LiteLLM]
-```
-
-#### Key Components
-
-1. **Typer CLI Framework** (`src/jpl/slim/app.py`, `src/jpl/slim/cli.py`):
-   - **app.py**: Main Typer application instance with Rich markup support
-   - **cli.py**: Entry point and legacy compatibility layer
-   - Features: Rich TUI, dry-run mode, global state management
-   - Uses decorators: `@app.command()` for command registration
-
-2. **Commands Package** (`src/jpl/slim/commands/`):
-   - **Modern Typer Commands**: Each command uses Typer decorators and type hints
-   - **Rich Integration**: Progress bars, spinners, and colored output
-   - **Key Commands**:
-     - `apply_command.py`: Apply best practices with Rich progress indicators
-     - `models_command.py`: AI model discovery and management (NEW)
-     - `deploy_command.py`: Git deployment with spinner feedback
-     - `list_command.py`: List available practices
-
-3. **Rich TUI System** (`src/jpl/slim/utils/cli_utils.py`):
-   - **SpinnerManager**: Global progress coordination during user input
-   - **managed_progress()**: Context manager for spinner/progress coordination
-   - **spinner_safe_input()**: Clean user input with automatic progress pause/resume
-
-4. **Practice Mapping System** (`src/jpl/slim/best_practices/practice_mapping.py`):
-   - **ALIAS_TO_PRACTICE_CLASS**: Central mapping for extensibility
-   - **ALIAS_TO_FILE_PATH**: File placement mapping for StandardPractice
-   - **Helper Functions**: Practice type detection and classification
-   - **Extension Point**: Add new practices by updating mappings
-
-5. **Best Practices Package** (`src/jpl/slim/best_practices/`):
-   - **Base Classes**: Abstract interfaces for different practice types
-   - **Standard Practices**: Template-based practices (README, CONTRIBUTING, etc.)
-   - **Secrets Detection**: Security-focused practices
-   - **Governance**: Project governance with git contributor integration
-   - **Documentation Website**: AI-powered documentation site generation
-
-6. **AI Integration** (`src/jpl/slim/utils/ai_utils.py`, `src/jpl/slim/prompts/`):
-   - **LiteLLM Integration**: 100+ AI models with automatic discovery
-   - **Centralized Prompts**: YAML-based prompt management with inheritance
-   - **Model Management**: Validation, recommendations, and setup instructions
-   - **Repository Context**: Configurable context extraction for AI enhancement
-
-7. **Utils Layer** (`src/jpl/slim/utils/`):
-   - **ai_utils.py**: LiteLLM integration and model management
-   - **cli_utils.py**: Rich TUI utilities and spinner management
-   - **git_utils.py**: Git operations with `create_repo_temp_dir()` helper
-   - **prompt_utils.py**: Centralized prompt loading and context management
-   - **io_utils.py**: File I/O and registry operations
-
-### Extension Points
+## Extension Points
 
 SLIM is designed to be easily extended with new best practices and commands. Here's how to add new functionality:
 
@@ -464,7 +361,9 @@ Typer automatically discovers commands decorated with `@app.command()`. The impo
 
 ### Testing Your Extensions
 
-SLIM CLI uses a comprehensive testing framework combining pytest with YAML-based integration testing:
+When adding new features, comprehensive testing is essential. See [TESTING.md](TESTING.md) for the overall test architecture and how to run tests.
+
+For testing new extensions specifically:
 
 **1. Add YAML Integration Tests** (`tests/integration/best_practices_test_commands.yaml`):
 
@@ -486,7 +385,7 @@ your-new-practice:
       enabled: true
 ```
 
-**2. Write Unit Tests** (`tests/jpl/slim/best_practices/test_your_practice.py`):
+**2. Write Unit Tests** for custom practice classes:
 
 ```python
 import pytest
@@ -510,37 +409,7 @@ class TestYourNewPractice:
         assert "Dry run complete" in result.stdout
 ```
 
-**3. Run Tests**:
-
-```bash
-# Using UV (Recommended)
-# Run all tests
-uv run pytest
-
-# Run only your new tests
-uv run pytest tests/jpl/slim/best_practices/test_your_practice.py
-
-# Run YAML integration tests
-uv run pytest tests/jpl/slim/cli/test_best_practice_commands.py
-
-# Test with coverage
-uv run pytest --cov=jpl.slim
-
-# Using Traditional Setup
-# Run all tests
-pytest
-
-# Run only your new tests
-pytest tests/jpl/slim/best_practices/test_your_practice.py
-
-# Run YAML integration tests
-pytest tests/jpl/slim/cli/test_best_practice_commands.py
-
-# Test with coverage
-pytest --cov=jpl.slim
-```
-
-**4. Manual Testing**:
+**3. Manual Testing**:
 
 ```bash
 # Test your new practice

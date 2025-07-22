@@ -194,4 +194,8 @@ When adding new test functionality to SLIM CLI:
 5. **Document test purpose** with clear docstrings
 6. **Run full test suite** before submitting PR by running `uv run pytest` (or `pytest` if using traditional setup)
 
+## Testing New Extensions
+
+For specific guidance on testing new best practices and commands you're adding to SLIM CLI, see the [Testing Your Extensions](CONTRIBUTING.md#testing-your-extensions) section in CONTRIBUTING.md.
+
 For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
