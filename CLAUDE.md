@@ -33,6 +33,7 @@ This document provides AI-specific guidance for working with the SLIM CLI codeba
 - Don't assume pip/venv setup - check if user is using UV
 - Don't create new files unless absolutely necessary
 - Don't modify git config or push without explicit user request
+- Don't be verbose in GitHub templates - keep issue/PR descriptions clear and concise
 
 ### Testing Reminders
 - Run `uv run pytest tests/` before suggesting PR submission
@@ -44,6 +45,12 @@ This document provides AI-specific guidance for working with the SLIM CLI codeba
 - Supports AI models via LiteLLM integration
 - Uses YAML-based configuration for prompts and tests
 - Best practices are fetched from a centralized SLIM registry
+
+### GitHub Templates
+- **Issue templates**: Located in `.github/ISSUE_TEMPLATE/` directory
+- **Pull request template**: Located at `.github/PULL_REQUEST_TEMPLATE.md`
+- **When creating issues or PRs**: Read and follow these templates for proper formatting
+- **Template content**: Keep descriptions clear, concise, and accurate - avoid verbose explanations
 
 ## Quick Command Reference
 ```bash
