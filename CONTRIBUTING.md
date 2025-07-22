@@ -90,17 +90,55 @@ Our project typically has the following branches available, make sure to fork ei
 
 Within your local development environment, this is the stage at which you'll propose your changes, and commit those changes back to version control. See the [README.md](README.md) for more specifics on what you'll need as prerequisites to setup your local development environment.
 
+**Important:** When making changes, consider if a version bump is needed in `src/jpl/slim/VERSION.txt`:
+- New features or commands → Minor version bump
+- Bug fixes → Patch version bump  
+- Breaking changes → Major version bump
+
+#### Semantic Versioning
+
+SLIM CLI follows [Semantic Versioning](https://semver.org/) principles. The version is stored in `src/jpl/slim/VERSION.txt` and should be updated according to:
+
+- **MAJOR** version (X.0.0): Breaking changes that require users to modify their usage
+- **MINOR** version (0.X.0): New features that are backwards-compatible
+- **PATCH** version (0.0.X): Bug fixes and patches that don't add features
+
+**Examples:**
+- Adding a new command or best practice → MINOR bump (1.0.0 → 1.1.0)
+- Fixing a CLI bug or dependency issue → PATCH bump (1.0.0 → 1.0.1)
+- Changing command syntax or removing features → MAJOR bump (1.0.0 → 2.0.0)
+
 #### Commit Messages
 
-Commit messages to version control should reference a ticket in their title / summary line:
+Follow semantic release best practices for commit messages to enable automated versioning:
 
+**Format:** `<type>(<scope>): <description>`
+
+**Types:**
+- `feat`: New feature (triggers MINOR release)
+- `fix`: Bug fix (triggers PATCH release) 
+- `BREAKING CHANGE`: Breaking change (triggers MAJOR release)
+- `docs`: Documentation changes
+- `test`: Test additions or modifications
+- `refactor`: Code refactoring without functionality changes
+- `chore`: Maintenance tasks
+
+**Examples:**
 ```
-Issue #248 - Show an example commit message title
+feat(commands): add new models command for AI model management
+fix(cli): resolve typer compatibility issue with click 8.2.1
+docs(readme): update installation instructions for UV tool
+BREAKING CHANGE(api): remove deprecated --legacy-mode flag
 ```
 
-This makes sure that tickets are updated on GitHub with references to commits that are related to them.
+Commit messages should reference issue tickets when applicable:
+```
+feat(secrets): add detect-secrets integration
 
-Commit should always be atomic. Keep solutions isolated whenever possible. Filler commits such as "clean up white space" or "fix typo" should be merged together before making a pull request, and significant sub-feature branches should be [rebased](https://www.youtube.com/results?search_query=git+rebase) to preserve commit history. Please ensure your commit history is clean and meaningful!
+Resolves #248 - Add secrets detection best practice
+```
+
+Commits should always be atomic. Keep solutions isolated whenever possible. Filler commits such as "clean up white space" or "fix typo" should be merged together before making a pull request, and significant sub-feature branches should be [rebased](https://www.youtube.com/results?search_query=git+rebase) to preserve commit history. Please ensure your commit history is clean and meaningful!
 
 ### Submit a Pull Request
 

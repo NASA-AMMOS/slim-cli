@@ -21,6 +21,8 @@ This document provides AI-specific guidance for working with the SLIM CLI codeba
 - Use `console.print()` for user output, `logging.debug()` for debugging
 - Maintain the established command structure in `src/jpl/slim/commands/`
 - New best practices require registration in `practice_mapping.py`
+- Consider semantic versioning when making changes (update `src/jpl/slim/VERSION.txt`)
+- Use semantic commit message format: `<type>(<scope>): <description>`
 
 ### When Running Commands
 - Always use `uv run` prefix for development commands
