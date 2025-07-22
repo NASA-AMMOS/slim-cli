@@ -1,13 +1,12 @@
 [project]
 name = 'slim-cli'
 dynamic = ['version']
-requires-python = '>=3.7'
+requires-python = '>=3.9'
 dependencies = [
     # Note: these dependencies were taking from original `requirements.txt`
     # file (now retired in favor of this file, `pyproject.toml`). However,
     # pessimistic version constraints were added in order to avoid the
     # Dependency Confusion Vulnerability.
-
     'azure-identity ~= 1.17.1',
     'gitpython ~= 3.1.43',
     'ollama ~= 0.3.1',
@@ -16,15 +15,15 @@ dependencies = [
     'requests ~= 2.32.3',
     'rich ~= 13.7.1',
     'numpy ~= 2.0.2',
-    
     # New dependencies for integrated documentation generation
     'pyyaml ~= 6.0.1',
     'jinja2 ~= 3.1.0',
-    'typer[all] ~= 0.9.0',
+    'typer ~= 0.7.0',
+    'click ~= 8.1.0',
     'litellm>=1.40.0',
-
     # Commenting-out tabulate since it's not used in the code currenty:
     # 'tabulate ~= 0.9.0',
+    "pip>=25.1.1",
 ]
 authors = [
     {name = 'Rishi Verma', email='Rishi.Verma@jpl.nasa.gov'},
@@ -68,3 +67,8 @@ packages = ['src/jpl']
 [build-system]
 requires = ['hatchling']
 build-backend = 'hatchling.build'
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.1",
+]
