@@ -19,11 +19,30 @@ Our Code of Conduct helps facilitate a positive interaction environment for ever
 For patch contributions, see our [README.md](README.md) for more details on how to set up your local environment, to best contribute to our project.
 
 **Development Dependencies:**
-- Python 3.7+
+- Python 3.9+
 - Git
 - **Optional**: LiteLLM for AI model support (`pip install litellm`)
 - pytest for testing (`pip install pytest pytest-cov`)
 - Typer and Rich for CLI development (`pip install typer rich`)
+
+**Recommended Development Setup with UV:**
+```bash
+# Install UV (fast Python package manager)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone and set up the project
+git clone https://github.com/NASA-AMMOS/slim-cli.git
+cd slim-cli
+
+# UV automatically handles virtual environment and dependencies
+uv sync
+
+# Run tests
+uv run pytest tests/
+
+# Run the CLI
+uv run slim --help
+```
 
 At a minimum however to submit patches (if using Git), you'll want to ensure you have:
 1. An account on the Version Control System our project uses (i.e. GitHub).
@@ -492,6 +511,20 @@ class TestYourNewPractice:
 **3. Run Tests**:
 
 ```bash
+# Using UV (Recommended)
+# Run all tests
+uv run pytest
+
+# Run only your new tests
+uv run pytest tests/jpl/slim/best_practices/test_your_practice.py
+
+# Run YAML integration tests
+uv run pytest tests/jpl/slim/cli/test_best_practice_commands.py
+
+# Test with coverage
+uv run pytest --cov=jpl.slim
+
+# Using Traditional Setup
 # Run all tests
 pytest
 
@@ -503,8 +536,6 @@ pytest tests/jpl/slim/cli/test_best_practice_commands.py
 
 # Test with coverage
 pytest --cov=jpl.slim
-
-# Run tests (no special environment variable needed)
 ```
 
 **4. Manual Testing**:
