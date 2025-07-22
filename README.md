@@ -107,7 +107,35 @@ Example terminal output:
 
 ### Setup Instructions for Local Development (For Contributors) 
 
-If you're working on `slim-cli` itself, you’ll want to run it in editable mode so your changes are immediately reflected.
+If you're working on `slim-cli` itself, you'll want to run it in editable mode so your changes are immediately reflected.
+
+#### Using UV (Recommended for Development)
+
+[UV](https://github.com/astral-sh/uv) is a fast Python package manager that simplifies dependency management and virtual environment handling. It's our recommended tool for local development.
+
+```bash
+# Install UV (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone the repo
+git clone https://github.com/NASA-AMMOS/slim-cli.git
+cd slim-cli
+
+# UV automatically creates and manages the virtual environment
+# Install all dependencies and the package in editable mode
+uv sync
+
+# Run the CLI locally with UV
+uv run slim --help
+uv run slim --version
+
+# Run tests
+uv run pytest tests/
+```
+
+#### Using Traditional pip/venv
+
+If you prefer the traditional approach:
 
 ```bash
 # Clone the repo
