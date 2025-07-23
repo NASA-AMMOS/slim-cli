@@ -73,7 +73,7 @@ Example terminal output:
 
 ### Requirements
 
-* Python 3.7+
+* Python 3.9+
 * Git
 * **Optional**: LiteLLM for enhanced AI model support (`pip install litellm`)
 * **Optional**: `.env` file to properly configure the environment for AI model APIs
@@ -107,7 +107,35 @@ Example terminal output:
 
 ### Setup Instructions for Local Development (For Contributors) 
 
-If you're working on `slim-cli` itself, you’ll want to run it in editable mode so your changes are immediately reflected.
+If you're working on `slim-cli` itself, you'll want to run it in editable mode so your changes are immediately reflected.
+
+#### Using UV (Recommended for Development)
+
+[UV](https://github.com/astral-sh/uv) is a fast Python package manager that simplifies dependency management and virtual environment handling. It's our recommended tool for local development.
+
+```bash
+# Install UV (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone the repo
+git clone https://github.com/NASA-AMMOS/slim-cli.git
+cd slim-cli
+
+# UV automatically creates and manages the virtual environment
+# Install all dependencies and the package in editable mode
+uv sync
+
+# Run the CLI locally with UV
+uv run slim --help
+uv run slim --version
+
+# Run tests
+uv run pytest tests/
+```
+
+#### Using Traditional pip/venv
+
+If you prefer the traditional approach:
 
 ```bash
 # Clone the repo
@@ -134,7 +162,7 @@ Use this method if:
   
 ### Setup Instructions via pip (Recommended for most users)
 
-As the SLIM CLI is written in Python, you'll need Python 3.7 or later. Usually, you'll want to create a virtual environment in order to isolate the dependencies of SLIM from other Python-using applications. Install into that environment using `pip`:
+As the SLIM CLI is written in Python, you'll need Python 3.9 or later. Usually, you'll want to create a virtual environment in order to isolate the dependencies of SLIM from other Python-using applications. Install into that environment using `pip`:
 
     pip install slim-cli
 

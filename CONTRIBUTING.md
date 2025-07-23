@@ -19,11 +19,30 @@ Our Code of Conduct helps facilitate a positive interaction environment for ever
 For patch contributions, see our [README.md](README.md) for more details on how to set up your local environment, to best contribute to our project.
 
 **Development Dependencies:**
-- Python 3.7+
+- Python 3.9+
 - Git
 - **Optional**: LiteLLM for AI model support (`pip install litellm`)
 - pytest for testing (`pip install pytest pytest-cov`)
 - Typer and Rich for CLI development (`pip install typer rich`)
+
+**Recommended Development Setup with UV:**
+```bash
+# Install UV (fast Python package manager)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone and set up the project
+git clone https://github.com/NASA-AMMOS/slim-cli.git
+cd slim-cli
+
+# UV automatically handles virtual environment and dependencies
+uv sync
+
+# Run tests
+uv run pytest tests/
+
+# Run the CLI
+uv run slim --help
+```
 
 At a minimum however to submit patches (if using Git), you'll want to ensure you have:
 1. An account on the Version Control System our project uses (i.e. GitHub).
@@ -71,17 +90,55 @@ Our project typically has the following branches available, make sure to fork ei
 
 Within your local development environment, this is the stage at which you'll propose your changes, and commit those changes back to version control. See the [README.md](README.md) for more specifics on what you'll need as prerequisites to setup your local development environment.
 
+**Important:** When making changes, consider if a version bump is needed in `src/jpl/slim/VERSION.txt`:
+- New features or commands → Minor version bump
+- Bug fixes → Patch version bump  
+- Breaking changes → Major version bump
+
+#### Semantic Versioning
+
+SLIM CLI follows [Semantic Versioning](https://semver.org/) principles. The version is stored in `src/jpl/slim/VERSION.txt` and should be updated according to:
+
+- **MAJOR** version (X.0.0): Breaking changes that require users to modify their usage
+- **MINOR** version (0.X.0): New features that are backwards-compatible
+- **PATCH** version (0.0.X): Bug fixes and patches that don't add features
+
+**Examples:**
+- Adding a new command or best practice → MINOR bump (1.0.0 → 1.1.0)
+- Fixing a CLI bug or dependency issue → PATCH bump (1.0.0 → 1.0.1)
+- Changing command syntax or removing features → MAJOR bump (1.0.0 → 2.0.0)
+
 #### Commit Messages
 
-Commit messages to version control should reference a ticket in their title / summary line:
+Follow semantic release best practices for commit messages to enable automated versioning:
 
+**Format:** `<type>(<scope>): <description>`
+
+**Types:**
+- `feat`: New feature (triggers MINOR release)
+- `fix`: Bug fix (triggers PATCH release) 
+- `BREAKING CHANGE`: Breaking change (triggers MAJOR release)
+- `docs`: Documentation changes
+- `test`: Test additions or modifications
+- `refactor`: Code refactoring without functionality changes
+- `chore`: Maintenance tasks
+
+**Examples:**
 ```
-Issue #248 - Show an example commit message title
+feat(commands): add new models command for AI model management
+fix(cli): resolve typer compatibility issue with click 8.2.1
+docs(readme): update installation instructions for UV tool
+BREAKING CHANGE(api): remove deprecated --legacy-mode flag
 ```
 
-This makes sure that tickets are updated on GitHub with references to commits that are related to them.
+Commit messages should reference issue tickets when applicable:
+```
+feat(secrets): add detect-secrets integration
 
-Commit should always be atomic. Keep solutions isolated whenever possible. Filler commits such as "clean up white space" or "fix typo" should be merged together before making a pull request, and significant sub-feature branches should be [rebased](https://www.youtube.com/results?search_query=git+rebase) to preserve commit history. Please ensure your commit history is clean and meaningful!
+Resolves #248 - Add secrets detection best practice
+```
+
+Commits should always be atomic. Keep solutions isolated whenever possible. Filler commits such as "clean up white space" or "fix typo" should be merged together before making a pull request, and significant sub-feature branches should be [rebased](https://www.youtube.com/results?search_query=git+rebase) to preserve commit history. Please ensure your commit history is clean and meaningful!
 
 ### Submit a Pull Request
 
@@ -103,118 +160,15 @@ Reviewing pull-requests, or any kinds of proposed patch changes, is an art. That
 - **Reproducibility** - is your patch reproducible by others?
 - **Tests** - do you have or have conducted meaningful tests?
 
-## SLIM Architecture and Extension Points
+## Understanding SLIM Architecture
 
-This section provides an overview of the SLIM codebase architecture and explains how to extend it by adding new best practices and commands.
+Before adding new features, review the [ARCHITECTURE.md](ARCHITECTURE.md) to understand:
+- System design and component relationships
+- CLI framework (Typer + Rich) structure
+- Best practice system and extension mechanisms
+- AI integration architecture
 
-### Architectural Overview
-
-SLIM CLI is built on a modern architecture using **Typer** for CLI framework and **Rich** for terminal UI. The system features dynamic AI model discovery, extensible best practice mapping, and YAML-based testing. The main components are:
-
-```mermaid
-flowchart TD
-    subgraph "CLI Layer (Typer + Rich)"
-        App[app.py - Main Typer App]
-        CLI[cli.py - Entry Point & Legacy Compatibility]
-    end
-    
-    subgraph "Commands Layer"
-        Apply[apply_command.py]
-        Deploy[deploy_command.py]
-        Models[models_command.py]
-        List[list_command.py]
-    end
-    
-    subgraph "Rich TUI System"
-        Spinner[SpinnerManager]
-        Progress[Progress Indicators]
-    end
-    
-    subgraph "Management & Configuration"
-        Manager[best_practices_manager.py]
-        Mapping[practice_mapping.py]
-        Prompts[prompts/prompts.yaml]
-    end
-    
-    subgraph "Best Practices"
-        Standard[standard.py]
-        Secrets[secrets_detection.py]
-        Governance[governance.py]
-        DocsWebsite[docs_website.py]
-    end
-    
-    subgraph "Utils Layer"
-        AIUtils[ai_utils.py - LiteLLM Integration]
-        GitUtils[git_utils.py]
-        CLIUtils[cli_utils.py - Spinner Management]
-        PromptUtils[prompt_utils.py]
-    end
-    
-    App --> CLI
-    CLI --> Apply
-    CLI --> Deploy
-    CLI --> Models
-    CLI --> List
-    Apply --> Spinner
-    Apply --> Manager
-    Manager --> Mapping
-    Manager --> Standard
-    Manager --> Secrets
-    Standard --> AIUtils
-    Standard --> PromptUtils
-    PromptUtils --> Prompts
-    AIUtils --> LiteLLM[100+ AI Models via LiteLLM]
-```
-
-#### Key Components
-
-1. **Typer CLI Framework** (`src/jpl/slim/app.py`, `src/jpl/slim/cli.py`):
-   - **app.py**: Main Typer application instance with Rich markup support
-   - **cli.py**: Entry point and legacy compatibility layer
-   - Features: Rich TUI, dry-run mode, global state management
-   - Uses decorators: `@app.command()` for command registration
-
-2. **Commands Package** (`src/jpl/slim/commands/`):
-   - **Modern Typer Commands**: Each command uses Typer decorators and type hints
-   - **Rich Integration**: Progress bars, spinners, and colored output
-   - **Key Commands**:
-     - `apply_command.py`: Apply best practices with Rich progress indicators
-     - `models_command.py`: AI model discovery and management (NEW)
-     - `deploy_command.py`: Git deployment with spinner feedback
-     - `list_command.py`: List available practices
-
-3. **Rich TUI System** (`src/jpl/slim/utils/cli_utils.py`):
-   - **SpinnerManager**: Global progress coordination during user input
-   - **managed_progress()**: Context manager for spinner/progress coordination
-   - **spinner_safe_input()**: Clean user input with automatic progress pause/resume
-
-4. **Practice Mapping System** (`src/jpl/slim/best_practices/practice_mapping.py`):
-   - **ALIAS_TO_PRACTICE_CLASS**: Central mapping for extensibility
-   - **ALIAS_TO_FILE_PATH**: File placement mapping for StandardPractice
-   - **Helper Functions**: Practice type detection and classification
-   - **Extension Point**: Add new practices by updating mappings
-
-5. **Best Practices Package** (`src/jpl/slim/best_practices/`):
-   - **Base Classes**: Abstract interfaces for different practice types
-   - **Standard Practices**: Template-based practices (README, CONTRIBUTING, etc.)
-   - **Secrets Detection**: Security-focused practices
-   - **Governance**: Project governance with git contributor integration
-   - **Documentation Website**: AI-powered documentation site generation
-
-6. **AI Integration** (`src/jpl/slim/utils/ai_utils.py`, `src/jpl/slim/prompts/`):
-   - **LiteLLM Integration**: 100+ AI models with automatic discovery
-   - **Centralized Prompts**: YAML-based prompt management with inheritance
-   - **Model Management**: Validation, recommendations, and setup instructions
-   - **Repository Context**: Configurable context extraction for AI enhancement
-
-7. **Utils Layer** (`src/jpl/slim/utils/`):
-   - **ai_utils.py**: LiteLLM integration and model management
-   - **cli_utils.py**: Rich TUI utilities and spinner management
-   - **git_utils.py**: Git operations with `create_repo_temp_dir()` helper
-   - **prompt_utils.py**: Centralized prompt loading and context management
-   - **io_utils.py**: File I/O and registry operations
-
-### Extension Points
+## Extension Points
 
 SLIM is designed to be easily extended with new best practices and commands. Here's how to add new functionality:
 
@@ -228,6 +182,8 @@ SLIM is designed to be easily extended with new best practices and commands. Her
 **Modern Best Practice Implementation Process:**
 
 SLIM uses a centralized mapping system for extensibility. To add a new best practice:
+
+**Note**: Best practices do NOT require new command files. They work with existing `apply`, `deploy`, and `apply-deploy` commands. You only need to:
 
 **1. Update Practice Mapping** (`src/jpl/slim/best_practices/practice_mapping.py`):
 
@@ -443,7 +399,9 @@ Typer automatically discovers commands decorated with `@app.command()`. The impo
 
 ### Testing Your Extensions
 
-SLIM CLI uses a comprehensive testing framework combining pytest with YAML-based integration testing:
+When adding new features, comprehensive testing is essential. See [TESTING.md](TESTING.md) for the overall test architecture and how to run tests.
+
+For testing new extensions specifically:
 
 **1. Add YAML Integration Tests** (`tests/integration/best_practices_test_commands.yaml`):
 
@@ -465,7 +423,7 @@ your-new-practice:
       enabled: true
 ```
 
-**2. Write Unit Tests** (`tests/jpl/slim/best_practices/test_your_practice.py`):
+**2. Write Unit Tests** for custom practice classes:
 
 ```python
 import pytest
@@ -489,25 +447,7 @@ class TestYourNewPractice:
         assert "Dry run complete" in result.stdout
 ```
 
-**3. Run Tests**:
-
-```bash
-# Run all tests
-pytest
-
-# Run only your new tests
-pytest tests/jpl/slim/best_practices/test_your_practice.py
-
-# Run YAML integration tests
-pytest tests/jpl/slim/cli/test_best_practice_commands.py
-
-# Test with coverage
-pytest --cov=jpl.slim
-
-# Run tests (no special environment variable needed)
-```
-
-**4. Manual Testing**:
+**3. Manual Testing**:
 
 ```bash
 # Test your new practice

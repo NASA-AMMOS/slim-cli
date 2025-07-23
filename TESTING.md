@@ -19,11 +19,36 @@ We use the following tests to ensure SLIM CLI's quality, performance, and reliab
 
 #### Running Manually
 
+##### Using UV (Recommended)
+
+```bash
+# UV automatically handles dependencies and virtual environment
+# No need to install pytest separately
+
+# Run ALL tests (unit + integration)
+uv run pytest tests/
+
+# Run all unit tests only
+uv run pytest tests -m "unit"
+
+# Run specific test modules
+uv run pytest tests/jpl/slim/utils/test_git_utils.py
+uv run pytest tests/jpl/slim/cli/test_models_command.py
+
+# Run with verbose output
+uv run pytest tests/jpl/slim/ -v -s
+```
+
+##### Using Traditional pip/venv
+
 ```bash
 # Install test dependencies
 pip install pytest
 
-# Run all unit tests
+# Run ALL tests (unit + integration)
+pytest tests/
+
+# Run all unit tests only
 pytest tests -m "unit"
 
 # Run specific test modules
@@ -56,7 +81,28 @@ pytest tests/jpl/slim/ -v -s
 
 #### Running Manually
 
+##### Using UV (Recommended)
+
 ```bash
+# Run ALL tests (unit + integration)
+uv run pytest tests/
+
+# Run all YAML-configured integration tests
+uv run pytest tests/integration/test_best_practice_commands.py
+
+# Run with verbose output to see individual YAML commands
+uv run pytest -v tests/integration/test_best_practice_commands.py
+
+# Enable/disable specific tests via YAML configuration
+# Edit tests/integration/best_practices_test_commands.yaml
+```
+
+##### Using Traditional pip/venv
+
+```bash
+# Run ALL tests (unit + integration)
+pytest tests/
+
 # Run all YAML-configured integration tests
 pytest tests/integration/test_best_practice_commands.py
 
@@ -146,6 +192,10 @@ When adding new test functionality to SLIM CLI:
 3. **Add AI integration tests** to `/tests/integration` under a new best practice class or existing. See examples for refernece. NOTE: you'll want to ensure your tests read output from `caplog.text` and properly filter the string to review AI generated logs from your debugging logs (i.e. `--logging DEBUG`)
 4. **Include error scenarios** and edge cases
 5. **Document test purpose** with clear docstrings
-6. **Run full test suite** before submitting PR by running `pytest`
+6. **Run full test suite** before submitting PR by running `uv run pytest` (or `pytest` if using traditional setup)
+
+## Testing New Extensions
+
+For specific guidance on testing new best practices and commands you're adding to SLIM CLI, see the [Testing Your Extensions](CONTRIBUTING.md#testing-your-extensions) section in CONTRIBUTING.md.
 
 For detailed contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
