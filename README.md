@@ -187,6 +187,28 @@ This section provides detailed commands to interact with the SLIM CLI. Each comm
 To specify a logging level for the app, choose between `DEBUG`, `INFO` (default), `WARNING`, `ERROR`, `CRITICAL`: 
 ```slim --logging DEBUG```
 
+#### Command Shorthands
+
+SLIM CLI provides convenient shorthand options for commonly used arguments:
+
+- `-b` for `--best-practice-ids` - Specify best practice aliases
+- `-r` for `--repo-urls` - Specify repository URLs  
+- `-d` for `--dry-run` - Preview changes without applying them
+- `-l` for `--logging` - Set logging level
+- `-m` for `--commit-message` - Custom commit message (apply-deploy command)
+
+**Examples:**
+```bash
+# Using full argument names
+slim apply --best-practice-ids readme --repo-urls https://github.com/user/repo
+
+# Using shorthands (equivalent)
+slim apply -b readme -r https://github.com/user/repo
+
+# Multiple values with shorthands
+slim apply -b readme -b governance-small -r https://github.com/org/repo1 -r https://github.com/org/repo2
+```
+
 1. **List all available best practices**
    - This command lists all best practices fetched from the SLIM registry.
    ```bash

@@ -49,7 +49,7 @@ def apply_deploy(
     ),
     repo_urls: Optional[List[str]] = typer.Option(
         None,
-        "--repo-urls",
+        "--repo-urls", "-r",
         help="Repository URLs to apply to. Do not use if --repo-dir specified"
     ),
     repo_urls_file: Optional[Path] = typer.Option(
