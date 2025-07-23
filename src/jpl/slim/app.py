@@ -48,7 +48,13 @@ app = typer.Typer(
   slim apply --best-practice-ids governance-small --repo-urls-file repos.txt\n
   
   [u]Apply docs-website using a cloud AI model:[/u]\n\n
-  slim apply --best-practice-ids docs-website --repo-urls <YOUR_GITHUB_REPO_URL> --output-dir /path/to/new/docs-website-folder-to-create --use-ai anthropic/claude-3-5-sonnet-20241022\n\n
+  slim apply --best-practice-ids docs-website --repo-urls <YOUR_GITHUB_REPO_URL> --output-dir /path/to/new/docs-website-folder-to-create --use-ai anthropic/claude-3-5-sonnet-20241022\n
+  
+  [u]Quick example with shorthands:[/u]\n\n
+  slim apply -b readme -r https://github.com/user/repo\n
+  
+  [u]Multiple values with shorthands:[/u]\n\n
+  slim apply -b readme -b governance-small -r https://github.com/org/repo1 -r https://github.com/org/repo2\n\n
 
 
 [blue]Visit the SLIM website: https://github.com/NASA-AMMOS/slim[/blue]
