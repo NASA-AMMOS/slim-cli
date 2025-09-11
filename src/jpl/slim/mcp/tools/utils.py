@@ -31,8 +31,12 @@ def normalize_repo_url(url: str) -> str:
         return ""
     
     # Add https:// if no protocol is specified
-    if not url.startswith(("http://", "https://", "git://", "ssh://")):
-        url = f"https://{url}"
+    if not url.startswith(("https://", "git://", "ssh://")):
+        # Convert http:// to https:// for security
+        if url.startswith("http://"):
+            url = url.replace("http://", "https://", 1)
+        else:
+            url = f"https://{url}"
     
     return url
 
@@ -40,7 +44,7 @@ def validate_repo_url(url: str) -> bool:
     """Validate a repository URL."""
     try:
         parsed = urllib.parse.urlparse(url)
-        return bool(parsed.netloc and parsed.scheme in ("http", "https", "git", "ssh"))
+        return bool(parsed.netloc and parsed.scheme in ("https", "git", "ssh"))
     except Exception:
         return False
 

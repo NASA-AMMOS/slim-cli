@@ -98,7 +98,7 @@ def test_utilities():
             "https://github.com/user/repo",
             "git@github.com:user/repo.git",
             "not-a-url",
-            "ftp://example.com/repo"
+            "sftp://example.com/repo"
         ]
         
         for url in test_urls:
