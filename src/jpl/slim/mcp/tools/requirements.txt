@@ -1,0 +1,20 @@
+# MCP Server Requirements for SLIM-CLI
+
+# Core MCP dependencies
+mcp[cli]>=0.5.0
+
+# SLIM-CLI dependencies (should already be installed)
+typer>=0.7.0
+rich>=10.0.0
+gitpython>=3.1.0
+pyyaml>=6.0
+requests>=2.25.0
+
+# Optional but recommended
+litellm>=1.0.0  # Enhanced AI model support
+detect-secrets>=1.4.0  # For secrets detection practices
+
+# Development dependencies (optional)
+pytest>=7.0.0
+pytest-asyncio>=0.20.0
+pytest-mock>=3.10.0
