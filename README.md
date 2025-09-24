@@ -378,6 +378,19 @@ pip show slim-cli | grep Location
 **Working from any directory:**
 The `uvx --directory` option ensures the MCP server works regardless of which directory you're running Claude Code from. This is the key advantage over previous methods.
 
+### Disconnecting/Removing MCP Server
+
+If you need to disconnect or remove the SLIM CLI MCP server from Claude Code:
+
+```bash
+# Remove the SLIM CLI MCP server
+claude mcp remove slim-cli
+
+# Verify removal
+claude mcp list
+# Should no longer show slim-cli in the list
+```
+
 ### Available MCP Tools
 
 - `slim_list_all_practices` - List all SLIM best practices
