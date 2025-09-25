@@ -39,6 +39,7 @@ SLIM CLI is a command-line tool designed to infuse SLIM best practices seamlessl
   - [Run Instructions](#run-instructions)
 - [Generate Documentation](#generate-documentation)
 - [Discover and Manage AI Models](#discover-and-manage-ai-models)
+- [MCP Plugin Integration](#mcp-plugin-integration)
 - [Changelog](#changelog)
 - [Frequently Asked Questions (FAQ)](#frequently-asked-questions-faq)
 - [Contributing](#contributing)
@@ -54,7 +55,7 @@ This guide provides a quick way to get started with our project. Please see our 
 
 ### Requirements
 
-* Python 3.9+
+* Python 3.10+ (recommended for MCP server integration)
 * Git
 * **Optional**: LiteLLM for enhanced AI model support (automatically installed with slim-cli)
 * **Optional**: API keys for cloud AI models - if using cloud models, set the appropriate environment variable:
@@ -315,6 +316,97 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 # Ollama (local models) - no API key needed
 ollama serve
 ```
+
+## MCP Plugin Integration
+
+SLIM CLI now includes a **Model Context Protocol (MCP) plugin** that enables seamless integration with AI coding assistants like Claude Code, Aider, and other MCP-compatible tools. This allows you to apply SLIM best practices directly from within your AI coding environment using natural language.
+
+### Key Features
+
+- **Natural Language Interface**: Apply SLIM best practices using conversational AI commands
+- **Repository Context Awareness**: Automatically analyzes your repository structure and customizes templates
+- **Real-time Best Practices**: Fetches the latest SLIM best practices from the live registry
+- **AI-Powered Customization**: Leverages your AI assistant's capabilities for intelligent template customization
+
+### Quick Setup for Claude Code
+
+1. **Install SLIM CLI** (if not already installed):
+   ```bash
+   pip install slim-cli
+   ```
+
+2. **Add the MCP server to Claude Code**:
+   ```bash
+   # Replace /path/to/slim-cli with your actual SLIM CLI installation directory
+   # To find it, run: pip show -f slim-cli | grep Location
+   claude mcp add slim-cli -s user -- uvx --directory /path/to/slim-cli --from /path/to/slim-cli python /path/to/slim-cli/src/jpl/slim/mcp/server.py
+   ```
+
+   **For development/local installations:**
+   ```bash
+   # If you cloned the SLIM CLI repository locally
+   claude mcp add slim-cli -s user -- uvx --directory /Users/yourusername/src/slim-cli --from /Users/yourusername/src/slim-cli python /Users/yourusername/src/slim-cli/src/jpl/slim/mcp/server.py
+   ```
+
+3. **Verify connection**:
+   ```bash
+   claude mcp list
+   # Should show: slim-cli - ✓ Connected
+   ```
+
+4. **Use in Claude Code**:
+   - Simply ask: *"Apply the SLIM readme best practice with AI customization"*
+   - Or: *"List all available SLIM best practices"*
+   - Or: *"Apply governance template to this repository"*
+
+### Troubleshooting MCP Setup
+
+**Finding your SLIM CLI installation path:**
+```bash
+# For pip installations
+python -c "import jpl.slim; print(jpl.slim.__file__.replace('__init__.py', ''))"
+
+# Or check pip installation location
+pip show slim-cli | grep Location
+```
+
+**Common issues:**
+- **"Failed to connect"**: Ensure the paths in the `uvx` command point to your actual SLIM CLI installation
+- **"uvx not found"**: Install `uv` first: `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- **"Module not found"**: Verify SLIM CLI is installed: `pip show slim-cli`
+
+**Working from any directory:**
+The `uvx --directory` option ensures the MCP server works regardless of which directory you're running Claude Code from. This is the key advantage over previous methods.
+
+### Disconnecting/Removing MCP Server
+
+If you need to disconnect or remove the SLIM CLI MCP server from Claude Code:
+
+```bash
+# Remove the SLIM CLI MCP server
+claude mcp remove slim-cli
+
+# Verify removal
+claude mcp list
+# Should no longer show slim-cli in the list
+```
+
+### Available MCP Tools
+
+- `slim_list_all_practices` - List all SLIM best practices
+- `slim_apply_practice_with_ai` - Apply practices with AI customization
+- `slim_analyze_repository_context_tool` - Analyze repository context
+- `slim_fetch_template_content` - Fetch templates from registry
+- `slim_models_recommend` - Get AI model recommendations
+
+### Documentation
+
+For detailed setup instructions and troubleshooting:
+- **[Installation Guide](src/jpl/slim/mcp/docs/installation.md)** - Complete MCP server setup
+- **[Integration Guide](src/jpl/slim/mcp/docs/integration.md)** - Using SLIM with AI assistants
+- **[MCP Documentation](src/jpl/slim/mcp/docs/README.md)** - Technical details and API reference
+
+💡 **Tip**: The MCP plugin works with any MCP-compatible AI assistant, not just Claude Code!
 
 ## Changelog
 
